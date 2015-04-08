@@ -1,5 +1,5 @@
 #include "stdafx.h"
-#include "HttpHelper.h"
+#include "HttpHelper.hpp"
 
 //
 // HttpHelper Class by Even Rognlien, used with permission

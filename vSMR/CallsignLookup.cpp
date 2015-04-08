@@ -1,8 +1,8 @@
 #include "stdafx.h"
-#include "CallsignLookup.h"
+#include "CallsignLookup.hpp"
 
 //
-// CCallsignLookup: Even Arneberg Rognlien
+// CCallsignLookup Class by Even Rognlien, used with permission
 //
 
 CCallsignLookup::CCallsignLookup(std::string fileName) {

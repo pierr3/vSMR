@@ -1,5 +1,5 @@
 #include "stdafx.h"
-#include "SMRPlugin.h"
+#include "SMRPlugin.hpp"
 
 vector<CSMRRadar *> RadarDisplayOpened;
 

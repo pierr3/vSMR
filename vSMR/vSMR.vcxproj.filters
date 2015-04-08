@@ -50,9 +50,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="vSMR.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="stdafx.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -65,28 +62,31 @@
     <ClInclude Include="..\..\..\..\..\..\..\Bitbucket\EuroscopePlugin\EuroScopePlugIn.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="SMRPlugin.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Rimcas.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="SMRRadar.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="TGraphics.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="CallsignLookup.h">
+    <ClInclude Include="CallsignLookup.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="HttpHelper.h">
+    <ClInclude Include="CPDLCSettingsDialog.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="DataLinkDialog.h">
+    <ClInclude Include="DataLinkDialog.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="CPDLCSettingsDialog.h">
+    <ClInclude Include="HttpHelper.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Rimcas.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="SMRPlugin.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="SMRRadar.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="vSMR.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

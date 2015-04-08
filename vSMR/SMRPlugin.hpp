@@ -1,12 +1,12 @@
 #pragma once
 #include "EuroScopePlugIn.h"
-#include "HttpHelper.h"
-#include "CPDLCSettingsDialog.h"
-#include "DataLinkDialog.h"
+#include "HttpHelper.hpp"
+#include "CPDLCSettingsDialog.hpp"
+#include "DataLinkDialog.hpp"
 #include <string>
 #include <algorithm>
 #include "Mmsystem.h"
-#include "SMRRadar.h"
+#include "SMRRadar.hpp"
 
 #define MY_PLUGIN_NAME      "vSMR"
 #define MY_PLUGIN_VERSION   "RC1-dev-e32"

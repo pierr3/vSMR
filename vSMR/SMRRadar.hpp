@@ -12,9 +12,9 @@
 #include <functional> 
 #include <cctype>
 #include <locale>
-#include "CallsignLookup.h"
+#include "CallsignLookup.hpp"
 #include "TGraphics.h"
-#include "Rimcas.h"
+#include "Rimcas.hpp"
 
 using namespace std;
 using namespace EuroScopePlugIn;

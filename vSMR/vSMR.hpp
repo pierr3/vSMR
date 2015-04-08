@@ -3,7 +3,7 @@
 
 #pragma once
 #include "EuroScopePlugIn.h"
-#include "SMRPlugin.h"
+#include "SMRPlugin.hpp"
 
 #ifndef __AFXWIN_H__
 	#error "include 'stdafx.h' before including this file for PCH"

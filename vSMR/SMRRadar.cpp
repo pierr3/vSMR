@@ -1,5 +1,5 @@
 #include "stdafx.h"
-#include "SMRRadar.h"
+#include "SMRRadar.hpp"
 
 RECT TimePopupArea = { 300, 300, 430, 363 };
 

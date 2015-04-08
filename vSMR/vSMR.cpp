@@ -2,7 +2,7 @@
 //
 
 #include "stdafx.h"
-#include "vSMR.h"
+#include "vSMR.hpp"
 
 
 #ifdef _DEBUG

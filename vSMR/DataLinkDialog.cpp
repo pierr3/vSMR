@@ -2,8 +2,8 @@
 //
 
 #include "stdafx.h"
-#include "vSMR.h"
-#include "DataLinkDialog.h"
+#include "vSMR.hpp"
+#include "DataLinkDialog.hpp"
 #include "afxdialogex.h"
 
 

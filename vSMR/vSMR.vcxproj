@@ -133,18 +133,18 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\..\..\..\Bitbucket\EuroscopePlugin\EuroScopePlugIn.h" />
-    <ClInclude Include="CallsignLookup.h" />
-    <ClInclude Include="CPDLCSettingsDialog.h" />
-    <ClInclude Include="DataLinkDialog.h" />
-    <ClInclude Include="HttpHelper.h" />
+    <ClInclude Include="CallsignLookup.hpp" />
+    <ClInclude Include="CPDLCSettingsDialog.hpp" />
+    <ClInclude Include="DataLinkDialog.hpp" />
+    <ClInclude Include="HttpHelper.hpp" />
     <ClInclude Include="Resource.h" />
-    <ClInclude Include="Rimcas.h" />
-    <ClInclude Include="SMRPlugin.h" />
-    <ClInclude Include="SMRRadar.h" />
+    <ClInclude Include="Rimcas.hpp" />
+    <ClInclude Include="SMRPlugin.hpp" />
+    <ClInclude Include="SMRRadar.hpp" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="TGraphics.h" />
-    <ClInclude Include="vSMR.h" />
+    <ClInclude Include="vSMR.hpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="res\vSMR.rc2" />
