@@ -273,7 +273,7 @@ void CSMRRadar::OnClickScreenObject(int ObjectType, const char * sObjectId, POIN
 		Area.bottom = Area.bottom + 30;
 
 		GetPlugIn()->OpenPopupList(Area, "Display Menu", 1);
-		GetPlugIn()->AddPopupListElement("QDM", "", RIMCAS_QDM_TOGGLE);
+		GetPlugIn()->AddPopupListElement("QDR", "", RIMCAS_QDM_TOGGLE);
 		GetPlugIn()->AddPopupListElement("Tags  >", "", RIMCAS_TAGS_MENU);
 		GetPlugIn()->AddPopupListElement("Primary target", "", RIMCAS_PRIMARY, false, showPrimaryTarget);
 		GetPlugIn()->AddPopupListElement("Approach Window", "", RIMCAS_APPWINDOW);
@@ -1683,7 +1683,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 
 
 	//---------------------------------
-	// QDM
+	// QRD
 	//---------------------------------
 
 	if (QDMenabled) {

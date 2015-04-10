@@ -118,10 +118,7 @@ public:
 	string GetAcInRunwayArea(CRadarTarget Ac, CRadarScreen *instance);
 	string GetAcInRunwayAreaSoon(CRadarTarget Ac, CRadarScreen *instance);
 	void AddRunwayArea(CRadarScreen *instance, string runway_name1, string runway_name2, CPosition Left, CPosition Right, float hwidth = 92.5f, float hlenght = 250.0f);
-	void ProcessAircrafts();
 	COLORREF GetAircraftColor(string AcCallsign, COLORREF AcColor);
-
-	void BuildMenu(CRadarScreen *instance, HDC hDC, string menu, RECT Position, map<string, int> items);
 
 	bool isAcOnRunway(CRadarTarget rt);
 

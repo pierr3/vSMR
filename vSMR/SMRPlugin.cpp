@@ -341,7 +341,7 @@ void CSMRPlugin::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, 
 				*pColorCode = TAG_COLOR_RGB_DEFINED;
 				*pRGB = RGB(130, 130, 130);
 
-				strcpy_s(sItemString, 16, "N");
+				strcpy_s(sItemString, 16, "-");
 			}
 		}
 	}

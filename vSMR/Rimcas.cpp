@@ -31,10 +31,6 @@ void CRimcas::OnRefresh(CRadarTarget Rt, CRadarScreen *instance) {
 	GetAcInRunwayAreaSoon(Rt, instance);
 }
 
-void CRimcas::OnRefreshEnd() {
-	ProcessAircrafts();
-}
-
 void CRimcas::AddRunwayArea(CRadarScreen *instance, string runway_name1, string runway_name2, CPosition Left, CPosition Right, float hwidth, float hlenght) {
 	RunwayAreas[runway_name1] = GetRunwayArea(instance, Left, Right, hwidth, hlenght);
 	RunwayAreas[runway_name2] = GetRunwayArea(instance, Left, Right, hwidth, hlenght);
@@ -56,7 +52,7 @@ string CRimcas::GetAcInRunwayArea(CRadarTarget Ac, CRadarScreen *instance) {
 
 		vector<POINT> RwyPolygon = { tTopLeft, tTopRight, tBottomRight, tBottomLeft };
 
-		if (Is_Inside(AcPosPix, RwyPolygon)) {
+		if (Is_Inside(AcPosPix, RwyPolygon) && Ac.GetGS() < 200) {
 			AcOnRunway.insert(std::pair<string, string>(it->first, Ac.GetCallsign()));
 			return string(it->first);
 		}
@@ -90,7 +86,7 @@ string CRimcas::GetAcInRunwayAreaSoon(CRadarTarget Ac, CRadarScreen *instance) {
 				CPosition TempPosition = Haversine(Ac.GetPosition().GetPosition(), float(Ac.GetTrackHeading()), Distance);
 				POINT TempPoint = instance->ConvertCoordFromPositionToPixel(TempPosition);
 
-				if (Is_Inside(TempPoint, RwyPolygon) && !Is_Inside(AcPosPix, RwyPolygon)) {
+				if (Is_Inside(TempPoint, RwyPolygon) && !Is_Inside(AcPosPix, RwyPolygon) && Ac.GetGS() < 200) {
 					TimeTable[it->first][i] = string(Ac.GetCallsign());
 
 					// If aircraft is 30 seconds from landing, then it's considered on the runway
@@ -174,7 +170,7 @@ CRimcas::RunwayAreaType CRimcas::GetRunwayArea(CRadarScreen *instance, CPosition
 
 }
 
-void CRimcas::ProcessAircrafts() {
+void CRimcas::OnRefreshEnd() {
 
 	for (std::map<string, RunwayAreaType>::iterator it = RunwayAreas.begin(); it != RunwayAreas.end(); ++it)
 	{
@@ -207,34 +203,6 @@ void CRimcas::ProcessAircrafts() {
 		}
 
 	}
-
-}
-
-void CRimcas::BuildMenu(CRadarScreen *instance, HDC hDC, string menu, RECT Position, map<string, int> items) {
-	CDC dc;
-	dc.Attach(hDC);
-
-	dc.FillSolidRect(new CRect(Position), RGB(127, 122, 122));
-
-	instance->AddScreenObject(8001, menu.c_str(), Position, true, menu.c_str());
-
-	string menu_title = menu + "        X";
-	dc.TextOutA(Position.left + 4, Position.top + 3, menu_title.c_str());
-
-	int topTextPos = Position.top + 3 + dc.GetTextExtent(menu_title.c_str()).cy + 3;
-	int offset = 3;
-
-	for (std::map<string, int>::iterator it = items.begin(); it != items.end(); ++it)
-	{
-		dc.TextOutA(Position.left + 4, topTextPos, it->first.c_str());
-		if (it->second != 0) {
-			CRect TextRect = { Position.left + 4, topTextPos, Position.left + 4 + dc.GetTextExtent(it->first.c_str()).cx, +topTextPos + dc.GetTextExtent(it->first.c_str()).cy };
-			instance->AddScreenObject(it->second, it->first.c_str(), TextRect, false, it->first.c_str());
-		}
-		topTextPos = topTextPos + dc.GetTextExtent(it->first.c_str()).cy + offset;
-	}
-
-	dc.Detach();
 
 }
 
