@@ -294,12 +294,25 @@ void CSMRRadar::OnClickScreenObject(int ObjectType, const char * sObjectId, POIN
 	}
 
 	if (ObjectType == DRAWING_TAG) {
-		GetPlugIn()->SetASELAircraft(GetPlugIn()->FlightPlanSelect(sObjectId));
+		CFlightPlan Fp = GetPlugIn()->FlightPlanSelect(sObjectId);
+		CRadarTarget rt = GetPlugIn()->RadarTargetSelect(sObjectId);
+		if (rt.GetCorrelatedFlightPlan().IsValid()) {
+			StartTagFunction(rt.GetCallsign(), NULL, EuroScopePlugIn::TAG_ITEM_TYPE_CALLSIGN, rt.GetCallsign(), NULL, EuroScopePlugIn::TAG_ITEM_FUNCTION_NO, Pt, Area);
+		}
+		else {
+			GetPlugIn()->SetASELAircraft(Fp);
+		}
 	}
 
 	if (ObjectType == TAG_CITEM_CALLSIGN) {
-		CFlightPlan rt = GetPlugIn()->FlightPlanSelect(sObjectId);
-		GetPlugIn()->SetASELAircraft(rt);
+		CFlightPlan Fp = GetPlugIn()->FlightPlanSelect(sObjectId);
+		CRadarTarget rt = GetPlugIn()->RadarTargetSelect(sObjectId);
+		if (rt.GetCorrelatedFlightPlan().IsValid()) {
+			StartTagFunction(rt.GetCallsign(), NULL, EuroScopePlugIn::TAG_ITEM_TYPE_CALLSIGN, rt.GetCallsign(), NULL, EuroScopePlugIn::TAG_ITEM_FUNCTION_NO, Pt, Area);
+		}
+		else {
+			GetPlugIn()->SetASELAircraft(Fp);
+		}
 
 		if (Button == EuroScopePlugIn::BUTTON_LEFT || Button == EuroScopePlugIn::BUTTON_MIDDLE)
 			StartTagFunction(rt.GetCallsign(), NULL, TAG_CITEM_CALLSIGN, rt.GetCallsign(), NULL, EuroScopePlugIn::TAG_ITEM_FUNCTION_HANDOFF_POPUP_MENU, Pt, Area);
@@ -308,22 +321,40 @@ void CSMRRadar::OnClickScreenObject(int ObjectType, const char * sObjectId, POIN
 	}
 
 	if (ObjectType == TAG_CITEM_FPBOX) {
-		CFlightPlan rt = GetPlugIn()->FlightPlanSelect(sObjectId);
-		GetPlugIn()->SetASELAircraft(rt);
+		CFlightPlan Fp = GetPlugIn()->FlightPlanSelect(sObjectId);
+		CRadarTarget rt = GetPlugIn()->RadarTargetSelect(sObjectId);
+		if (rt.GetCorrelatedFlightPlan().IsValid()) {
+			StartTagFunction(rt.GetCallsign(), NULL, EuroScopePlugIn::TAG_ITEM_TYPE_CALLSIGN, rt.GetCallsign(), NULL, EuroScopePlugIn::TAG_ITEM_FUNCTION_NO, Pt, Area);
+		}
+		else {
+			GetPlugIn()->SetASELAircraft(Fp);
+		}
 
 		StartTagFunction(rt.GetCallsign(), NULL, TAG_CITEM_FPBOX, rt.GetCallsign(), NULL, EuroScopePlugIn::TAG_ITEM_FUNCTION_OPEN_FP_DIALOG, Pt, Area);
 	}
 
 	if (ObjectType == TAG_CITEM_RWY) {
-		CFlightPlan rt = GetPlugIn()->FlightPlanSelect(sObjectId);
-		GetPlugIn()->SetASELAircraft(rt);
+		CFlightPlan Fp = GetPlugIn()->FlightPlanSelect(sObjectId);
+		CRadarTarget rt = GetPlugIn()->RadarTargetSelect(sObjectId);
+		if (rt.GetCorrelatedFlightPlan().IsValid()) {
+			StartTagFunction(rt.GetCallsign(), NULL, EuroScopePlugIn::TAG_ITEM_TYPE_CALLSIGN, rt.GetCallsign(), NULL, EuroScopePlugIn::TAG_ITEM_FUNCTION_NO, Pt, Area);
+		}
+		else {
+			GetPlugIn()->SetASELAircraft(Fp);
+		}
 
 		StartTagFunction(rt.GetCallsign(), NULL, TAG_CITEM_RWY, rt.GetCallsign(), NULL, EuroScopePlugIn::TAG_ITEM_FUNCTION_ASSIGNED_RUNWAY, Pt, Area);
 	}
 
 	if (ObjectType == TAG_CITEM_GATE) {
-		CFlightPlan rt = GetPlugIn()->FlightPlanSelect(sObjectId);
-		GetPlugIn()->SetASELAircraft(rt);
+		CFlightPlan Fp = GetPlugIn()->FlightPlanSelect(sObjectId);
+		CRadarTarget rt = GetPlugIn()->RadarTargetSelect(sObjectId);
+		if (rt.GetCorrelatedFlightPlan().IsValid()) {
+			StartTagFunction(rt.GetCallsign(), NULL, EuroScopePlugIn::TAG_ITEM_TYPE_CALLSIGN, rt.GetCallsign(), NULL, EuroScopePlugIn::TAG_ITEM_FUNCTION_NO, Pt, Area);
+		}
+		else {
+			GetPlugIn()->SetASELAircraft(Fp);
+		}
 
 		StartTagFunction(rt.GetCallsign(), NULL, TAG_CITEM_GATE, rt.GetCallsign(), NULL, EuroScopePlugIn::TAG_ITEM_FUNCTION_EDIT_SCRATCH_PAD, Pt, Area);
 	}
@@ -595,12 +626,13 @@ void CSMRRadar::OnRadarTargetPositionUpdate(CRadarTarget RadarTarget)
 	// ------
 }
 
-string CSMRRadar::GetBottomLine(string Callsign) {
-	CFlightPlan fp = GetPlugIn()->RadarTargetSelect(Callsign.c_str()).GetCorrelatedFlightPlan();
+string CSMRRadar::GetBottomLine(const char * Callsign) {
+	
+	CFlightPlan fp = GetPlugIn()->FlightPlanSelect(Callsign);
 	string to_render = "";
 	if (fp.IsValid()) {
 		to_render += fp.GetCallsign();
-
+	
 		string callsign_code = fp.GetCallsign();
 		callsign_code = callsign_code.substr(0, 3);
 		to_render += " (" + Callsigns->getCallsign(callsign_code) + ")";
@@ -610,7 +642,7 @@ string CSMRRadar::GetBottomLine(string Callsign) {
 		to_render += "): ";
 		to_render += fp.GetFlightPlanData().GetAircraftFPType();
 		to_render += " ";
-
+	
 		if (fp.GetFlightPlanData().IsReceived()) {
 			const char * assr = fp.GetControllerAssignedData().GetSquawk();
 			const char * ssr = GetPlugIn()->RadarTargetSelect(fp.GetCallsign()).GetPosition().GetSquawk();

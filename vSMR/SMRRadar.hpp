@@ -8,10 +8,6 @@
 #include <algorithm>
 #include <time.h>
 #include <sstream>
-#include <iomanip>
-#include <functional> 
-#include <cctype>
-#include <locale>
 #include "CallsignLookup.hpp"
 #include "TGraphics.h"
 #include "Rimcas.hpp"
@@ -168,7 +164,7 @@ public:
 
 	//---GetBottomLine---------------------------------------------
 
-	virtual string GetBottomLine(string Callsign);
+	virtual string GetBottomLine(const char * Callsign);
 
 	//---LineIntersect---------------------------------------------
 

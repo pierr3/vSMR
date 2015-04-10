@@ -49,9 +49,7 @@ string tdest;
 
 int messageId = 0;
 
-clock_t timer, timer_long;
-
-string maestrourl;
+clock_t timer;
 
 bool startsWith(const char *pre, const char *str)
 {
@@ -73,11 +71,6 @@ void datalinkLogin(void * arg) {
 		HoppieConnected = true;
 		ConnectionMessage = true;
 	}
-};
-
-void sendMaestroData(void * arg) {
-	string raw;
-	raw.assign(httpHelper->downloadStringFromURL(maestrourl));
 };
 
 void sendDatalinkMessage(void * arg) {
@@ -316,72 +309,6 @@ bool CSMRPlugin::OnCompileCommand(const char * sCommandLine) {
 
 		return true;
 	}
-	else if (startsWith(".send", sCommandLine)) {
-		maestrourl = "http://secure.ferran.io/vMAESTRO/ajax.php?action=plugin&data=[";
-
-		CRadarTarget rt;
-		for (rt = RadarTargetSelectFirst();
-			rt.IsValid();
-			rt = RadarTargetSelectNext(rt))
-		{
-			if (!rt.IsValid() || !rt.GetPosition().IsValid())
-				continue;
-
-			if (rt.GetCorrelatedFlightPlan().IsValid()) {
-				CFlightPlan FlightPlan = rt.GetCorrelatedFlightPlan();
-
-				if (startsWith("LFPG", FlightPlan.GetFlightPlanData().GetDestination())) {
-
-					CFlightPlanExtractedRoute Route = FlightPlan.GetExtractedRoute();
-					for (int i = 0; i < Route.GetPointsNumber(); ++i) {
-						if (startsWith("BANOX", Route.GetPointName(i)) || startsWith("LORNI", Route.GetPointName(i)) || startsWith("OKIPA", Route.GetPointName(i)) || startsWith("MOPAR", Route.GetPointName(i))) {
-
-							if (Route.GetPointDistanceInMinutes(i) == -1)
-								break;
-
-							char ch = maestrourl.back();
-
-							if (ch == '}')
-								maestrourl += ",";
-
-							maestrourl += "{";
-
-							//{"callsign":"AFR310", "dest": "LFPG", "actype":"A320", "rwy": "26L", "wake":"M", "iaf":"LORNI", "est":1930}
-
-							maestrourl += "'callsign':'" + std::string(FlightPlan.GetCallsign()) + "',";
-							maestrourl += "'dest':'" + std::string(FlightPlan.GetFlightPlanData().GetDestination()) + "',";
-							maestrourl += "'actype':'" + std::string(FlightPlan.GetFlightPlanData().GetAircraftFPType()) + "',";
-							maestrourl += "'rwy':'" + std::string(FlightPlan.GetFlightPlanData().GetArrivalRwy()) + "',";
-							string tempS;
-							char tempC = FlightPlan.GetFlightPlanData().GetAircraftWtc();
-							tempS.push_back(tempC);
-							maestrourl += "'wake':'" + std::string(tempS) + "',";
-							maestrourl += "'iaf':'" + std::string(Route.GetPointName(i)) + "',";
-
-							long int t = static_cast<long int>(time(NULL));
-							t += (Route.GetPointDistanceInMinutes(i) * 60);
-
-							maestrourl += "'est':'" + std::to_string(t) + "'";
-
-							maestrourl += "}";
-
-							break;
-						}
-					}
-
-				}
-			}
-
-		}
-
-		maestrourl += "]";
-
-		DisplayUserMessage("D", "D", maestrourl.c_str(), true, true, true, true, true);
-
-		if (maestrourl != "http://secure.ferran.io/vMAESTRO/ajax.php?action=plugin&data=[]") {
-			_beginthread(sendMaestroData, 0, NULL);
-		}
-	}
 	return false;
 }
 
@@ -581,75 +508,7 @@ void CSMRPlugin::OnTimer(int Counter)
 		timer = clock();
 	}
 
-	if (((clock() - timer_long) / CLOCKS_PER_SEC) > 30) {
-		
-		timer_long = clock();
-
-		maestrourl = "http://secure.ferran.io/vMAESTRO/ajax.php?action=plugin&data=[";
-
-		CRadarTarget rt;
-		for (rt = RadarTargetSelectFirst();
-			rt.IsValid();
-			rt = RadarTargetSelectNext(rt))
-		{
-			if (!rt.IsValid() || !rt.GetPosition().IsValid())
-				continue;
-
-			if (rt.GetCorrelatedFlightPlan().IsValid()) {
-				CFlightPlan FlightPlan = rt.GetCorrelatedFlightPlan();
-
-				if (startsWith("LFPG", FlightPlan.GetFlightPlanData().GetDestination())) {
-
-					CFlightPlanExtractedRoute Route = FlightPlan.GetExtractedRoute();
-					for (int i = 0; i < Route.GetPointsNumber(); ++i) {
-						if (startsWith("BANOX", Route.GetPointName(i)) ||startsWith("LORNI", Route.GetPointName(i)) || startsWith("OKIPA", Route.GetPointName(i)) || startsWith("MOPAR", Route.GetPointName(i))) {
-							
-							if (Route.GetPointDistanceInMinutes(i) == -1)
-								break;
-
-							char ch = maestrourl.back();
-
-							if (ch == '}')
-								maestrourl += ",";
-
-							maestrourl += "{";
-								
-							//{"callsign":"AFR310", "dest": "LFPG", "actype":"A320", "rwy": "26L", "wake":"M", "iaf":"LORNI", "est":1930}
-
-							maestrourl += "'callsign':'" + std::string(FlightPlan.GetCallsign()) + "',";
-							maestrourl += "'dest':'" + std::string(FlightPlan.GetFlightPlanData().GetDestination()) + "',";
-							maestrourl += "'actype':'" + std::string(FlightPlan.GetFlightPlanData().GetAircraftFPType()) + "',";
-							maestrourl += "'rwy':'" + std::string(FlightPlan.GetFlightPlanData().GetArrivalRwy()) + "',";
-							string tempS;
-							char tempC = FlightPlan.GetFlightPlanData().GetAircraftWtc();
-							tempS.push_back(tempC);
-							maestrourl += "'wake':'" + std::string(tempS) + "',";
-							maestrourl += "'iaf':'" + std::string(Route.GetPointName(i)) + "',";
-
-							long int t = static_cast<long int>(time(NULL));
-							t += (Route.GetPointDistanceInMinutes(i) * 60);
-
-							maestrourl += "'est':'" + std::to_string(t) + "'";
-
-							maestrourl += "}";
-
-							break;
-						}
-					}
-
-				}
-			}
-
-		}
-
-		maestrourl += "]";
-
-		if (maestrourl != "http://secure.ferran.io/vMAESTRO/ajax.php?action=plugin&data=[]") {
-			_beginthread(sendMaestroData, 0, NULL);
-		}
-	}
-
-	for (auto &ac : AircraftWilco) // access by reference to avoid copying
+	for (auto &ac : AircraftWilco) 
 	{
 		CRadarTarget RadarTarget = RadarTargetSelect(ac.c_str());
 

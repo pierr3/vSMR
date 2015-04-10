@@ -59,9 +59,6 @@
     <ClInclude Include="Resource.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\..\..\..\Bitbucket\EuroscopePlugin\EuroScopePlugIn.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="TGraphics.h">
       <Filter>Header Files</Filter>
     </ClInclude>
