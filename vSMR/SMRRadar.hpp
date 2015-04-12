@@ -50,6 +50,8 @@ public:
 	const int RIMCAS_PRIMARY = 8013;
 	const int RIMCAS_TAGCOLOR = 8014;
 	const int RIMCAS_TIMER = 8015;
+	const int RIMCAS_TAGS_ACTYPE = 8016;
+	const int RIMCAS_TAGS_SQWARNING = 8017;
 
 	bool BLINK = false;
 
@@ -102,6 +104,8 @@ public:
 
 	bool showPrimaryTarget = true;
 	bool TagColorIsFirst = true;
+	bool DisplaySquawkWarning = true;
+	bool HideAcType = false;
 
 	const float Pi = float(atan2(0, -1));
 

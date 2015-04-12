@@ -21,7 +21,8 @@ public:
 	const string string_false = "!NO";
 
 	struct RunwayAreaType {
-		CPosition topLeft, topRight, bottomLeft, bottomRight;
+		CPosition topLeft, topRight, bottomLeft, bottomRight, threshold;
+		double bearing;
 		bool set = false;
 	};
 
@@ -117,12 +118,12 @@ public:
 
 	string GetAcInRunwayArea(CRadarTarget Ac, CRadarScreen *instance);
 	string GetAcInRunwayAreaSoon(CRadarTarget Ac, CRadarScreen *instance);
-	void AddRunwayArea(CRadarScreen *instance, string runway_name1, string runway_name2, CPosition Left, CPosition Right, float hwidth = 92.5f, float hlenght = 250.0f);
+	void AddRunwayArea(CRadarScreen *instance, string runway_name1, string runway_name2, CPosition Left, CPosition Right, double bearing1, double bearing2, float hwidth = 92.5f, float hlenght = 250.0f);
 	COLORREF GetAircraftColor(string AcCallsign, COLORREF AcColor);
 
 	bool isAcOnRunway(CRadarTarget rt);
 
-	RunwayAreaType GetRunwayArea(CRadarScreen *instance, CPosition Left, CPosition Right, float hwidth = 92.5f, float hlenght = 250.0f);
+	RunwayAreaType GetRunwayArea(CRadarScreen *instance, CPosition Left, CPosition Right, int threshold, double bearing, float hwidth = 92.5f, float hlenght = 250.0f);
 
 	void OnRefreshBegin();
 	void OnRefresh(CRadarTarget Rt, CRadarScreen *instance);

@@ -31,9 +31,9 @@ void CRimcas::OnRefresh(CRadarTarget Rt, CRadarScreen *instance) {
 	GetAcInRunwayAreaSoon(Rt, instance);
 }
 
-void CRimcas::AddRunwayArea(CRadarScreen *instance, string runway_name1, string runway_name2, CPosition Left, CPosition Right, float hwidth, float hlenght) {
-	RunwayAreas[runway_name1] = GetRunwayArea(instance, Left, Right, hwidth, hlenght);
-	RunwayAreas[runway_name2] = GetRunwayArea(instance, Left, Right, hwidth, hlenght);
+void CRimcas::AddRunwayArea(CRadarScreen *instance, string runway_name1, string runway_name2, CPosition Left, CPosition Right, double bearing1, double bearing2, float hwidth, float hlenght) {
+	RunwayAreas[runway_name1] = GetRunwayArea(instance, Left, Right, 0, bearing1, hwidth, hlenght);
+	RunwayAreas[runway_name2] = GetRunwayArea(instance, Left, Right, 1, bearing2, hwidth, hlenght);
 }
 
 string CRimcas::GetAcInRunwayArea(CRadarTarget Ac, CRadarScreen *instance) {
@@ -133,7 +133,7 @@ string CRimcas::GetAcInRunwayAreaSoon(CRadarTarget Ac, CRadarScreen *instance) {
 	return CRimcas::string_false;
 }
 
-CRimcas::RunwayAreaType CRimcas::GetRunwayArea(CRadarScreen *instance, CPosition Left, CPosition Right, float hwidth, float hlenght) {
+CRimcas::RunwayAreaType CRimcas::GetRunwayArea(CRadarScreen *instance, CPosition Left, CPosition Right, int threshold, double bearing, float hwidth, float hlenght) {
 
 	float heading = float(Left.DirectionTo(Right));
 	float rheading = float(fmod(heading + 180, 360));
@@ -163,6 +163,13 @@ CRimcas::RunwayAreaType CRimcas::GetRunwayArea(CRadarScreen *instance, CPosition
 	toRender.topRight = TopRight;
 	toRender.bottomLeft = BottomLeft;
 	toRender.bottomRight = BottomRight;
+	toRender.bearing = bearing;
+	if (threshold == 1) {
+		toRender.threshold = Left;
+	}
+	else {
+		toRender.threshold = Right;
+	}
 
 	toRender.set = true;
 

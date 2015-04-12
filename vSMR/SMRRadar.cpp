@@ -122,6 +122,44 @@ void CSMRRadar::OnAsrContentLoaded(bool Loaded)
 		if (temp == 1)
 			appWindow = true;
 	}
+
+	if ((p_value = GetDataFromAsr("HideACType")) != NULL)
+	{
+		int temp = atoi(p_value);
+		HideAcType = false;
+		if (temp == 1)
+			HideAcType = true;
+	}
+
+	if ((p_value = GetDataFromAsr("SquawkError")) != NULL)
+	{
+		int temp = atoi(p_value);
+		DisplaySquawkWarning = false;
+		if (temp == 1)
+			DisplaySquawkWarning = true;
+	}
+
+	// Auto load the airport config on ASR opened.
+	CSectorElement rwy;
+	for (rwy = GetPlugIn()->SectorFileElementSelectFirst(SECTOR_ELEMENT_RUNWAY);
+		rwy.IsValid();
+		rwy = GetPlugIn()->SectorFileElementSelectNext(rwy, SECTOR_ELEMENT_RUNWAY))
+	{
+		if (startsWith(RimcasInstance->getActiveAirport().c_str(), rwy.GetAirportName())) {
+			if (rwy.IsElementActive(true, 0) || rwy.IsElementActive(false, 0)) {
+				RimcasInstance->toggleMonitoredRunwayDep(rwy.GetRunwayName(0));
+				if (rwy.IsElementActive(false, 0)) {
+					RimcasInstance->toggleMonitoredRunwayArr(rwy.GetRunwayName(0));
+				}
+			}
+			if (rwy.IsElementActive(true, 1) || rwy.IsElementActive(false, 1)) {
+				RimcasInstance->toggleMonitoredRunwayDep(rwy.GetRunwayName(1));
+				if (rwy.IsElementActive(false, 1)) {
+					RimcasInstance->toggleMonitoredRunwayArr(rwy.GetRunwayName(1));
+				}
+			}
+		}
+	}
 }
 
 void CSMRRadar::OnAsrContentToBeSaved(void)
@@ -171,7 +209,17 @@ void CSMRRadar::OnAsrContentToBeSaved(void)
 	to_save = "0";
 	if (RimcasInstance->RunwayTimerShort)
 		to_save = "1";
-	SaveDataToAsr("ShortTimer", "Timer lenght", to_save);	
+	SaveDataToAsr("ShortTimer", "Timer lenght", to_save);
+
+	to_save = "0";
+	if (HideAcType)
+		to_save = "1";
+	SaveDataToAsr("HideACType", "Hide the A/c type on short tag", to_save);
+
+	to_save = "0";
+	if (DisplaySquawkWarning)
+		to_save = "1";
+	SaveDataToAsr("SquawkError", "Hide the squawk error warning", to_save);
 
 }
 
@@ -384,6 +432,14 @@ void CSMRRadar::OnFunctionCall(int FunctionId, const char * sItemString, POINT P
 		appWindowScale = atoi(sItemString);
 	}
 
+	if (FunctionId == RIMCAS_TAGS_ACTYPE) {
+		HideAcType = !HideAcType;
+	}
+
+	if (FunctionId == RIMCAS_TAGS_SQWARNING) {
+		DisplaySquawkWarning = !DisplaySquawkWarning;
+	}
+
 	if (FunctionId == RIMCAS_PRIMARY) {
 		showPrimaryTarget = !showPrimaryTarget;
 	}
@@ -543,7 +599,7 @@ void CSMRRadar::OnRadarTargetPositionUpdate(CRadarTarget RadarTarget)
 	//   |_|
 	// Lenght of cone is 3m
 
-	float trackHead = float(RadarTarget.GetTrackHeading());
+	float trackHead = float(RadarTarget.GetPosition().GetReportedHeading());
 	float inverseTrackHead = float(fmod(trackHead + 180.0f, 360));
 	float leftTrackHead = float(fmod(trackHead - 90.0f, 360));
 	float rightTrackHead = float(fmod(trackHead + 90.0f, 360));
@@ -685,22 +741,7 @@ string CSMRRadar::GetBottomLine(const char * Callsign) {
 
 bool CSMRRadar::OnCompileCommand(const char * sCommandLine)
 {
-	// show or hide the list
-	if (startsWith(".cdg c ", sCommandLine))
-	{
-		string runway = sCommandLine;
-		runway = runway.substr(7, 3);
-		if (ClosedRunway.find(runway) != ClosedRunway.end()) {
-			ClosedRunway[runway] = !ClosedRunway[runway];
-		}
-		else {
-			ClosedRunway[runway] = true;
-		}
-
-		RimcasInstance->toggleClosedRunway(runway);
-
-		return true;
-	}
+	
 
 	return false;
 }
@@ -883,33 +924,24 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 			string runway_name = rwy.GetRunwayName(0);
 			string runway_name2 = rwy.GetRunwayName(1);
 
-			RimcasInstance->AddRunwayArea(this, runway_name, runway_name2, Left, Right);
+			double bearing1 = TrueBearing(Left, Right);
+			double bearing2 = TrueBearing(Right, Left);
+
+			RimcasInstance->AddRunwayArea(this, runway_name, runway_name2, Left, Right, bearing1, bearing2);
 
 			if (RimcasInstance->ClosedRunway.find(runway_name) != RimcasInstance->ClosedRunway.end() || RimcasInstance->ClosedRunway.find(runway_name2) != RimcasInstance->ClosedRunway.end()) {
 				if (RimcasInstance->ClosedRunway[runway_name] || RimcasInstance->ClosedRunway[runway_name2]) {
 
 
-					float heading = float(Left.DirectionTo(Right));
-					float rheading = float(fmod(heading + 180, 360));
+					CRimcas::RunwayAreaType Area = RimcasInstance->GetRunwayArea(this, Left, Right, 0, bearing1);
 
-					Left = Haversine(Left, rheading, 250.0f);
-					Right = Haversine(Right, heading, 250.0f);
-					POINT LeftPt = ConvertCoordFromPositionToPixel(Left);
-					POINT RightPt = ConvertCoordFromPositionToPixel(Right);
+					POINT TopLeftPt = ConvertCoordFromPositionToPixel(Area.topLeft);
 
-					float TopLeftheading = float(fmod(heading + 90, 360));
-					CPosition TopLeft = Haversine(Left, TopLeftheading, 92.5f);
-					POINT TopLeftPt = ConvertCoordFromPositionToPixel(TopLeft);
+					POINT BottomRightPt = ConvertCoordFromPositionToPixel(Area.bottomRight);
 
-					float BottomRightheading = float(fmod(heading - 90, 360));
-					CPosition BottomRight = Haversine(Right, BottomRightheading, 92.5f);
-					POINT BottomRightPt = ConvertCoordFromPositionToPixel(BottomRight);
+					POINT TopRightPt = ConvertCoordFromPositionToPixel(Area.topRight);
 
-					CPosition TopRight = Haversine(Right, TopLeftheading, 92.5f);
-					POINT TopRightPt = ConvertCoordFromPositionToPixel(TopRight);
-
-					CPosition BottomLeft = Haversine(Left, BottomRightheading, 92.5f);
-					POINT BottomLeftPt = ConvertCoordFromPositionToPixel(BottomLeft);
+					POINT BottomLeftPt = ConvertCoordFromPositionToPixel(Area.bottomLeft);
 
 
 					CPen RedPen(PS_SOLID, 2, RGB(150, 0, 0));
@@ -1306,7 +1338,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 			if (actype.size() > 4)
 				actype = actype.substr(0, 4);
 
-			if (has_squawk_error && BLINK)
+			if (has_squawk_error && DisplaySquawkWarning)
 				actype = error;
 
 			string speed = std::to_string(rt.GetGS());
@@ -1326,7 +1358,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 				gate = "NOGT";
 			}
 
-			if (!Display2ndLine) {
+			if (!Display2ndLine && !HideAcType) {
 				line1 += " ";
 				line1 += actype;
 			}
@@ -1370,7 +1402,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 			if (Display2ndLine)
 				TagHeight += dc.GetTextExtent(line2.c_str()).cy;
 
-			POINT TopLeft = { float(TagCenter.x - float(TagWidth / 2.0f)), float(TagCenter.y - float(TagHeight / 2.0f)) };
+			POINT TopLeft = { long(TagCenter.x - float(TagWidth / 2.0f)), long(TagCenter.y - float(TagHeight / 2.0f)) };
 			POINT BottomRight = { TopLeft.x + TagWidth, TopLeft.y + TagHeight };
 			CRect TagArea(TopLeft, BottomRight);
 			TagArea.NormalizeRect();
@@ -1403,20 +1435,22 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 
 				// Second line
 				if (!Display2ndLine) {
-					string t = callsign + " ";
-					leftOffset += dc.GetTextExtent(t.c_str()).cx;
-					COLORREF oldColor = dc.SetTextColor(RGB(255, 255, 255));
-					if (has_squawk_error && BLINK)
-						oldColor = dc.SetTextColor(RGB(255, 255, 0));
-					dc.TextOutA(TagArea.left + leftOffset, TagArea.top, actype.c_str());
-					dc.SetTextColor(oldColor);
-					AddScreenObject(TAG_CITEM_FPBOX, rt.GetCallsign(), Utils::GetAreaFromText(&dc, actype, { TagArea.left + leftOffset, TagArea.top }), true, GetBottomLine(fp.GetCallsign()).c_str());
+					if (!HideAcType) {
+						string t = callsign + " ";
+						leftOffset += dc.GetTextExtent(t.c_str()).cx;
+						COLORREF oldColor = dc.SetTextColor(RGB(255, 255, 255));
+						if (has_squawk_error && DisplaySquawkWarning)
+							oldColor = dc.SetTextColor(RGB(255, 255, 0));
+						dc.TextOutA(TagArea.left + leftOffset, TagArea.top, actype.c_str());
+						dc.SetTextColor(oldColor);
+						AddScreenObject(TAG_CITEM_FPBOX, rt.GetCallsign(), Utils::GetAreaFromText(&dc, actype, { TagArea.left + leftOffset, TagArea.top }), true, GetBottomLine(fp.GetCallsign()).c_str());
+					}
 				}
 				else {
 					if (TAG_TYPE == 1) {
 						int topOffset = dc.GetTextExtent("Z").cy;
 						COLORREF oldColor = dc.SetTextColor(RGB(255, 255, 255));
-						if (has_squawk_error && BLINK)
+						if (has_squawk_error && DisplaySquawkWarning)
 							oldColor = dc.SetTextColor(RGB(255, 255, 0));
 						dc.TextOutA(TagArea.left, TagArea.top + topOffset, actype.c_str());
 						AddScreenObject(TAG_CITEM_FPBOX, rt.GetCallsign(), Utils::GetAreaFromText(&dc, actype, { TagArea.left, TagArea.top + topOffset }), true, GetBottomLine(fp.GetCallsign()).c_str());
@@ -1436,7 +1470,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 						string t = gate + " ";
 						leftOffset += dc.GetTextExtent(t.c_str()).cx;
 						COLORREF oldColor = dc.SetTextColor(RGB(255, 255, 255));
-						if (has_squawk_error && BLINK)
+						if (has_squawk_error && DisplaySquawkWarning)
 							oldColor = dc.SetTextColor(RGB(255, 255, 0));
 						dc.TextOutA(TagArea.left + leftOffset, TagArea.top + topOffset, actype.c_str());
 						dc.SetTextColor(oldColor);
@@ -1677,6 +1711,8 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 		GetPlugIn()->AddPopupListElement("Tag Colour 1", "", RIMCAS_TAGCOLOR, false, TagColorIsFirst);
 		GetPlugIn()->AddPopupListElement("Tag Colour 2", "", RIMCAS_TAGCOLOR, false, !TagColorIsFirst);
 		GetPlugIn()->AddPopupListElement("2nd line", "", RIMCAS_TAGS_2NDLINE, false, Display2ndLine);
+		GetPlugIn()->AddPopupListElement("Hide a/c type", "", RIMCAS_TAGS_ACTYPE, false, HideAcType, Display2ndLine);
+		GetPlugIn()->AddPopupListElement("Display squawk warning", "", RIMCAS_TAGS_SQWARNING, false, DisplaySquawkWarning);
 		GetPlugIn()->AddPopupListElement("Close", "", RIMCAS_CLOSE, false, 2, false, true);
 		ShowLists["Tags  >"] = false;
 	}
@@ -1805,12 +1841,17 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 
 			// Extended centerlines
 			if (RimcasInstance->MonitoredRunwayArr[it->first]) {
+				dist = AirportPositions[RimcasInstance->ActiveAirport].DistanceTo(it->second.threshold);
+				dir = TrueBearing(AirportPositions[RimcasInstance->ActiveAirport], it->second.threshold);
+
+				t1s.x = refPt.x + int(scale * dist * sin(dir) + 0.5);
+				t1s.y = refPt.y - int(scale * dist * cos(dir) + 0.5);
 				CPen PenC(PS_SOLID, 1, RGB(255, 255, 255));
 				dc.SelectObject(PenC);
 
-				double revHdg = TrueBearing(pt2, pt1);
+				double revHdg = it->second.bearing;
 				double exsize = 18520.0;
-				CPosition Far = Haversine(pt1, RadToDeg(float(revHdg)), exsize);
+				CPosition Far = Haversine(it->second.threshold, RadToDeg(float(revHdg)), exsize);
 				POINT pt;
 				revHdg = TrueBearing(AirportPositions[RimcasInstance->ActiveAirport], Far);
 				exsize = AirportPositions[RimcasInstance->ActiveAirport].DistanceTo(Far);
@@ -1824,9 +1865,9 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 				
 				for (int j = 1852; j <= 18520; j += 1852) {
 					
-					revHdg = TrueBearing(pt2, pt1);
+					revHdg = it->second.bearing;
 					exsize = j;
-					CPosition Far1 = Haversine(pt1, RadToDeg(float(revHdg)), exsize);
+					CPosition Far1 = Haversine(it->second.threshold, RadToDeg(float(revHdg)), exsize);
 					CPosition Far2 = Haversine(Far1, fmod(RadToDeg(float(revHdg)) - 90, 360), 500);
 					CPosition Far3 = Haversine(Far1, fmod(RadToDeg(float(revHdg)) + 90, 360), 500);
 					POINT pt2, pt3;
@@ -1847,42 +1888,6 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 
 				}
 
-				revHdg = TrueBearing(pt1, pt2);
-				exsize = 18520.0;
-				Far = Haversine(pt2, RadToDeg(float(revHdg)), exsize);
-				revHdg = TrueBearing(AirportPositions[RimcasInstance->ActiveAirport], Far);
-				exsize = AirportPositions[RimcasInstance->ActiveAirport].DistanceTo(Far);
-				pt.x = refPt.x + int(scale * exsize * sin(revHdg) + 0.5);
-				pt.y = refPt.y - int(scale * exsize * cos(revHdg) + 0.5);
-
-				if (LiangBarsky(appWindowArea, t2s, pt, toDraw1, toDraw2)) {
-					dc.MoveTo(toDraw1);
-					dc.LineTo(toDraw2);
-				}
-
-				for (int k = 1852; k <= 18520; k += 1852) {
-
-					revHdg = TrueBearing(pt1, pt2);
-					exsize = k;
-					CPosition Far1 = Haversine(pt2, RadToDeg(float(revHdg)), exsize);
-					CPosition Far2 = Haversine(Far1, fmod(RadToDeg(float(revHdg)) - 90, 360), 500);
-					CPosition Far3 = Haversine(Far1, fmod(RadToDeg(float(revHdg)) + 90, 360), 500);
-					POINT pt2, pt3;
-					revHdg = TrueBearing(AirportPositions[RimcasInstance->ActiveAirport], Far2);
-					exsize = AirportPositions[RimcasInstance->ActiveAirport].DistanceTo(Far2);
-					pt2.x = refPt.x + int(scale * exsize * sin(revHdg) + 0.5);
-					pt2.y = refPt.y - int(scale * exsize * cos(revHdg) + 0.5);
-
-					revHdg = TrueBearing(AirportPositions[RimcasInstance->ActiveAirport], Far3);
-					exsize = AirportPositions[RimcasInstance->ActiveAirport].DistanceTo(Far3);
-					pt3.x = refPt.x + int(scale * exsize * sin(revHdg) + 0.5);
-					pt3.y = refPt.y - int(scale * exsize * cos(revHdg) + 0.5);
-
-					if (LiangBarsky(appWindowArea, pt2, pt3, toDraw1, toDraw2)) {
-						dc.MoveTo(toDraw1);
-						dc.LineTo(toDraw2);
-					}
-				}
 			}
 
 		}
