@@ -139,6 +139,14 @@ void CSMRRadar::OnAsrContentLoaded(bool Loaded)
 			DisplaySquawkWarning = true;
 	}
 
+	if ((p_value = GetDataFromAsr("SpeedForGate")) != NULL)
+	{
+		int temp = atoi(p_value);
+		UseSpeedForGate = false;
+		if (temp == 1)
+			UseSpeedForGate = true;
+	}
+
 	// Auto load the airport config on ASR opened.
 	CSectorElement rwy;
 	for (rwy = GetPlugIn()->SectorFileElementSelectFirst(SECTOR_ELEMENT_RUNWAY);
@@ -215,11 +223,16 @@ void CSMRRadar::OnAsrContentToBeSaved(void)
 	if (HideAcType)
 		to_save = "1";
 	SaveDataToAsr("HideACType", "Hide the A/c type on short tag", to_save);
-
+	
 	to_save = "0";
 	if (DisplaySquawkWarning)
 		to_save = "1";
 	SaveDataToAsr("SquawkError", "Hide the squawk error warning", to_save);
+
+	to_save = "0";
+	if (UseSpeedForGate)
+		to_save = "1";
+	SaveDataToAsr("SpeedForGate", "Use the assigned speed for the gate", to_save);
 
 }
 
@@ -434,14 +447,27 @@ void CSMRRadar::OnFunctionCall(int FunctionId, const char * sItemString, POINT P
 
 	if (FunctionId == RIMCAS_TAGS_ACTYPE) {
 		HideAcType = !HideAcType;
+		ShowLists["Tags  >"] = true;
+
+		RequestRefresh();
 	}
 
 	if (FunctionId == RIMCAS_TAGS_SQWARNING) {
 		DisplaySquawkWarning = !DisplaySquawkWarning;
+		ShowLists["Tags  >"] = true;
+
+		RequestRefresh();
 	}
 
 	if (FunctionId == RIMCAS_PRIMARY) {
 		showPrimaryTarget = !showPrimaryTarget;
+	}
+
+	if (FunctionId == RIMCAS_TAGS_SPEEDGATE) {
+		UseSpeedForGate = !UseSpeedForGate;
+		ShowLists["Tags  >"] = true;
+
+		RequestRefresh();
 	}
 
 	if (FunctionId == RIMCAS_TIMER) {
@@ -491,6 +517,8 @@ void CSMRRadar::OnFunctionCall(int FunctionId, const char * sItemString, POINT P
 		}
 
 		ShowLists["Tags  >"] = true;
+
+		RequestRefresh();
 	}
 
 	if (FunctionId == RIMCAS_CA_ARRIVAL || FunctionId == RIMCAS_CA_MONITOR || FunctionId == RIMCAS_CLOSED_RUNWAYS || FunctionId == RIMCAS_TAGS_MENU) {
@@ -1119,7 +1147,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 			}
 
 			dc.SelectObject(pqOrigPen);
-
+			
 		}
 		else if (rt.GetGS() >= 50 && rt.GetGS() < 180 && rt.GetPosition().GetFlightLevel() < 2500) {
 			TGraphics th;
@@ -1348,13 +1376,17 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 
 			string rwy = fp.GetFlightPlanData().GetDepartureRwy();
 
-			const char * txt = fp.GetControllerAssignedData().GetScratchPadString();
 			string gate;
-			if (txt != NULL && strlen(txt) != 0) {
-				gate = txt;
-				gate = gate.substr(0, 4);
+			if (UseSpeedForGate) {
+				gate = std::to_string(fp.GetControllerAssignedData().GetAssignedSpeed());
 			}
 			else {
+				gate = fp.GetControllerAssignedData().GetScratchPadString();
+			}
+
+			gate = gate.substr(0, 4);
+
+			if (gate.size() == 0 || gate == "0") {
 				gate = "NOGT";
 			}
 
@@ -1711,8 +1743,9 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 		GetPlugIn()->AddPopupListElement("Tag Colour 1", "", RIMCAS_TAGCOLOR, false, TagColorIsFirst);
 		GetPlugIn()->AddPopupListElement("Tag Colour 2", "", RIMCAS_TAGCOLOR, false, !TagColorIsFirst);
 		GetPlugIn()->AddPopupListElement("2nd line", "", RIMCAS_TAGS_2NDLINE, false, Display2ndLine);
-		GetPlugIn()->AddPopupListElement("Hide a/c type", "", RIMCAS_TAGS_ACTYPE, false, HideAcType, Display2ndLine);
+		GetPlugIn()->AddPopupListElement("Hide a/c type", "", RIMCAS_TAGS_ACTYPE, false, HideAcType, Display2ndLine); 
 		GetPlugIn()->AddPopupListElement("Display squawk warning", "", RIMCAS_TAGS_SQWARNING, false, DisplaySquawkWarning);
+		GetPlugIn()->AddPopupListElement("Display aspeed for gate", "", RIMCAS_TAGS_SPEEDGATE, false, UseSpeedForGate);
 		GetPlugIn()->AddPopupListElement("Close", "", RIMCAS_CLOSE, false, 2, false, true);
 		ShowLists["Tags  >"] = false;
 	}

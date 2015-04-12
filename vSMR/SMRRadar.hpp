@@ -52,6 +52,7 @@ public:
 	const int RIMCAS_TIMER = 8015;
 	const int RIMCAS_TAGS_ACTYPE = 8016;
 	const int RIMCAS_TAGS_SQWARNING = 8017;
+	const int RIMCAS_TAGS_SPEEDGATE = 8018;
 
 	bool BLINK = false;
 
@@ -106,6 +107,7 @@ public:
 	bool TagColorIsFirst = true;
 	bool DisplaySquawkWarning = true;
 	bool HideAcType = false;
+	bool UseSpeedForGate = false;
 
 	const float Pi = float(atan2(0, -1));
 
