@@ -133,6 +133,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CallsignLookup.hpp" />
+    <ClInclude Include="Constant.hpp" />
     <ClInclude Include="CPDLCSettingsDialog.hpp" />
     <ClInclude Include="DataLinkDialog.hpp" />
     <ClInclude Include="HttpHelper.hpp" />

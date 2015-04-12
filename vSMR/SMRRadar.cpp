@@ -769,8 +769,6 @@ string CSMRRadar::GetBottomLine(const char * Callsign) {
 
 bool CSMRRadar::OnCompileCommand(const char * sCommandLine)
 {
-	
-
 	return false;
 }
 
@@ -896,7 +894,6 @@ double TrueBearing(CPosition pos1, CPosition pos2)
 
 void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 {
-
 	if (Phase != REFRESH_PHASE_BEFORE_TAGS)
 		return;
 
@@ -1146,10 +1143,12 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 				th.DrawEllipse(dc, acPosPix.x - 4, acPosPix.y - 4, acPosPix.x + 4, acPosPix.y + 4, RGB(255, 255, 255));
 			}
 
+			AddScreenObject(DRAWING_AC_SYMBOL, rt.GetCallsign(), { acPosPix.x - 4, acPosPix.y - 4, acPosPix.x + 4, acPosPix.y + 4 }, false, GetBottomLine(rt.GetCallsign()).c_str());
+
 			dc.SelectObject(pqOrigPen);
 			
 		}
-		else if (rt.GetGS() >= 50 && rt.GetGS() < 180 && rt.GetPosition().GetFlightLevel() < 2500) {
+		else if (rt.GetGS() >= 50 && rt.GetGS() < 180 && rt.GetPosition().GetPressureAltitude() < (GetPlugIn()->GetTransitionAltitude()-2000)) {
 			TGraphics th;
 
 			POINT acPosPix = ConvertCoordFromPositionToPixel(RtPos.GetPosition());
@@ -1268,15 +1267,10 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 				dc.LineTo(acPosPix.x, acPosPix.y - 6);
 			}
 			else {
-				dc.MoveTo(acPosPix.x - 6, acPosPix.y);
-				dc.LineTo(acPosPix.x + 6, acPosPix.y);
-				dc.MoveTo(acPosPix.x, acPosPix.y - 6);
-				dc.LineTo(acPosPix.x, acPosPix.y + 6);
+				th.DrawEllipse(dc, acPosPix.x - 4, acPosPix.y - 4, acPosPix.x + 4, acPosPix.y + 4, RGB(255, 255, 255));
 			}
 
-			if (RtPos.GetTransponderI()) {
-				th.DrawEllipse(dc, acPosPix.x - 7, acPosPix.y - 7, acPosPix.x + 7, acPosPix.y + 7, RGB(255, 255, 255));
-			}
+			AddScreenObject(DRAWING_AC_SYMBOL, rt.GetCallsign(), { acPosPix.x - 4, acPosPix.y - 4, acPosPix.x + 4, acPosPix.y + 4 }, false, GetBottomLine(rt.GetCallsign()).c_str());
 
 			dc.SelectObject(pqOrigPen);
 		}
@@ -2023,11 +2017,13 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 				to_display = "F";
 				FL = RtPos.GetFlightLevel();
 			}
-			string str = std::to_string(FL);
-			for (size_t i = 0; i < 5 - str.length(); i++)
+			ostringstream strs;
+			strs << FL;
+			string str = strs.str();
+			for (size_t i = 0; i < 6 - str.length(); i++)
 				str = "0" + str;
-
-			to_display.append(str.substr(0, 3));
+			str.erase(str.begin() + 3, str.end());
+			to_display.append(str);
 			int delta_fl = FL - rt.GetPreviousPosition(RtPos).GetPressureAltitude();
 			if (abs(delta_fl) >= 20) {
 				if (delta_fl < 0) {

@@ -2,7 +2,6 @@
 //
 
 #include "stdafx.h"
-#include "vSMR.hpp"
 #include "DataLinkDialog.hpp"
 #include "afxdialogex.h"
 

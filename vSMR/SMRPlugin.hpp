@@ -5,6 +5,7 @@
 #include "DataLinkDialog.hpp"
 #include <string>
 #include <algorithm>
+#include "Constant.hpp"
 #include "Mmsystem.h"
 #include "SMRRadar.hpp"
 
@@ -23,14 +24,6 @@ class CSMRPlugin :
 public:
 	CSMRPlugin();
 	virtual ~CSMRPlugin();
-
-	const int TAG_ITEM_DATALINK_STS = 444;
-	const int TAG_FUNC_DATALINK_MENU = 544;
-
-	const int TAG_FUNC_DATALINK_CONFIRM = 545;
-	const int TAG_FUNC_DATALINK_STBY = 546;
-	const int TAG_FUNC_DATALINK_VOICE = 547;
-	const int TAG_FUNC_DATALINK_RESET = 548;
 
 	//---OnCompileCommand------------------------------------------
 

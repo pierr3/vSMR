@@ -2,7 +2,6 @@
 //
 
 #include "stdafx.h"
-#include "vSMR.hpp"
 #include "CPDLCSettingsDialog.hpp"
 #include "afxdialogex.h"
 
