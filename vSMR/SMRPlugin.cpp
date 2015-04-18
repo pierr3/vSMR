@@ -51,6 +51,8 @@ int messageId = 0;
 
 clock_t timer;
 
+string myfrequency;
+
 void datalinkLogin(void * arg) {
 	string raw;
 	string url = baseUrlDatalink;
@@ -194,7 +196,9 @@ void sendDatalink(void * arg) {
 		url += "@";
 	}
 	else {
-		url += "WHEN RDY CALL @VOICE@";
+		url += "WHEN RDY CALL @";
+		url += myfrequency;
+		url += "@";
 	}
 	url += " IF UNABLE CALL VOICE ";
 	if (DatalinkToSend.message != "no" && DatalinkToSend.message.size() > 1)
@@ -473,6 +477,8 @@ void CSMRPlugin::OnFunctionCall(int FunctionId, const char * sItemString, POINT 
 				DatalinkToSend.message = dia.m_Message;
 				DatalinkToSend.squawk = FlightPlan.GetControllerAssignedData().GetSquawk();
 				DatalinkToSend.climb = toReturn;
+
+				myfrequency = std::to_string(ControllerMyself().GetPrimaryFrequency()).substr(0, 7);
 
 				_beginthread(sendDatalink, 0, NULL);
 

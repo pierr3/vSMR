@@ -957,7 +957,6 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 			if (RimcasInstance->ClosedRunway.find(runway_name) != RimcasInstance->ClosedRunway.end() || RimcasInstance->ClosedRunway.find(runway_name2) != RimcasInstance->ClosedRunway.end()) {
 				if (RimcasInstance->ClosedRunway[runway_name] || RimcasInstance->ClosedRunway[runway_name2]) {
 
-
 					CRimcas::RunwayAreaType Area = RimcasInstance->GetRunwayArea(this, Left, Right, 0, bearing1);
 
 					POINT TopLeftPt = ConvertCoordFromPositionToPixel(Area.topLeft);
@@ -967,7 +966,6 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 					POINT TopRightPt = ConvertCoordFromPositionToPixel(Area.topRight);
 
 					POINT BottomLeftPt = ConvertCoordFromPositionToPixel(Area.bottomLeft);
-
 
 					CPen RedPen(PS_SOLID, 2, RGB(150, 0, 0));
 					CPen * oldPen = dc.SelectObject(&RedPen);
@@ -1343,6 +1341,12 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 
 			}
 
+			bool hadDisplayLineChanged = false;
+			if (Display2ndLine && HideAcType && TAG_TYPE != 2) {
+				Display2ndLine = false;
+				hadDisplayLineChanged = true;
+			}
+				
 			string line1 = callsign;
 			string line2 = "";
 
@@ -1474,38 +1478,45 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 				}
 				else {
 					if (TAG_TYPE == 1) {
-						int topOffset = dc.GetTextExtent("Z").cy;
-						COLORREF oldColor = dc.SetTextColor(RGB(255, 255, 255));
-						if (has_squawk_error && DisplaySquawkWarning)
-							oldColor = dc.SetTextColor(RGB(255, 255, 0));
-						dc.TextOutA(TagArea.left, TagArea.top + topOffset, actype.c_str());
-						AddScreenObject(TAG_CITEM_FPBOX, rt.GetCallsign(), Utils::GetAreaFromText(&dc, actype, { TagArea.left, TagArea.top + topOffset }), true, GetBottomLine(fp.GetCallsign()).c_str());
-						dc.SetTextColor(oldColor);
+						if (!HideAcType) {
+							int topOffset = dc.GetTextExtent("Z").cy;
+							COLORREF oldColor = dc.SetTextColor(RGB(255, 255, 255));
+							if (has_squawk_error && DisplaySquawkWarning)
+								oldColor = dc.SetTextColor(RGB(255, 255, 0));
+							dc.TextOutA(TagArea.left, TagArea.top + topOffset, actype.c_str());
+							AddScreenObject(TAG_CITEM_FPBOX, rt.GetCallsign(), Utils::GetAreaFromText(&dc, actype, { TagArea.left, TagArea.top + topOffset }), true, GetBottomLine(fp.GetCallsign()).c_str());
+							dc.SetTextColor(oldColor);
 
-						string t = actype + " ";
-						leftOffset += dc.GetTextExtent(t.c_str()).cx;
-						dc.TextOutA(TagArea.left + leftOffset, TagArea.top + topOffset, rwy.c_str());
-						AddScreenObject(TAG_CITEM_RWY, rt.GetCallsign(), Utils::GetAreaFromText(&dc, rwy, { TagArea.left + leftOffset, TagArea.top + topOffset }), true, GetBottomLine(fp.GetCallsign()).c_str());
+							string t = actype + " ";
+							leftOffset += dc.GetTextExtent(t.c_str()).cx;
+							dc.TextOutA(TagArea.left + leftOffset, TagArea.top + topOffset, rwy.c_str());
+							AddScreenObject(TAG_CITEM_RWY, rt.GetCallsign(), Utils::GetAreaFromText(&dc, rwy, { TagArea.left + leftOffset, TagArea.top + topOffset }), true, GetBottomLine(fp.GetCallsign()).c_str());
+						}
 					}
 
 					if (TAG_TYPE == 2) {
 						int topOffset = dc.GetTextExtent("Z").cy;
 						dc.TextOutA(TagArea.left, TagArea.top + topOffset, gate.c_str());
 						AddScreenObject(TAG_CITEM_GATE, rt.GetCallsign(), Utils::GetAreaFromText(&dc, gate, { TagArea.left, TagArea.top + topOffset }), true, GetBottomLine(fp.GetCallsign()).c_str());
-
-						string t = gate + " ";
-						leftOffset += dc.GetTextExtent(t.c_str()).cx;
-						COLORREF oldColor = dc.SetTextColor(RGB(255, 255, 255));
-						if (has_squawk_error && DisplaySquawkWarning)
-							oldColor = dc.SetTextColor(RGB(255, 255, 0));
-						dc.TextOutA(TagArea.left + leftOffset, TagArea.top + topOffset, actype.c_str());
-						dc.SetTextColor(oldColor);
-						AddScreenObject(TAG_CITEM_FPBOX, rt.GetCallsign(), Utils::GetAreaFromText(&dc, actype, { TagArea.left + leftOffset, TagArea.top + topOffset }), true, GetBottomLine(fp.GetCallsign()).c_str());
+						
+						if (!HideAcType) {
+							string t = gate + " ";
+							leftOffset += dc.GetTextExtent(t.c_str()).cx;
+							COLORREF oldColor = dc.SetTextColor(RGB(255, 255, 255));
+							if (has_squawk_error && DisplaySquawkWarning)
+								oldColor = dc.SetTextColor(RGB(255, 255, 0));
+							dc.TextOutA(TagArea.left + leftOffset, TagArea.top + topOffset, actype.c_str());
+							dc.SetTextColor(oldColor);
+							AddScreenObject(TAG_CITEM_FPBOX, rt.GetCallsign(), Utils::GetAreaFromText(&dc, actype, { TagArea.left + leftOffset, TagArea.top + topOffset }), true, GetBottomLine(fp.GetCallsign()).c_str());
+						}
+						
 					}
 				}
 
 			}
 			dc.SetTextAlign(oldTextAlign);
+			if (hadDisplayLineChanged)
+				Display2ndLine = true;
 		}
 
 		if (rt.GetGS() >= 50 && rt.GetGS() < 180 && rt.GetPosition().GetPressureAltitude() < 2000) {
@@ -1737,7 +1748,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 		GetPlugIn()->AddPopupListElement("Tag Colour 1", "", RIMCAS_TAGCOLOR, false, TagColorIsFirst);
 		GetPlugIn()->AddPopupListElement("Tag Colour 2", "", RIMCAS_TAGCOLOR, false, !TagColorIsFirst);
 		GetPlugIn()->AddPopupListElement("2nd line", "", RIMCAS_TAGS_2NDLINE, false, Display2ndLine);
-		GetPlugIn()->AddPopupListElement("Hide a/c type", "", RIMCAS_TAGS_ACTYPE, false, HideAcType, Display2ndLine); 
+		GetPlugIn()->AddPopupListElement("Hide a/c type", "", RIMCAS_TAGS_ACTYPE, false, HideAcType); 
 		GetPlugIn()->AddPopupListElement("Display squawk warning", "", RIMCAS_TAGS_SQWARNING, false, DisplaySquawkWarning);
 		GetPlugIn()->AddPopupListElement("Display aspeed for gate", "", RIMCAS_TAGS_SPEEDGATE, false, UseSpeedForGate);
 		GetPlugIn()->AddPopupListElement("Close", "", RIMCAS_CLOSE, false, 2, false, true);
