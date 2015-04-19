@@ -593,6 +593,8 @@ void CSMRRadar::OnRadarTargetPositionUpdate(CRadarTarget RadarTarget)
 		}
 	}
 
+	POINT AcPosPix = ConvertCoordFromPositionToPixel(RtPos.GetPosition());
+
 	//
 	// Randomize size
 	//
@@ -600,25 +602,31 @@ void CSMRRadar::OnRadarTargetPositionUpdate(CRadarTarget RadarTarget)
 	cabin_width = cabin_width + float((rand() % 5) - 2);
 	lenght = lenght + float((rand() % 5) - 2);
 
-	/*
-	double x0 = ConvertCoordFromPositionToPixel(RtPos.GetPosition()).x, y0 = ConvertCoordFromPositionToPixel(RtPos.GetPosition()).y, rx = 20.0, ry = 50.0;  // circle params
-	double a, da, x, y;
+	POINT TopPoint = ConvertCoordFromPositionToPixel(Haversine(RtPos.GetPosition(), RtPos.GetReportedHeading(), lenght / 2));
+	POINT LeftPoint = ConvertCoordFromPositionToPixel(Haversine(RtPos.GetPosition(), (RtPos.GetReportedHeading()+90) % 360, cabin_width));
 
-	int i = 0;
+	double ry = abs(double(TopPoint.y - AcPosPix.y));
+	double rx = abs(double(LeftPoint.x - AcPosPix.x));
+
+	double x0 = AcPosPix.x, y0 = AcPosPix.y;  // circle params
+	double a, x, y;
+
+	int j = 0;
 	for (a = 0.0; a<2.0*Pi;)         // full circle
 	{
-	x = x0 + (rx*cos(a));
-	y = y0 + (ry*sin(a));
-	a += (20.0 + (rand() % 41))*Pi / 180.0;
+		//x = x0 + (r*cos(a));
+		//y = y0 + (r*sin(a));
+		x = x0 + (rx*cos(a));
+		y = y0 + (ry*sin(a));
+		a += (10.0 + (rand() % 20 + 1))*Pi / 180.0;              // random angle step < 20,60 > degrees
 
-	POINT Temp = { x, y };
-	CPosition TempPos = ConvertCoordFromPixelToPosition(Temp);
+		// here add your x,y point to polygon
 
-	Patatoides[RadarTarget.GetCallsign()].points[i] = { TempPos.m_Latitude, TempPos.m_Longitude };
-
-	i++;
-	}*/
-
+		CPosition TempPos = ConvertCoordFromPixelToPosition({x, y});
+		Patatoides[RadarTarget.GetCallsign()].points[j] = { TempPos.m_Latitude, TempPos.m_Longitude };
+		j++;
+	}
+	/*
 
 	// Base shape
 	//   / \
@@ -708,6 +716,8 @@ void CSMRRadar::OnRadarTargetPositionUpdate(CRadarTarget RadarTarget)
 
 	// 12 points total, so 11 from 0
 	// ------
+
+	*/
 }
 
 string CSMRRadar::GetBottomLine(const char * Callsign) {
@@ -1031,7 +1041,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 						pOldBrush = dc.SelectObject(&brush);
 						CPen pen(PS_SOLID, 1, SMR_H1_COLOR);
 						CPen* pOldPen = dc.SelectObject(&pen);
-						CPoint lpPoints[12];
+						CPoint lpPoints[100];
 						for (unsigned int i = 0; i < Patatoides[rt.GetCallsign()].History_one_points.size(); i++)
 						{
 							CPosition pos;
@@ -1053,7 +1063,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 							pOldBrush = dc.SelectObject(&brush);
 							CPen pen(PS_SOLID, 1, SMR_H2_COLOR);
 							CPen* pOldPen = dc.SelectObject(&pen);
-							CPoint lpPoints[12];
+							CPoint lpPoints[100];
 							for (unsigned int i = 0; i < Patatoides[rt.GetCallsign()].History_two_points.size(); i++)
 							{
 								CPosition pos;
@@ -1075,7 +1085,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 						pOldBrush = dc.SelectObject(&brush);
 						CPen pen(PS_SOLID, 1, SMR_H3_COLOR);
 						CPen* pOldPen = dc.SelectObject(&pen);
-						CPoint lpPoints[12];
+						CPoint lpPoints[100];
 						for (unsigned int i = 0; i < Patatoides[rt.GetCallsign()].History_three_points.size(); i++)
 						{
 							CPosition pos;
@@ -1109,7 +1119,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 				pOldBrush = dc.SelectObject(&brush);
 				CPen pen(PS_SOLID, 1, SMR_TARGET_COLOR);
 				CPen* pOldPen = dc.SelectObject(&pen);
-				CPoint lpPoints[12];
+				CPoint lpPoints[100];
 				for (unsigned int i = 0; i < Patatoides[rt.GetCallsign()].points.size(); i++)
 				{
 					CPosition pos;
@@ -1169,7 +1179,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 					pOldBrush = dc.SelectObject(&brush);
 					CPen pen(PS_SOLID, 1, SMR_H1_COLOR);
 					CPen* pOldPen = dc.SelectObject(&pen);
-					CPoint lpPoints[12];
+					CPoint lpPoints[100];
 					for (unsigned int i = 0; i < Patatoides[rt.GetCallsign()].History_one_points.size(); i++)
 					{
 						CPosition pos;
@@ -1191,7 +1201,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 						pOldBrush = dc.SelectObject(&brush);
 						CPen pen(PS_SOLID, 1, SMR_H2_COLOR);
 						CPen* pOldPen = dc.SelectObject(&pen);
-						CPoint lpPoints[12];
+						CPoint lpPoints[100];
 						for (unsigned int i = 0; i < Patatoides[rt.GetCallsign()].History_two_points.size(); i++)
 						{
 							CPosition pos;
@@ -1213,7 +1223,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 					pOldBrush = dc.SelectObject(&brush);
 					CPen pen(PS_SOLID, 1, SMR_H3_COLOR);
 					CPen* pOldPen = dc.SelectObject(&pen);
-					CPoint lpPoints[12];
+					CPoint lpPoints[100];
 					for (unsigned int i = 0; i < Patatoides[rt.GetCallsign()].History_three_points.size(); i++)
 					{
 						CPosition pos;
@@ -1238,7 +1248,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 				pOldBrush = dc.SelectObject(&brush);
 				CPen pen(PS_SOLID, 1, SMR_TARGET_COLOR);
 				CPen* pOldPen = dc.SelectObject(&pen);
-				CPoint lpPoints[12];
+				CPoint lpPoints[100];
 				for (unsigned int i = 0; i < Patatoides[rt.GetCallsign()].points.size(); i++)
 				{
 					CPosition pos;
