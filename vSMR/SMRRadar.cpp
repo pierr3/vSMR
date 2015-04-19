@@ -1421,13 +1421,13 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 			// ----- Draw -------
 			
 			string longuest = line1;
-			if (Display2ndLine && (dc.GetTextExtent(line2.c_str()).cx > dc.GetTextExtent(line1.c_str()).cx))
+			if (Display2ndLine && line2.size() >= line1.size())
 				longuest = line2;
 
 			int TagWidth = dc.GetTextExtent(longuest.c_str()).cx;
 			if (TagWidth % 2 != 0)
-				TagWidth = TagWidth + 1;
-			int TagHeight = dc.GetTextExtent(longuest.c_str()).cy;
+				TagWidth += 1;
+			int TagHeight = dc.GetTextExtent(line1.c_str()).cy;
 
 			if (Display2ndLine)
 				TagHeight += dc.GetTextExtent(line2.c_str()).cy;

@@ -155,7 +155,7 @@ void pollMessages(void * arg) {
 
 };
 
-void sendDatalink(void * arg) {
+void sendDatalinkClearance(void * arg) {
 
 	string raw;
 	string url = baseUrlDatalink;
@@ -434,8 +434,10 @@ void CSMRPlugin::OnFunctionCall(int FunctionId, const char * sItemString, POINT 
 				dia.m_Departure = FlightPlan.GetFlightPlanData().GetSidName();
 				dia.m_Rwy = FlightPlan.GetFlightPlanData().GetDepartureRwy();
 				dia.m_SSR = FlightPlan.GetControllerAssignedData().GetSquawk();
-				string freq = std::to_string(ControllerSelect(FlightPlan.GetCoordinatedNextController()).GetPrimaryFrequency());
-				freq = freq.substr(0, 6);
+				string freq = std::to_string(ControllerMyself().GetPrimaryFrequency());
+				if (ControllerSelect(FlightPlan.GetCoordinatedNextController()).GetPrimaryFrequency() != 0)
+					string freq = std::to_string(ControllerSelect(FlightPlan.GetCoordinatedNextController()).GetPrimaryFrequency());
+				freq = freq.substr(0, 7);
 				dia.m_Freq = freq.c_str();
 				AcarsMessage msg = PendingMessages[FlightPlan.GetCallsign()];
 				dia.m_Req = msg.message.c_str();
@@ -480,7 +482,7 @@ void CSMRPlugin::OnFunctionCall(int FunctionId, const char * sItemString, POINT 
 
 				myfrequency = std::to_string(ControllerMyself().GetPrimaryFrequency()).substr(0, 7);
 
-				_beginthread(sendDatalink, 0, NULL);
+				_beginthread(sendDatalinkClearance, 0, NULL);
 
 		}
 
