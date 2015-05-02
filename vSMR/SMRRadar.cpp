@@ -14,6 +14,8 @@ map<string, CRimcas::RunwayAreaType> RunwayAreas;
 map<string, RECT> MenuPositions;
 map<string, bool> DisplayMenu;
 
+bool data = true;
+
 CRimcas * RimcasInstance = NULL;
 
 CSMRRadar::CSMRRadar()
@@ -593,38 +595,47 @@ void CSMRRadar::OnRadarTargetPositionUpdate(CRadarTarget RadarTarget)
 		}
 	}
 
-	POINT AcPosPix = ConvertCoordFromPositionToPixel(RtPos.GetPosition());
-
 	//
 	// Randomize size
 	//
+
+	// What we do is a create an elispe that represent the aircraft
+	// The ellipse is defined in meters, and is only used to 
+	// get the distance from the center to the point, that we randomize.
+
+	//
+	// Sometimes, coding can go weird: https://db.tt/FLHf0zWh
+	//
+
 	width = width + float((rand() % 5) - 2);
 	cabin_width = cabin_width + float((rand() % 5) - 2);
 	lenght = lenght + float((rand() % 5) - 2);
 
-	POINT TopPoint = ConvertCoordFromPositionToPixel(Haversine(RtPos.GetPosition(), RtPos.GetReportedHeading(), lenght / 2));
-	POINT LeftPoint = ConvertCoordFromPositionToPixel(Haversine(RtPos.GetPosition(), (RtPos.GetReportedHeading()+90) % 360, cabin_width));
+	double ry = lenght / 2.0; // ellipse radius y
+	double rx = cabin_width / 2.0; // ellipse radius x
 
-	double ry = abs(double(TopPoint.y - AcPosPix.y));
-	double rx = abs(double(LeftPoint.x - AcPosPix.x));
-
-	double x0 = AcPosPix.x, y0 = AcPosPix.y;  // circle params
-	double a, x, y;
+	double x0 = 0, y0 = 0; // ellipse params
+	double a;
 
 	int j = 0;
-	for (a = 0.0; a<2.0*Pi;)         // full circle
+	for (a = 0.0; a<2.0*Pi;) // full ellipse
 	{
-		//x = x0 + (r*cos(a));
-		//y = y0 + (r*sin(a));
-		x = x0 + (rx*cos(a));
-		y = y0 + (ry*sin(a));
-		a += (10.0 + (rand() % 20 + 1))*Pi / 180.0;              // random angle step < 20,60 > degrees
+		double xA, yA;
 
-		// here add your x,y point to polygon
+		xA = ry * cos(a);
+		yA = ry * sin(a);
 
-		CPosition TempPos = ConvertCoordFromPixelToPosition({x, y});
-		Patatoides[RadarTarget.GetCallsign()].points[j] = { TempPos.m_Latitude, TempPos.m_Longitude };
-		j++;
+		POINT tP = { xA, yA*(rx / ry) };
+
+		a += DegToRad(5.0 + (rand() % 10 + 1)); // random angle step < 5,10 > degrees
+
+		double distance = abs(sqrt(pow(tP.x, 2.0) - pow(tP.y, 2.0)));
+		if (distance > 0) {
+			double hdg = fmod((double)RadToDeg(a) + (double)RtPos.GetReportedHeading(), 360);
+			CPosition TempPos = Haversine(RtPos.GetPosition(), hdg, distance);
+			Patatoides[RadarTarget.GetCallsign()].points[j] = { TempPos.m_Latitude, TempPos.m_Longitude };
+			j++;
+		}
 	}
 	/*
 
