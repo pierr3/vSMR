@@ -10,6 +10,7 @@
 #include <sstream>
 #include "Constant.hpp"
 #include "CallsignLookup.hpp"
+#include "Config.hpp"
 #include "TGraphics.h"
 #include "Rimcas.hpp"
 

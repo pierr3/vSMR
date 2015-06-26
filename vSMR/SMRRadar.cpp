@@ -8,15 +8,14 @@ map<string, RECT> TimePopupAreas;
 map<int, string> TimePopupData;
 multimap<string, string> AcOnRunway;
 map<string, bool> ColorAC;
-
+ 
 map<string, CRimcas::RunwayAreaType> RunwayAreas;
 
 map<string, RECT> MenuPositions;
 map<string, bool> DisplayMenu;
 
-bool data = true;
-
 CRimcas * RimcasInstance = NULL;
+CConfig * CurrentConfig = NULL;
 
 CSMRRadar::CSMRRadar()
 {
@@ -31,6 +30,9 @@ CSMRRadar::CSMRRadar()
 
 	if (RimcasInstance == NULL)
 		RimcasInstance = new CRimcas();
+
+	if (CurrentConfig == NULL)
+		CurrentConfig = new CConfig(DllPath + "\\vSMR_Profiles.json");
 
 	MenuPositions["DisplayMenu"] = { 400, 400, 550, 500 };
 
@@ -53,38 +55,12 @@ void CSMRRadar::OnAsrContentLoaded(bool Loaded)
 	if ((p_value = GetDataFromAsr("Airport")) != NULL)
 		RimcasInstance->ActiveAirport = p_value;
 
-	if ((p_value = GetDataFromAsr("SecondLine")) != NULL)
-	{
-		int temp = atoi(p_value);
-		Display2ndLine = false;
-		if (temp == 1)
-			Display2ndLine = true;
-	}
-
-	if ((p_value = GetDataFromAsr("PrimaryTarget")) != NULL)
-	{
-		int temp = atoi(p_value);
-		showPrimaryTarget = false;
-		if (temp == 1)
-			showPrimaryTarget = true;
-	}
-
 	if ((p_value = GetDataFromAsr("ShortTimer")) != NULL)
 	{
 		int temp = atoi(p_value);
 		RimcasInstance->RunwayTimerShort = false;
 		if (temp == 1)
 			RimcasInstance->RunwayTimerShort = true;
-	}
-
-	if ((p_value = GetDataFromAsr("TagColor")) != NULL)
-	{
-		int temp = atoi(p_value);
-		TagColorIsFirst = false;
-		if (temp == 1)
-			TagColorIsFirst = true;
-		else
-			TAG_COLOR_DEP = RGB(15, 105, 20);
 	}
 
 	if ((p_value = GetDataFromAsr("AppWindowTopLeftX")) != NULL)
@@ -125,30 +101,6 @@ void CSMRRadar::OnAsrContentLoaded(bool Loaded)
 			appWindow = true;
 	}
 
-	if ((p_value = GetDataFromAsr("HideACType")) != NULL)
-	{
-		int temp = atoi(p_value);
-		HideAcType = false;
-		if (temp == 1)
-			HideAcType = true;
-	}
-
-	if ((p_value = GetDataFromAsr("SquawkError")) != NULL)
-	{
-		int temp = atoi(p_value);
-		DisplaySquawkWarning = false;
-		if (temp == 1)
-			DisplaySquawkWarning = true;
-	}
-
-	if ((p_value = GetDataFromAsr("SpeedForGate")) != NULL)
-	{
-		int temp = atoi(p_value);
-		UseSpeedForGate = false;
-		if (temp == 1)
-			UseSpeedForGate = true;
-	}
-
 	// Auto load the airport config on ASR opened.
 	CSectorElement rwy;
 	for (rwy = GetPlugIn()->SectorFileElementSelectFirst(SECTOR_ELEMENT_RUNWAY);
@@ -177,10 +129,6 @@ void CSMRRadar::OnAsrContentToBeSaved(void)
 	SaveDataToAsr("Airport", "Active airport for RIMCAS", RimcasInstance->ActiveAirport.c_str());
 
 	const char * to_save = "0";
-	if (Display2ndLine)
-		to_save = "1";
-	SaveDataToAsr("SecondLine", "Display tag 2nd line", to_save);
-
 	string temp;
 
 	temp = std::to_string(appWindowArea.left);
@@ -207,34 +155,9 @@ void CSMRRadar::OnAsrContentToBeSaved(void)
 	SaveDataToAsr("AppWindow", "Display Approach window", to_save);
 
 	to_save = "0";
-	if (showPrimaryTarget)
-		to_save = "1";
-	SaveDataToAsr("PrimaryTarget", "Display primary targets", to_save);
-
-	to_save = "1";
-	if (!TagColorIsFirst)
-		to_save = "2";
-	SaveDataToAsr("TagColor", "Tag colors", to_save);
-
-	to_save = "0";
 	if (RimcasInstance->RunwayTimerShort)
 		to_save = "1";
 	SaveDataToAsr("ShortTimer", "Timer lenght", to_save);
-
-	to_save = "0";
-	if (HideAcType)
-		to_save = "1";
-	SaveDataToAsr("HideACType", "Hide the A/c type on short tag", to_save);
-	
-	to_save = "0";
-	if (DisplaySquawkWarning)
-		to_save = "1";
-	SaveDataToAsr("SquawkError", "Hide the squawk error warning", to_save);
-
-	to_save = "0";
-	if (UseSpeedForGate)
-		to_save = "1";
-	SaveDataToAsr("SpeedForGate", "Use the assigned speed for the gate", to_save);
 
 }
 
@@ -337,8 +260,6 @@ void CSMRRadar::OnClickScreenObject(int ObjectType, const char * sObjectId, POIN
 
 		GetPlugIn()->OpenPopupList(Area, "Display Menu", 1);
 		GetPlugIn()->AddPopupListElement("QDR", "", RIMCAS_QDM_TOGGLE);
-		GetPlugIn()->AddPopupListElement("Tags  >", "", RIMCAS_TAGS_MENU);
-		GetPlugIn()->AddPopupListElement("Primary target", "", RIMCAS_PRIMARY, false, showPrimaryTarget);
 		GetPlugIn()->AddPopupListElement("Approach Window", "", RIMCAS_APPWINDOW);
 		GetPlugIn()->AddPopupListElement("Close", "", RIMCAS_CLOSE, false, 2, false, true);
 	}
@@ -433,6 +354,7 @@ void CSMRRadar::OnFunctionCall(int FunctionId, const char * sItemString, POINT P
 
 	if (FunctionId == RIMCAS_ACTIVE_AIRPORT_FUNC) {
 		RimcasInstance->ActiveAirport = sItemString;
+		SaveDataToAsr("Airport", "Active airport for RIMCAS", RimcasInstance->ActiveAirport.c_str());
 	}
 
 	if (FunctionId == RIMCAS_QDM_TOGGLE) {
@@ -445,31 +367,6 @@ void CSMRRadar::OnFunctionCall(int FunctionId, const char * sItemString, POINT P
 
 	if (FunctionId == RIMCAS_UPDATERANGE) {
 		appWindowScale = atoi(sItemString);
-	}
-
-	if (FunctionId == RIMCAS_TAGS_ACTYPE) {
-		HideAcType = !HideAcType;
-		ShowLists["Tags  >"] = true;
-
-		RequestRefresh();
-	}
-
-	if (FunctionId == RIMCAS_TAGS_SQWARNING) {
-		DisplaySquawkWarning = !DisplaySquawkWarning;
-		ShowLists["Tags  >"] = true;
-
-		RequestRefresh();
-	}
-
-	if (FunctionId == RIMCAS_PRIMARY) {
-		showPrimaryTarget = !showPrimaryTarget;
-	}
-
-	if (FunctionId == RIMCAS_TAGS_SPEEDGATE) {
-		UseSpeedForGate = !UseSpeedForGate;
-		ShowLists["Tags  >"] = true;
-
-		RequestRefresh();
 	}
 
 	if (FunctionId == RIMCAS_TIMER) {
@@ -496,29 +393,6 @@ void CSMRRadar::OnFunctionCall(int FunctionId, const char * sItemString, POINT P
 		RimcasInstance->toggleClosedRunway(string(sItemString));
 
 		ShowLists["Closed Runways"] = true;
-
-		RequestRefresh();
-	}
-
-	if (FunctionId == RIMCAS_TAGS_2NDLINE) {
-		Display2ndLine = !Display2ndLine;
-
-		ShowLists["Tags  >"] = true;
-
-		RequestRefresh();
-	}
-
-	if (FunctionId == RIMCAS_TAGCOLOR) {
-		if (strcmp(sItemString, "Tag Colour 1") == 0) {
-			TagColorIsFirst = true;
-			TAG_COLOR_DEP = RGB(40, 50, 200);
-		}
-		else {
-			TagColorIsFirst = false;
-			TAG_COLOR_DEP = RGB(15, 105, 20);
-		}
-
-		ShowLists["Tags  >"] = true;
 
 		RequestRefresh();
 	}

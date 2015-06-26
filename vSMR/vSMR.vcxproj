@@ -137,6 +137,13 @@
     <ClInclude Include="CPDLCSettingsDialog.hpp" />
     <ClInclude Include="DataLinkDialog.hpp" />
     <ClInclude Include="HttpHelper.hpp" />
+    <ClInclude Include="rapidjson\document.h" />
+    <ClInclude Include="rapidjson\filestream.h" />
+    <ClInclude Include="rapidjson\prettywriter.h" />
+    <ClInclude Include="rapidjson\rapidjson.h" />
+    <ClInclude Include="rapidjson\reader.h" />
+    <ClInclude Include="rapidjson\stringbuffer.h" />
+    <ClInclude Include="rapidjson\writer.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="Rimcas.hpp" />
     <ClInclude Include="SMRPlugin.hpp" />
