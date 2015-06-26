@@ -118,6 +118,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="CallsignLookup.cpp" />
+    <ClCompile Include="Config.cpp" />
     <ClCompile Include="CPDLCSettingsDialog.cpp" />
     <ClCompile Include="DataLinkDialog.cpp" />
     <ClCompile Include="HttpHelper.cpp" />
@@ -133,6 +134,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CallsignLookup.hpp" />
+    <ClInclude Include="Config.hpp" />
     <ClInclude Include="Constant.hpp" />
     <ClInclude Include="CPDLCSettingsDialog.hpp" />
     <ClInclude Include="DataLinkDialog.hpp" />

@@ -885,6 +885,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 
 	RimcasInstance->OnRefreshBegin();
 
+#pragma region symbols
 	// Drawing the symbols
 	EuroScopePlugIn::CRadarTarget rt;
 	for (rt = GetPlugIn()->RadarTargetSelectFirst();
@@ -1169,12 +1170,15 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 		}
 	}
 
+#pragma endregion Drawing of the symbols
+
 	TimePopupData.clear();
 	AcOnRunway.clear();
 	ColorAC.clear();
 
 	RimcasInstance->OnRefreshEnd();
 
+#pragma region tags
 	// Drawing the Tags
 	for (rt = GetPlugIn()->RadarTargetSelectFirst();
 		rt.IsValid();
@@ -1187,17 +1191,17 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 		POINT acPosPix = ConvertCoordFromPositionToPixel(RtPos.GetPosition());
 		CFlightPlan fp = GetPlugIn()->FlightPlanSelect(rt.GetCallsign());
 		POINT TagCenter;
+		int reportedGs = rt.GetPosition().GetReportedGS();
 
-		if (rt.GetGS() < 50) {
+		if (reportedGs < 50) {
 
 			//----
 			// 1: Departure
 			// 2: Arrival
-			// 3: VFR (disabled)
 			//---
 			int TAG_TYPE = 1;
-
-			if (fp.IsValid() && std::find(Active_Arrivals.begin(), Active_Arrivals.end(), fp.GetFlightPlanData().GetDestination()) != Active_Arrivals.end()) {
+			
+			if (fp.IsValid() && strcmp(fp.GetFlightPlanData().GetDestination(), RimcasInstance->getActiveAirport().c_str()) == 0) {
 				TAG_TYPE = 2;
 			}
 
@@ -1209,15 +1213,40 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 				TagCenter = { acPosPix.x + 35, acPosPix.y - 40 };
 			}
 
+			// ----
+			// Tag items available
+			// callsign: Callsign with freq state and comm *
+			// actype: Aircraft type *
+			// sctype: Aircraft type that changes for squawk error *
+			// sqerror: Squawk error if there is one, or empty *
+			// deprwy: Departure runway *
+			// gate: Gate, from speed or scratchpad *
+			// sate: Gate, from speed or scratchpad that changes to speed if speed > 25kts *
+			// altitude: Altitude of the ac
+			// gs: Ground speed of the ac
+			// tendency: Climbing or descending symbol
+			// wake: Wake turbulance cat
+			// ----
+
 			// ----- Callsign -------
 			string callsign = rt.GetCallsign();
 
 			if (fp.IsValid()) {
-				if (fp.GetControllerAssignedData().GetCommunicationType() == 't' || fp.GetControllerAssignedData().GetCommunicationType() == 'T' || fp.GetControllerAssignedData().GetCommunicationType() == 'r' || fp.GetControllerAssignedData().GetCommunicationType() == 'R') {
+				if (fp.GetControllerAssignedData().GetCommunicationType() == 't' || 
+					fp.GetControllerAssignedData().GetCommunicationType() == 'T' || 
+					fp.GetControllerAssignedData().GetCommunicationType() == 'r' || 
+					fp.GetControllerAssignedData().GetCommunicationType() == 'R' ||
+					fp.GetControllerAssignedData().GetCommunicationType() == 'v' ||
+					fp.GetControllerAssignedData().GetCommunicationType() == 'V') 
+				{
 					callsign.append("/");
 					callsign += fp.GetControllerAssignedData().GetCommunicationType();
 				}
-				else if (fp.GetFlightPlanData().GetCommunicationType() == 't' || fp.GetFlightPlanData().GetCommunicationType() == 'r' || fp.GetFlightPlanData().GetCommunicationType() == 'T' || fp.GetFlightPlanData().GetCommunicationType() == 'R') {
+				else if (fp.GetFlightPlanData().GetCommunicationType() == 't' || 
+					fp.GetFlightPlanData().GetCommunicationType() == 'r' || 
+					fp.GetFlightPlanData().GetCommunicationType() == 'T' || 
+					fp.GetFlightPlanData().GetCommunicationType() == 'R') 
+				{
 					callsign.append("/");
 					callsign += fp.GetFlightPlanData().GetCommunicationType();
 				}
@@ -1233,55 +1262,49 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 					break;
 
 				}
-
-			}
-
-			bool hadDisplayLineChanged = false;
-			if (Display2ndLine && HideAcType && TAG_TYPE != 2) {
-				Display2ndLine = false;
-				hadDisplayLineChanged = true;
 			}
 				
-			string line1 = callsign;
-			string line2 = "";
-
-			string error = "";
+			string sqerror = "";
 			const char * assr = fp.GetControllerAssignedData().GetSquawk();
 			const char * ssr = rt.GetPosition().GetSquawk();
 			bool has_squawk_error = false;
 			if (strlen(assr) != 0 && !startsWith(ssr, assr)) {
 				has_squawk_error = true;
-				error = "A";
-				error.append(assr);
+				sqerror = "A";
+				sqerror.append(assr);
 			}
 
 			string actype = fp.GetFlightPlanData().GetAircraftFPType();
 			if (actype.size() > 4)
 				actype = actype.substr(0, 4);
 
+			string sctype = actype;
 			if (has_squawk_error && DisplaySquawkWarning)
-				actype = error;
+				sctype = sqerror;
 
-			string speed = std::to_string(rt.GetGS());
+			string speed = std::to_string(reportedGs);
 			for (size_t i = 0; i < 3 - speed.length(); i++)
 				speed = "0" + speed;
 			speed = speed.substr(0, 3);
 
-			string rwy = fp.GetFlightPlanData().GetDepartureRwy();
+			string deprwy = fp.GetFlightPlanData().GetDepartureRwy();
 
 			string gate;
-			if (UseSpeedForGate) {
+			if (CurrentConfig->getActiveProfile()["labels"]["use_aspeed_for_gate"].GetBool()) {
 				gate = std::to_string(fp.GetControllerAssignedData().GetAssignedSpeed());
 			}
 			else {
 				gate = fp.GetControllerAssignedData().GetScratchPadString();
 			}
-
 			gate = gate.substr(0, 4);
 
 			if (gate.size() == 0 || gate == "0") {
 				gate = "NOGT";
 			}
+
+			string sate = gate;
+			if (reportedGs > 25)
+				sate = speed;
 
 			if (!Display2ndLine && !HideAcType) {
 				line1 += " ";
@@ -1542,6 +1565,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 
 		}
 	}
+#pragma endregion Drawing of the tags
 
 	CBrush BrushGrey(RGB(150, 150, 150));
 	COLORREF oldColor = dc.SetTextColor(RGB(33, 33, 33));
