@@ -40,8 +40,6 @@ std::string HttpHelper::downloadStringFromURL(std::string url) {
 	return "";
 }
 
-
-
 HttpHelper::~HttpHelper() {
 
 }

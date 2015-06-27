@@ -1306,36 +1306,6 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 			if (reportedGs > 25)
 				sate = speed;
 
-			if (!Display2ndLine && !HideAcType) {
-				line1 += " ";
-				line1 += actype;
-			}
-			else {
-				if (TAG_TYPE == 1) {
-					line2 = actype;
-
-					if (rt.GetGS() >= 25 || RimcasInstance->isAcOnRunway(rt)) {
-						line2 += " ";
-						line2 += speed;
-					}
-					else {
-						line2 += " ";
-						line2 += rwy;
-					}
-				}
-				if (TAG_TYPE == 2) {
-					if (rt.GetGS() >= 25 || RimcasInstance->isAcOnRunway(rt)) {
-						line2 = speed;
-					}
-					else {
-						line2 = gate;
-					}
-
-					line2 += " ";
-					line2 += actype;
-				}
-			}
-
 			// ----- Draw -------
 			
 			string longuest = line1;

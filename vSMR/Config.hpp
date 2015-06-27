@@ -4,6 +4,7 @@
 #include <sstream>
 #include <iostream>
 #include <map>
+#include <vector>
 #include <Gdiplus.h>
 #include "rapidjson/document.h"
 #include "rapidjson/stringbuffer.h"
@@ -22,6 +23,8 @@ public:
 	
 	Gdiplus::Color getConfigColor(const Value& config_path);
 	COLORREF getConfigColorRef(const Value& config_path);
+
+	vector<string> getAllProfiles();
 
 protected:
 	Document document;
