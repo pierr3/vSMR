@@ -3,24 +3,21 @@
 
 RECT TimePopupArea = { 300, 300, 430, 363 };
 
-map<string, RECT> TimePopupAreas;
-
-map<int, string> TimePopupData;
-multimap<string, string> AcOnRunway;
-map<string, bool> ColorAC;
- 
-map<string, CRimcas::RunwayAreaType> RunwayAreas;
-
-map<string, RECT> MenuPositions;
-map<string, bool> DisplayMenu;
-
 CRimcas * RimcasInstance = NULL;
 CConfig * CurrentConfig = NULL;
+
+ULONG_PTR m_gdiplusToken;
+int currentFontSize = 1;
+map<int, Gdiplus::Font *> customFonts;
 
 CSMRRadar::CSMRRadar()
 {
 	clock_init = clock();
 	srand((unsigned)time(0));
+
+	// Initialize GDI+
+	GdiplusStartupInput gdiplusStartupInput;
+	GdiplusStartup(&m_gdiplusToken, &gdiplusStartupInput, NULL);
 
 	GetModuleFileNameA((HINSTANCE)&__ImageBase, DllPathFile, sizeof(DllPathFile));
 	DllPath = DllPathFile;
@@ -41,11 +38,33 @@ CSMRRadar::CSMRRadar()
 	appWindowFilter = 6000;
 	appWindowScale = 15;
 
+	LoadCustomFont();
+
 	RefreshAirportActivity();
 }
 
 CSMRRadar::~CSMRRadar()
 {
+	GdiplusShutdown(m_gdiplusToken);
+}
+
+void CSMRRadar::LoadCustomFont() {
+	// Loading the custom font if there is one in use
+	customFonts.clear();
+	if (CurrentConfig->getActiveProfile()["font"]["use_custom_font"].GetBool()) {
+		const Value& FSizes = CurrentConfig->getActiveProfile()["font"]["sizes"];
+		string font_name = CurrentConfig->getActiveProfile()["font"]["font_name"].GetString();
+		wstring buffer = wstring(font_name.begin(), font_name.end());
+		Gdiplus::FontStyle fontStyle = Gdiplus::FontStyleRegular;
+		if (strcmp(CurrentConfig->getActiveProfile()["font"]["weight"].GetString(), "Bold") == 0)
+			fontStyle = Gdiplus::FontStyleBold;
+		if (strcmp(CurrentConfig->getActiveProfile()["font"]["weight"].GetString(), "Italic") == 0)
+			fontStyle = Gdiplus::FontStyleItalic;
+		customFonts[1] = new Gdiplus::Font(buffer.c_str(), FSizes["one"].GetInt(), fontStyle, Gdiplus::UnitPixel);
+		customFonts[2] = new Gdiplus::Font(buffer.c_str(), FSizes["two"].GetInt(), fontStyle, Gdiplus::UnitPixel);
+		customFonts[3] = new Gdiplus::Font(buffer.c_str(), FSizes["three"].GetInt(), fontStyle, Gdiplus::UnitPixel);
+		customFonts[4] = new Gdiplus::Font(buffer.c_str(), FSizes["four"].GetInt(), fontStyle, Gdiplus::UnitPixel);
+	}
 }
 
 void CSMRRadar::OnAsrContentLoaded(bool Loaded)
@@ -664,16 +683,22 @@ string CSMRRadar::GetBottomLine(const char * Callsign) {
 
 bool CSMRRadar::OnCompileCommand(const char * sCommandLine)
 {
+	if (strcmp(sCommandLine, ".smr reload") == 0) {
+		CurrentConfig = new CConfig(DllPath + "\\vSMR_Profiles.json");
+		LoadCustomFont();
+		return true;
+	}
+
 	return false;
 }
 
-int Is_Left(const POINT &p0, const POINT &p1, const POINT &point)
+inline int Is_Left(const POINT &p0, const POINT &p1, const POINT &point)
 {
 	return ((p1.x - p0.x) * (point.y - p0.y) -
 		(point.x - p0.x) * (p1.y - p0.y));
 }
 
-bool Is_Inside(const POINT &point, const std::vector<POINT> &points_list)
+inline bool Is_Inside(const POINT &point, const std::vector<POINT> &points_list)
 {
 	// The winding number counter.
 	int winding_number = 0;
@@ -727,7 +752,7 @@ bool Is_Inside(const POINT &point, const std::vector<POINT> &points_list)
 // Liang-Barsky function by Daniel White @ http://www.skytopia.com/project/articles/compsci/clipping.html
 // This function inputs 8 numbers, and outputs 4 new numbers (plus a boolean value to say whether the clipped line is drawn at all).
 //
-bool LiangBarsky(RECT Area, POINT fromSrc, POINT toSrc , POINT &ClipFrom, POINT &ClipTo)         // The output values, so declare these outside.
+inline bool LiangBarsky(RECT Area, POINT fromSrc, POINT toSrc, POINT &ClipFrom, POINT &ClipTo)         // The output values, so declare these outside.
 {
 
 	double edgeLeft, edgeRight, edgeBottom, edgeTop, x0src, y0src, x1src, y1src;
@@ -773,7 +798,7 @@ bool LiangBarsky(RECT Area, POINT fromSrc, POINT toSrc , POINT &ClipFrom, POINT 
 	return true;        // (clipped) line is drawn
 }
 
-double TrueBearing(CPosition pos1, CPosition pos2)
+inline double TrueBearing(CPosition pos1, CPosition pos2)
 {
 	const float PI = float(atan2(0, -1));
 
@@ -1178,6 +1203,21 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 
 	RimcasInstance->OnRefreshEnd();
 
+	// Creating the gdi+ graphics
+	Graphics graphics(hDC);
+	graphics.SetPageUnit(Gdiplus::UnitPixel);
+
+	//graphics.SetSmoothingMode(SmoothingModeAntiAlias);
+
+	// Get Device DPI Resolutions //
+	int nLogPx = ::GetDeviceCaps(hDC, LOGPIXELSX);
+	// Get GDI+ resolution
+	int nGdiPlusLogPx = (int)graphics.GetDpiX();
+	// set to pixels
+	graphics.SetPageUnit(UnitPixel);
+	// Adjust to match
+	graphics.SetPageScale(((REAL)nGdiPlusLogPx / (REAL)nLogPx));
+
 #pragma region tags
 	// Drawing the Tags
 	for (rt = GetPlugIn()->RadarTargetSelectFirst();
@@ -1190,223 +1230,287 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 		CRadarTargetPositionData RtPos = rt.GetPosition();
 		POINT acPosPix = ConvertCoordFromPositionToPixel(RtPos.GetPosition());
 		CFlightPlan fp = GetPlugIn()->FlightPlanSelect(rt.GetCallsign());
+		int reportedGs = RtPos.GetReportedGS();
+
+		// Getting the tag center/offset
+
 		POINT TagCenter;
-		int reportedGs = rt.GetPosition().GetReportedGS();
+		map<string, POINT>::iterator it = TagsOffsets.find(rt.GetCallsign());
+		if (it != TagsOffsets.end()) {
+			TagCenter = { acPosPix.x + it->second.x, acPosPix.y + it->second.y };
+		}
+		else {
+			TagCenter = { acPosPix.x + 35, acPosPix.y - 40 };
+		}
 
-		if (reportedGs < 50) {
+		//----
+		// Tag types
+		//---
 
-			//----
-			// 1: Departure
-			// 2: Arrival
-			//---
-			int TAG_TYPE = 1;
+		static enum TagTypes { Departure, Arrival, Airborne };
+
+		TagTypes TagType = TagTypes::Departure;
 			
-			if (fp.IsValid() && strcmp(fp.GetFlightPlanData().GetDestination(), RimcasInstance->getActiveAirport().c_str()) == 0) {
-				TAG_TYPE = 2;
-			}
+		if (fp.IsValid() && strcmp(fp.GetFlightPlanData().GetDestination(), RimcasInstance->getActiveAirport().c_str()) == 0) {
+			TagType = TagTypes::Arrival;
+		}
 
-			map<string, POINT>::iterator it = TagsOffsets.find(rt.GetCallsign());
-			if (it != TagsOffsets.end()) {
-				TagCenter = { acPosPix.x + it->second.x, acPosPix.y + it->second.y };
-			}
-			else {
-				TagCenter = { acPosPix.x + 35, acPosPix.y - 40 };
-			}
+		if (reportedGs > 50) {
+			TagType = TagTypes::Airborne;
+		}
 
-			// ----
-			// Tag items available
-			// callsign: Callsign with freq state and comm *
-			// actype: Aircraft type *
-			// sctype: Aircraft type that changes for squawk error *
-			// sqerror: Squawk error if there is one, or empty *
-			// deprwy: Departure runway *
-			// gate: Gate, from speed or scratchpad *
-			// sate: Gate, from speed or scratchpad that changes to speed if speed > 25kts *
-			// altitude: Altitude of the ac
-			// gs: Ground speed of the ac
-			// tendency: Climbing or descending symbol
-			// wake: Wake turbulance cat
-			// ----
+		// ----
+		// Tag items available
+		// callsign: Callsign with freq state and comm *
+		// actype: Aircraft type *
+		// sctype: Aircraft type that changes for squawk error *
+		// sqerror: Squawk error if there is one, or empty *
+		// deprwy: Departure runway *
+		// seprwy: Departure runway that changes to speed if speed > 25kts *
+		// gate: Gate, from speed or scratchpad *
+		// sate: Gate, from speed or scratchpad that changes to speed if speed > 25kts *
+		// flightlevel: Flightlevel of the ac *
+		// gs: Ground speed of the ac *
+		// tendency: Climbing or descending symbol *
+		// wake: Wake turbulance cat *
+		// TODO: Current owner
+		// ----
 
-			// ----- Callsign -------
-			string callsign = rt.GetCallsign();
-
-			if (fp.IsValid()) {
-				if (fp.GetControllerAssignedData().GetCommunicationType() == 't' || 
-					fp.GetControllerAssignedData().GetCommunicationType() == 'T' || 
-					fp.GetControllerAssignedData().GetCommunicationType() == 'r' || 
-					fp.GetControllerAssignedData().GetCommunicationType() == 'R' ||
-					fp.GetControllerAssignedData().GetCommunicationType() == 'v' ||
-					fp.GetControllerAssignedData().GetCommunicationType() == 'V') 
-				{
+		// ----- Callsign -------
+		string callsign = rt.GetCallsign();
+		if (fp.IsValid()) {
+			if (fp.GetControllerAssignedData().GetCommunicationType() == 't' || 
+				fp.GetControllerAssignedData().GetCommunicationType() == 'T' || 
+				fp.GetControllerAssignedData().GetCommunicationType() == 'r' || 
+				fp.GetControllerAssignedData().GetCommunicationType() == 'R' ||
+				fp.GetControllerAssignedData().GetCommunicationType() == 'v' ||
+				fp.GetControllerAssignedData().GetCommunicationType() == 'V') 
+			{
+				if (fp.GetControllerAssignedData().GetCommunicationType() != 'v' &&
+					fp.GetControllerAssignedData().GetCommunicationType() != 'V') {
 					callsign.append("/");
 					callsign += fp.GetControllerAssignedData().GetCommunicationType();
 				}
-				else if (fp.GetFlightPlanData().GetCommunicationType() == 't' || 
-					fp.GetFlightPlanData().GetCommunicationType() == 'r' || 
-					fp.GetFlightPlanData().GetCommunicationType() == 'T' || 
-					fp.GetFlightPlanData().GetCommunicationType() == 'R') 
-				{
-					callsign.append("/");
-					callsign += fp.GetFlightPlanData().GetCommunicationType();
-				}
-
-				switch (fp.GetState()) {
-
-				case FLIGHT_PLAN_STATE_TRANSFER_TO_ME_INITIATED:
-					callsign = ">>" + callsign;
-					break;
-
-				case FLIGHT_PLAN_STATE_TRANSFER_FROM_ME_INITIATED:
-					callsign = callsign + ">>";
-					break;
-
-				}
 			}
+			else if (fp.GetFlightPlanData().GetCommunicationType() == 't' || 
+				fp.GetFlightPlanData().GetCommunicationType() == 'r' || 
+				fp.GetFlightPlanData().GetCommunicationType() == 'T' || 
+				fp.GetFlightPlanData().GetCommunicationType() == 'R') 
+			{
+				callsign.append("/");
+				callsign += fp.GetFlightPlanData().GetCommunicationType();
+			}
+
+			switch (fp.GetState()) {
+
+			case FLIGHT_PLAN_STATE_TRANSFER_TO_ME_INITIATED:
+				callsign = ">>" + callsign;
+				break;
+
+			case FLIGHT_PLAN_STATE_TRANSFER_FROM_ME_INITIATED:
+				callsign = callsign + ">>";
+				break;
+
+			}
+		}
 				
-			string sqerror = "";
-			const char * assr = fp.GetControllerAssignedData().GetSquawk();
-			const char * ssr = rt.GetPosition().GetSquawk();
-			bool has_squawk_error = false;
-			if (strlen(assr) != 0 && !startsWith(ssr, assr)) {
-				has_squawk_error = true;
-				sqerror = "A";
-				sqerror.append(assr);
-			}
-
-			string actype = fp.GetFlightPlanData().GetAircraftFPType();
-			if (actype.size() > 4)
-				actype = actype.substr(0, 4);
-
-			string sctype = actype;
-			if (has_squawk_error && DisplaySquawkWarning)
-				sctype = sqerror;
-
-			string speed = std::to_string(reportedGs);
-			for (size_t i = 0; i < 3 - speed.length(); i++)
-				speed = "0" + speed;
-			speed = speed.substr(0, 3);
-
-			string deprwy = fp.GetFlightPlanData().GetDepartureRwy();
-
-			string gate;
-			if (CurrentConfig->getActiveProfile()["labels"]["use_aspeed_for_gate"].GetBool()) {
-				gate = std::to_string(fp.GetControllerAssignedData().GetAssignedSpeed());
-			}
-			else {
-				gate = fp.GetControllerAssignedData().GetScratchPadString();
-			}
-			gate = gate.substr(0, 4);
-
-			if (gate.size() == 0 || gate == "0") {
-				gate = "NOGT";
-			}
-
-			string sate = gate;
-			if (reportedGs > 25)
-				sate = speed;
-
-			// ----- Draw -------
-			
-			string longuest = line1;
-			if (Display2ndLine && line2.size() >= line1.size())
-				longuest = line2;
-
-			int TagWidth = dc.GetTextExtent(longuest.c_str()).cx;
-			if (TagWidth % 2 != 0)
-				TagWidth += 1;
-			int TagHeight = dc.GetTextExtent(line1.c_str()).cy;
-
-			if (Display2ndLine)
-				TagHeight += dc.GetTextExtent(line2.c_str()).cy;
-
-			POINT TopLeft = { long(TagCenter.x - float(TagWidth / 2.0f)), long(TagCenter.y - float(TagHeight / 2.0f)) };
-			POINT BottomRight = { TopLeft.x + TagWidth, TopLeft.y + TagHeight };
-			CRect TagArea(TopLeft, BottomRight);
-			TagArea.NormalizeRect();
-
-			CPen qLinePen(PS_SOLID, 1, RGB(255, 255, 255));
-			CPen* pqOrigPen = dc.SelectObject(&qLinePen);
-			dc.MoveTo(acPosPix.x, acPosPix.y);
-			dc.LineTo(TagArea.CenterPoint().x, TagArea.CenterPoint().y);
-
-			COLORREF TagColor = TAG_COLOR_DEP;
-			if (TAG_TYPE == 2)
-				TagColor = RGB(170, 50, 50);
-
-			TagColor = RimcasInstance->GetAircraftColor(rt.GetCallsign(), TagColor);
-
-			dc.FillSolidRect(TagArea, TagColor);
-			dc.SelectObject(pqOrigPen);
-			AddScreenObject(DRAWING_TAG, fp.GetCallsign(), TagArea, true, GetBottomLine(fp.GetCallsign()).c_str());
-
-			dc.SetTextColor(RGB(255, 255, 255));
-			int oldTextAlign = dc.SetTextAlign(TA_LEFT);
-
-			if (fp.IsValid()) {
-
-				int leftOffset = 0;
-
-				// Drawing callsign
-				dc.TextOutA(TagArea.left, TagArea.top, callsign.c_str());
-				AddScreenObject(TAG_CITEM_CALLSIGN, rt.GetCallsign(), Utils::GetAreaFromText(&dc, callsign, { TagArea.left, TagArea.top }), true, GetBottomLine(fp.GetCallsign()).c_str());
-
-				// Second line
-				if (!Display2ndLine) {
-					if (!HideAcType) {
-						string t = callsign + " ";
-						leftOffset += dc.GetTextExtent(t.c_str()).cx;
-						COLORREF oldColor = dc.SetTextColor(RGB(255, 255, 255));
-						if (has_squawk_error && DisplaySquawkWarning)
-							oldColor = dc.SetTextColor(RGB(255, 255, 0));
-						dc.TextOutA(TagArea.left + leftOffset, TagArea.top, actype.c_str());
-						dc.SetTextColor(oldColor);
-						AddScreenObject(TAG_CITEM_FPBOX, rt.GetCallsign(), Utils::GetAreaFromText(&dc, actype, { TagArea.left + leftOffset, TagArea.top }), true, GetBottomLine(fp.GetCallsign()).c_str());
-					}
-				}
-				else {
-					if (TAG_TYPE == 1) {
-						if (!HideAcType) {
-							int topOffset = dc.GetTextExtent("Z").cy;
-							COLORREF oldColor = dc.SetTextColor(RGB(255, 255, 255));
-							if (has_squawk_error && DisplaySquawkWarning)
-								oldColor = dc.SetTextColor(RGB(255, 255, 0));
-							dc.TextOutA(TagArea.left, TagArea.top + topOffset, actype.c_str());
-							AddScreenObject(TAG_CITEM_FPBOX, rt.GetCallsign(), Utils::GetAreaFromText(&dc, actype, { TagArea.left, TagArea.top + topOffset }), true, GetBottomLine(fp.GetCallsign()).c_str());
-							dc.SetTextColor(oldColor);
-
-							string t = actype + " ";
-							leftOffset += dc.GetTextExtent(t.c_str()).cx;
-							dc.TextOutA(TagArea.left + leftOffset, TagArea.top + topOffset, rwy.c_str());
-							AddScreenObject(TAG_CITEM_RWY, rt.GetCallsign(), Utils::GetAreaFromText(&dc, rwy, { TagArea.left + leftOffset, TagArea.top + topOffset }), true, GetBottomLine(fp.GetCallsign()).c_str());
-						}
-					}
-
-					if (TAG_TYPE == 2) {
-						int topOffset = dc.GetTextExtent("Z").cy;
-						dc.TextOutA(TagArea.left, TagArea.top + topOffset, gate.c_str());
-						AddScreenObject(TAG_CITEM_GATE, rt.GetCallsign(), Utils::GetAreaFromText(&dc, gate, { TagArea.left, TagArea.top + topOffset }), true, GetBottomLine(fp.GetCallsign()).c_str());
-						
-						if (!HideAcType) {
-							string t = gate + " ";
-							leftOffset += dc.GetTextExtent(t.c_str()).cx;
-							COLORREF oldColor = dc.SetTextColor(RGB(255, 255, 255));
-							if (has_squawk_error && DisplaySquawkWarning)
-								oldColor = dc.SetTextColor(RGB(255, 255, 0));
-							dc.TextOutA(TagArea.left + leftOffset, TagArea.top + topOffset, actype.c_str());
-							dc.SetTextColor(oldColor);
-							AddScreenObject(TAG_CITEM_FPBOX, rt.GetCallsign(), Utils::GetAreaFromText(&dc, actype, { TagArea.left + leftOffset, TagArea.top + topOffset }), true, GetBottomLine(fp.GetCallsign()).c_str());
-						}
-						
-					}
-				}
-
-			}
-			dc.SetTextAlign(oldTextAlign);
-			if (hadDisplayLineChanged)
-				Display2ndLine = true;
+		// ----- Squawn error -------
+		string sqerror = "";
+		const char * assr = fp.GetControllerAssignedData().GetSquawk();
+		const char * ssr = rt.GetPosition().GetSquawk();
+		bool has_squawk_error = false;
+		if (strlen(assr) != 0 && !startsWith(ssr, assr)) {
+			has_squawk_error = true;
+			sqerror = "A";
+			sqerror.append(assr);
 		}
 
+		// ----- Aircraft type -------
+		string actype = fp.GetFlightPlanData().GetAircraftFPType();
+		if (actype.size() > 4)
+			actype = actype.substr(0, 4);
+
+		// ----- Aircraft type that changes to squawk error -------
+		string sctype = actype;
+		if (has_squawk_error)
+			sctype = sqerror;
+
+		// ----- Groundspeed -------
+		string speed = std::to_string(reportedGs);
+		for (size_t i = 0; i < 3 - speed.length(); i++)
+			speed = "0" + speed;
+		speed = speed.substr(0, 3);
+
+		// ----- Departure runway -------
+		string deprwy = fp.GetFlightPlanData().GetDepartureRwy();
+
+		// ----- Departure runway that changes for overspeed -------
+		string seprwy = fp.GetFlightPlanData().GetDepartureRwy();
+		if (reportedGs > 25)
+			seprwy = std::to_string(reportedGs);
+
+		// ----- Gate -------
+		string gate;
+		if (CurrentConfig->getActiveProfile()["labels"]["use_aspeed_for_gate"].GetBool())
+			gate = std::to_string(fp.GetControllerAssignedData().GetAssignedSpeed());
+		else
+			gate = fp.GetControllerAssignedData().GetScratchPadString();
+
+		gate = gate.substr(0, 4);
+
+		if (gate.size() == 0 || gate == "0")
+			gate = "NOGT";
+
+		// ----- Gate that changes to speed -------
+		string sate = gate;
+		if (reportedGs > 25)
+			sate = speed; 
+
+		// ----- Flightlevel -------
+		string flightlevel = ""; 
+		int FL = RtPos.GetFlightLevel();
+		string str = std::to_string(FL);
+		for (size_t i = 0; i < 6 - str.length(); i++)
+			str = "0" + str;
+		str.erase(str.begin() + 3, str.end());
+		flightlevel = str;
+
+		// ----- Tendency -------
+		string tendency = "";
+		int delta_fl = FL - rt.GetPreviousPosition(RtPos).GetPressureAltitude();
+		if (abs(delta_fl) >= 20) {
+			if (delta_fl < 0) {
+				tendency = "|";
+			}
+			else {
+				tendency = "^";
+			}
+		}
+
+		// ----- Wake cat -------
+		string wake = "?";
+		if (fp.IsValid()) {
+			wake = "";
+			wake += fp.GetFlightPlanData().GetAircraftWtc();
+		}
+
+		// ----- Generating the replacing map -----
+		map<string, string> TagReplacingMap;
+		TagReplacingMap["callsign"] = callsign;
+		TagReplacingMap["actype"] = actype;
+		TagReplacingMap["sctype"] = sctype;
+		TagReplacingMap["sqerror"] = sqerror;
+		TagReplacingMap["deprwy"] = deprwy;
+		TagReplacingMap["seprwy"] = seprwy;
+		TagReplacingMap["gate"] = gate;
+		TagReplacingMap["sate"] = sate;
+		TagReplacingMap["flightlevel"] = flightlevel;
+		TagReplacingMap["gs"] = speed;
+		TagReplacingMap["tendency"] = tendency;
+		TagReplacingMap["wake"] = wake;
+
+
+		//
+		// ----- Now the hard part, drawing (using gdi+) -------
+		//	
+
+		struct Utils2 {
+			static string getEnumString(TagTypes type) {
+				if (type == TagTypes::Departure)
+					return "departure";
+				if (type == TagTypes::Arrival)
+					return "arrival";
+				if (type == TagTypes::Airborne)
+					return "airborne";
+			}
+		};
+
+		// First we need to figure out the tag size
+		
+		int TagWidth, TagHeight;
+		const Value& LabelsSettings = CurrentConfig->getActiveProfile()["labels"];
+
+		string line1_size = "";
+		string line2_size = "";
+		for (SizeType i = 0; i < LabelsSettings[Utils2::getEnumString(TagType).c_str()]["line1"].Size(); i++) {
+			const Value& item = LabelsSettings[Utils2::getEnumString(TagType).c_str()]["line1"][i];
+			line1_size.append(item.GetString());
+			if (i != LabelsSettings[Utils2::getEnumString(TagType).c_str()]["line1"].Size() - 1)
+				line1_size.append(" ");
+		}
+
+			// If there is a second line, then we determine it's size.
+		if (LabelsSettings[Utils2::getEnumString(TagType).c_str()]["two_lines_tag"].GetBool()) {
+			for (SizeType i = 0; i < LabelsSettings[Utils2::getEnumString(TagType).c_str()]["line2"].Size(); i++) {
+				const Value& item = LabelsSettings[Utils2::getEnumString(TagType).c_str()]["line2"][i];
+				line2_size.append(item.GetString());
+				if (i != LabelsSettings[Utils2::getEnumString(TagType).c_str()]["line2"].Size() - 1)
+					line2_size.append(" ");
+			}
+		}
+
+
+		for (std::map<string, string>::iterator it = TagReplacingMap.begin(); it != TagReplacingMap.end(); ++it)
+		{
+			replaceAll(line1_size, it->first, it->second);
+
+			if (LabelsSettings[Utils2::getEnumString(TagType).c_str()]["two_lines_tag"].GetBool()) {
+				replaceAll(line2_size, it->first, it->second);
+			}
+		}
+
+		if (CurrentConfig->getActiveProfile()["font"]["use_custom_font"].GetBool()) {
+			wstring line1_sizew = wstring(line1_size.begin(), line1_size.end());
+			wstring line2_sizew = wstring(line2_size.begin(), line2_size.end());
+
+			RectF line1Box, line2Box;
+			
+			graphics.MeasureString(line1_sizew.c_str(), wcslen(line1_sizew.c_str()), customFonts[currentFontSize], PointF(0, 0), &Gdiplus::StringFormat(), &line1Box);
+			graphics.MeasureString(line2_sizew.c_str(), wcslen(line2_sizew.c_str()), customFonts[currentFontSize], PointF(0, 0), &Gdiplus::StringFormat(), &line2Box);
+			TagWidth = max(line1Box.GetRight(), line2Box.GetRight());
+			TagHeight = (line1Box.GetBottom() + line2Box.GetBottom())-2;
+		}
+		else {
+			CRect line1Size(0, 0, 0, 0);
+			dc.DrawText(line1_size.c_str(), &line1Size, DT_CALCRECT);
+			CRect line2Size(0, 0, 0, 0);
+			dc.DrawText(line2_size.c_str(), &line2Size, DT_CALCRECT);
+
+			TagWidth = max(line1Size.right, line2Size.right);
+			TagHeight = line1Size.bottom+line2Size.bottom;
+		}
+
+		// Pfiou, done with that, now we can draw the actual rectangle.
+
+		//COLORREF TagBackgroundColor2 = RimcasInstance->GetAircraftColor(rt.GetCallsign(), );
+		Color TagBackgroundColor = CurrentConfig->getConfigColor(LabelsSettings[Utils2::getEnumString(TagType).c_str()]["background_color"]);
+		
+		CRect TagBackgroundRect(TagCenter.x - (TagWidth / 2), TagCenter.y - (TagHeight / 2), TagCenter.x + (TagWidth / 2), TagCenter.y + (TagHeight / 2));
+		SolidBrush TagBackgroundBrush(TagBackgroundColor);
+		graphics.FillRectangle(&TagBackgroundBrush, CopyRect(TagBackgroundRect));
+
+		if (CurrentConfig->getActiveProfile()["font"]["use_custom_font"].GetBool()) {
+			SolidBrush FontColor(CurrentConfig->getConfigColor(LabelsSettings[Utils2::getEnumString(TagType).c_str()]["text_color"]));
+			wstring line1w = wstring(line1_size.begin(), line1_size.end());
+			graphics.DrawString(line1w.c_str(), wcslen(line1w.c_str()), customFonts[currentFontSize], PointF(TagBackgroundRect.left, TagBackgroundRect.top), &Gdiplus::StringFormat(), &FontColor);
+			
+			if (LabelsSettings[Utils2::getEnumString(TagType).c_str()]["two_lines_tag"].GetBool()) {
+				wstring line2w = wstring(line2_size.begin(), line2_size.end());
+				graphics.DrawString(line2w.c_str(), wcslen(line2w.c_str()), customFonts[currentFontSize], PointF(TagBackgroundRect.left, TagBackgroundRect.top + (TagHeight / 2)), &Gdiplus::StringFormat(), &FontColor);
+			}
+		}
+		else {
+			COLORREF oldColor = dc.SetTextColor(CurrentConfig->getConfigColorRef(LabelsSettings[Utils2::getEnumString(TagType).c_str()]["text_color"]));
+
+			dc.TextOutA(TagBackgroundRect.left, TagBackgroundRect.top, line1_size.c_str());
+			if (LabelsSettings[Utils2::getEnumString(TagType).c_str()]["two_lines_tag"].GetBool()) {
+				dc.TextOutA(TagBackgroundRect.left, TagBackgroundRect.top + (TagHeight / 2), line2_size.c_str());
+			}
+
+			dc.SetTextColor(oldColor);
+		}
+
+		/*
 		if (rt.GetGS() >= 50 && rt.GetGS() < 180 && rt.GetPosition().GetPressureAltitude() < 2000) {
 			map<string, POINT>::iterator it = TagsOffsets.find(rt.GetCallsign());
 			if (it != TagsOffsets.end()) {
@@ -1533,9 +1637,19 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 
 			}
 
-		}
+		}*/
 	}
+
+	/*
+	SolidBrush TestNight(CurrentConfig->getConfigColor(CurrentConfig->getActiveProfile()["labels"]["airborne"]["background_color"]));
+	CRect tN = new CRect(GetRadarArea());
+	graphics.FillRectangle(&TestNight, CopyRect(tN));
+	*/
+
 #pragma endregion Drawing of the tags
+
+	// Releasing the hDC after the drawing
+	graphics.ReleaseHDC(hDC);
 
 	CBrush BrushGrey(RGB(150, 150, 150));
 	COLORREF oldColor = dc.SetTextColor(RGB(33, 33, 33));

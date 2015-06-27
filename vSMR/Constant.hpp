@@ -1,6 +1,9 @@
 #pragma once
 #include <afxwin.h>
+#include <string>
 #include "stdafx.h"
+
+using namespace std;
 
 const int TAG_ITEM_DATALINK_STS = 444;
 const int TAG_FUNC_DATALINK_MENU = 544;
@@ -10,10 +13,36 @@ const int TAG_FUNC_DATALINK_STBY = 546;
 const int TAG_FUNC_DATALINK_VOICE = 547;
 const int TAG_FUNC_DATALINK_RESET = 548;
 
-static bool startsWith(const char *pre, const char *str)
+inline static bool startsWith(const char *pre, const char *str)
 {
 	size_t lenpre = strlen(pre), lenstr = strlen(str);
 	return lenstr < lenpre ? false : strncmp(pre, str, lenpre) == 0;
+};
+
+inline static void replaceAll(string& source, const string& from, const string& to)
+{
+	string newString;
+	newString.reserve(source.length());  // avoids a few memory allocations
+
+	string::size_type lastPos = 0;
+	string::size_type findPos;
+
+	while (string::npos != (findPos = source.find(from, lastPos)))
+	{
+		newString.append(source, lastPos, findPos - lastPos);
+		newString += to;
+		lastPos = findPos + from.length();
+	}
+
+	// Care for the rest after last occurrence
+	newString += source.substr(lastPos);
+
+	source.swap(newString);
+};
+
+inline static Gdiplus::Rect CopyRect(CRect &rect)
+{
+	return Gdiplus::Rect(rect.left, rect.top, rect.Width(), rect.Height());
 };
 
 const int DRAWING_TAG = 1211;

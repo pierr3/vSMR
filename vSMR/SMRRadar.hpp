@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <time.h>
 #include <sstream>
+#include <GdiPlus.h>
 #include "Constant.hpp"
 #include "CallsignLookup.hpp"
 #include "Config.hpp"
@@ -15,6 +16,7 @@
 #include "Rimcas.hpp"
 
 using namespace std;
+using namespace Gdiplus;
 using namespace EuroScopePlugIn;
 
 class CSMRRadar :
@@ -79,7 +81,22 @@ public:
 	bool HideAcType = false;
 	bool UseSpeedForGate = false;
 
+	map<string, RECT> TimePopupAreas;
+
+	map<int, string> TimePopupData;
+	multimap<string, string> AcOnRunway;
+	map<string, bool> ColorAC;
+
+	map<string, CRimcas::RunwayAreaType> RunwayAreas;
+
+	map<string, RECT> MenuPositions;
+	map<string, bool> DisplayMenu;
+
 	const float Pi = float(atan2(0, -1));
+
+	//---LoadCustomFont--------------------------------------------
+
+	virtual void LoadCustomFont();
 
 	//---OnAsrContentLoaded--------------------------------------------
 
