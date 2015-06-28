@@ -3,9 +3,6 @@
 
 RECT TimePopupArea = { 300, 300, 430, 363 };
 
-CRimcas * RimcasInstance = NULL;
-CConfig * CurrentConfig = NULL;
-
 ULONG_PTR m_gdiplusToken;
 int currentFontSize = 1;
 map<int, Gdiplus::Font *> customFonts;
@@ -51,6 +48,7 @@ CSMRRadar::~CSMRRadar()
 void CSMRRadar::LoadCustomFont() {
 	// Loading the custom font if there is one in use
 	customFonts.clear();
+	RimcasInstance->toggleShortTimer(CurrentConfig->getActiveProfile()["rimcas"]["short_timer"].GetBool());
 	if (CurrentConfig->getActiveProfile()["font"]["use_custom_font"].GetBool()) {
 		const Value& FSizes = CurrentConfig->getActiveProfile()["font"]["sizes"];
 		string font_name = CurrentConfig->getActiveProfile()["font"]["font_name"].GetString();
@@ -72,7 +70,7 @@ void CSMRRadar::OnAsrContentLoaded(bool Loaded)
 	const char * p_value;
 
 	if ((p_value = GetDataFromAsr("Airport")) != NULL)
-		RimcasInstance->ActiveAirport = p_value;
+		setActiveAirport(p_value);
 
 	if ((p_value = GetDataFromAsr("ShortTimer")) != NULL)
 	{
@@ -126,7 +124,7 @@ void CSMRRadar::OnAsrContentLoaded(bool Loaded)
 		rwy.IsValid();
 		rwy = GetPlugIn()->SectorFileElementSelectNext(rwy, SECTOR_ELEMENT_RUNWAY))
 	{
-		if (startsWith(RimcasInstance->getActiveAirport().c_str(), rwy.GetAirportName())) {
+		if (startsWith(getActiveAirport().c_str(), rwy.GetAirportName())) {
 			if (rwy.IsElementActive(true, 0) || rwy.IsElementActive(false, 0)) {
 				RimcasInstance->toggleMonitoredRunwayDep(rwy.GetRunwayName(0));
 				if (rwy.IsElementActive(false, 0)) {
@@ -145,7 +143,7 @@ void CSMRRadar::OnAsrContentLoaded(bool Loaded)
 
 void CSMRRadar::OnAsrContentToBeSaved(void)
 {
-	SaveDataToAsr("Airport", "Active airport for RIMCAS", RimcasInstance->ActiveAirport.c_str());
+	SaveDataToAsr("Airport", "Active airport for RIMCAS", getActiveAirport().c_str());
 
 	const char * to_save = "0";
 	string temp;
@@ -251,25 +249,21 @@ void CSMRRadar::OnClickScreenObject(int ObjectType, const char * sObjectId, POIN
 		if (strcmp(sObjectId, "close") == 0)
 			appWindow = false;
 		if (strcmp(sObjectId, "range") == 0) {
-			GetPlugIn()->OpenPopupList(Area, "Range", 1);
-			GetPlugIn()->AddPopupListElement("25", "", RIMCAS_UPDATERANGE);
-			GetPlugIn()->AddPopupListElement("20", "", RIMCAS_UPDATERANGE);
-			GetPlugIn()->AddPopupListElement("15", "", RIMCAS_UPDATERANGE);
-			GetPlugIn()->AddPopupListElement("10", "", RIMCAS_UPDATERANGE);
-			GetPlugIn()->AddPopupListElement("Close", "", RIMCAS_CLOSE, false, 2, false, true);
+			GetPlugIn()->OpenPopupEdit(Area, RIMCAS_UPDATERANGE, std::to_string(appWindowScale).c_str());
 		}
 		if (strcmp(sObjectId, "filter") == 0) {
 			GetPlugIn()->OpenPopupList(Area, "Filter", 1);
-			GetPlugIn()->AddPopupListElement("24000", "", RIMCAS_UPDATEFILTER);
-			GetPlugIn()->AddPopupListElement("10000", "", RIMCAS_UPDATEFILTER);
+			GetPlugIn()->AddPopupListElement("66000", "", RIMCAS_UPDATEFILTER);
+			GetPlugIn()->AddPopupListElement("24500", "", RIMCAS_UPDATEFILTER);
 			GetPlugIn()->AddPopupListElement("8000", "", RIMCAS_UPDATEFILTER);
 			GetPlugIn()->AddPopupListElement("6000", "", RIMCAS_UPDATEFILTER);
+			GetPlugIn()->AddPopupListElement("3000", "", RIMCAS_UPDATEFILTER);
 			GetPlugIn()->AddPopupListElement("Close", "", RIMCAS_CLOSE, false, 2, false, true);
 		}
 	}
 
 	if (ObjectType == RIMCAS_ACTIVE_AIRPORT) {
-		GetPlugIn()->OpenPopupEdit(Area, RIMCAS_ACTIVE_AIRPORT_FUNC, RimcasInstance->ActiveAirport.c_str());
+		GetPlugIn()->OpenPopupEdit(Area, RIMCAS_ACTIVE_AIRPORT_FUNC, getActiveAirport().c_str());
 	}
 
 	if (ObjectType == RIMCAS_DISPLAY_MENU) {
@@ -279,7 +273,7 @@ void CSMRRadar::OnClickScreenObject(int ObjectType, const char * sObjectId, POIN
 
 		GetPlugIn()->OpenPopupList(Area, "Display Menu", 1);
 		GetPlugIn()->AddPopupListElement("QDR", "", RIMCAS_QDM_TOGGLE);
-		GetPlugIn()->AddPopupListElement("Approach Window", "", RIMCAS_APPWINDOW);
+		GetPlugIn()->AddPopupListElement("Inset 1", "", RIMCAS_APPWINDOW);
 		GetPlugIn()->AddPopupListElement("Close", "", RIMCAS_CLOSE, false, 2, false, true);
 	}
 
@@ -288,11 +282,11 @@ void CSMRRadar::OnClickScreenObject(int ObjectType, const char * sObjectId, POIN
 		Area.top = Area.top + 30;
 		Area.bottom = Area.bottom + 30;
 
-		GetPlugIn()->OpenPopupList(Area, "RIMCAS Menu", 1);
-		GetPlugIn()->AddPopupListElement("CA Monitor", "", RIMCAS_CA_MONITOR);
-		GetPlugIn()->AddPopupListElement("CA Arrival", "", RIMCAS_CA_ARRIVAL); 
-		GetPlugIn()->AddPopupListElement("Closed Runways", "", RIMCAS_CLOSED_RUNWAYS);
-		GetPlugIn()->AddPopupListElement("Short Timer", "", RIMCAS_TIMER, false, RimcasInstance->RunwayTimerShort);
+		GetPlugIn()->OpenPopupList(Area, "Alerts", 1);
+		GetPlugIn()->AddPopupListElement("Conflict Alert ARR", "", RIMCAS_OPEN_LIST);
+		GetPlugIn()->AddPopupListElement("Conflict Alert DEP", "", RIMCAS_OPEN_LIST);
+		GetPlugIn()->AddPopupListElement("Runway closed", "", RIMCAS_OPEN_LIST);
+		GetPlugIn()->AddPopupListElement("Visibility", "", RIMCAS_OPEN_LIST);
 		GetPlugIn()->AddPopupListElement("Close", "", RIMCAS_CLOSE, false, 2, false, true);
 	}
 
@@ -372,8 +366,8 @@ void CSMRRadar::OnFunctionCall(int FunctionId, const char * sItemString, POINT P
 	}
 
 	if (FunctionId == RIMCAS_ACTIVE_AIRPORT_FUNC) {
-		RimcasInstance->ActiveAirport = sItemString;
-		SaveDataToAsr("Airport", "Active airport for RIMCAS", RimcasInstance->ActiveAirport.c_str());
+		setActiveAirport(sItemString);
+		SaveDataToAsr("Airport", "Active airport", getActiveAirport().c_str());
 	}
 
 	if (FunctionId == RIMCAS_QDM_TOGGLE) {
@@ -388,14 +382,10 @@ void CSMRRadar::OnFunctionCall(int FunctionId, const char * sItemString, POINT P
 		appWindowScale = atoi(sItemString);
 	}
 
-	if (FunctionId == RIMCAS_TIMER) {
-		RimcasInstance->toggleShortTimer();
-	}
-
 	if (FunctionId == RIMCAS_CA_ARRIVAL_FUNC) {
 		RimcasInstance->toggleMonitoredRunwayArr(string(sItemString));
 
-		ShowLists["CA Arrival"] = true;
+		ShowLists["Conflict Alert ARR"] = true;
 
 		RequestRefresh();
 	}
@@ -403,7 +393,7 @@ void CSMRRadar::OnFunctionCall(int FunctionId, const char * sItemString, POINT P
 	if (FunctionId == RIMCAS_CA_MONITOR_FUNC) {
 		RimcasInstance->toggleMonitoredRunwayDep(string(sItemString));
 
-		ShowLists["CA Monitor"] = true;
+		ShowLists["Conflict Alert DEP"] = true;
 
 		RequestRefresh();
 	}
@@ -416,7 +406,7 @@ void CSMRRadar::OnFunctionCall(int FunctionId, const char * sItemString, POINT P
 		RequestRefresh();
 	}
 
-	if (FunctionId == RIMCAS_CA_ARRIVAL || FunctionId == RIMCAS_CA_MONITOR || FunctionId == RIMCAS_CLOSED_RUNWAYS || FunctionId == RIMCAS_TAGS_MENU) {
+	if (FunctionId == RIMCAS_OPEN_LIST) {
 
 		ShowLists[string(sItemString)] = true;
 		ListAreas[string(sItemString)] = Area;
@@ -696,7 +686,7 @@ inline int Is_Left(const POINT &p0, const POINT &p1, const POINT &point)
 {
 	return ((p1.x - p0.x) * (point.y - p0.y) -
 		(point.x - p0.x) * (p1.y - p0.y));
-}
+};
 
 inline bool Is_Inside(const POINT &point, const std::vector<POINT> &points_list)
 {
@@ -747,7 +737,7 @@ inline bool Is_Inside(const POINT &point, const std::vector<POINT> &points_list)
 	}
 
 	return (winding_number != 0);
-}
+};
 
 // Liang-Barsky function by Daniel White @ http://www.skytopia.com/project/articles/compsci/clipping.html
 // This function inputs 8 numbers, and outputs 4 new numbers (plus a boolean value to say whether the clipped line is drawn at all).
@@ -796,21 +786,7 @@ inline bool LiangBarsky(RECT Area, POINT fromSrc, POINT toSrc, POINT &ClipFrom, 
 	ClipTo.y = long(y0src + t1*ydelta);
 
 	return true;        // (clipped) line is drawn
-}
-
-inline double TrueBearing(CPosition pos1, CPosition pos2)
-{
-	const float PI = float(atan2(0, -1));
-
-	// returns the true bearing from pos1 to pos2
-	double lat1 = pos1.m_Latitude / 180 * PI;
-	double lat2 = pos2.m_Latitude / 180 * PI;
-	double lon1 = pos1.m_Longitude / 180 * PI;
-	double lon2 = pos2.m_Longitude / 180 * PI;
-	double dir = fmod(atan2(sin(lon2 - lon1) * cos(lat2), cos(lat1) * sin(lat2) - sin(lat1) * cos(lat2) * cos(lon2 - lon1)), 2 * PI) * 180 / PI;
-
-	return dir / 180 * PI;
-}
+};
 
 void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 {
@@ -859,7 +835,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 		rwy.IsValid();
 		rwy = GetPlugIn()->SectorFileElementSelectNext(rwy, SECTOR_ELEMENT_RUNWAY))
 	{
-		if (startsWith(RimcasInstance->getActiveAirport().c_str(), rwy.GetAirportName())) {
+		if (startsWith(getActiveAirport().c_str(), rwy.GetAirportName())) {
 
 			CPosition Left;
 			rwy.GetPosition(&Left, 1);
@@ -920,173 +896,53 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 		if (!rt.IsValid() || !rt.GetPosition().IsValid())
 			continue;
 
+		int reportedGs = rt.GetPosition().GetReportedGS();
+		int radarRange = CurrentConfig->getActiveProfile()["filters"]["radar_range_nm"].GetInt();
+		int altitudeFilter = CurrentConfig->getActiveProfile()["filters"]["hide_above_alt"].GetInt();
+		int speedFilter = CurrentConfig->getActiveProfile()["filters"]["hide_above_spd"].GetInt();
+		bool isAcDisplayed = true;
+
+		if (AirportPositions[getActiveAirport()].DistanceTo(rt.GetPosition().GetPosition()) > radarRange)
+			isAcDisplayed = false;
+
+		if (altitudeFilter != 0) {
+			if (rt.GetPosition().GetPressureAltitude() > altitudeFilter)
+				isAcDisplayed = false;
+		}
+
+		if (speedFilter != 0) {
+			if (reportedGs > speedFilter)
+				isAcDisplayed = false;
+		}
+
+		if (!isAcDisplayed)
+			continue;
+
 		RimcasInstance->OnRefresh(rt, this);
 
 		CRadarTargetPositionData RtPos = rt.GetPosition();
 
-		CPen qTrailPen(PS_SOLID, 1, RGB(255, 255, 255));
-		CPen* pqOrigPen = dc.SelectObject(&qTrailPen);
+		POINT acPosPix = ConvertCoordFromPositionToPixel(RtPos.GetPosition());
 
-		if (rt.GetGS() < 50) {
-			TGraphics th;
+		TGraphics th;
 
-			POINT acPosPix = ConvertCoordFromPositionToPixel(RtPos.GetPosition());
-
-			if (rt.GetGS() > 5) {
-				POINT oldacPosPix;
-				CRadarTargetPositionData pAcPos = rt.GetPosition();
-
-				for (int i = 1; i <= 2; i++) {
-					oldacPosPix = ConvertCoordFromPositionToPixel(pAcPos.GetPosition());
-					pAcPos = rt.GetPreviousPosition(pAcPos);
-					acPosPix = ConvertCoordFromPositionToPixel(pAcPos.GetPosition());
-
-					int middlex = (oldacPosPix.x);
-					int middley = (oldacPosPix.y);
-					POINT middlePos; middlePos.x = middlex; middlePos.y = middley;
-
-					if (i == 1 && !Patatoides[rt.GetCallsign()].History_one_points.empty() && showPrimaryTarget) {
-						CBrush* pOldBrush;
-						CBrush brush;
-						brush.CreateSolidBrush(SMR_H1_COLOR);
-						pOldBrush = dc.SelectObject(&brush);
-						CPen pen(PS_SOLID, 1, SMR_H1_COLOR);
-						CPen* pOldPen = dc.SelectObject(&pen);
-						CPoint lpPoints[100];
-						for (unsigned int i = 0; i < Patatoides[rt.GetCallsign()].History_one_points.size(); i++)
-						{
-							CPosition pos;
-							pos.m_Latitude = Patatoides[rt.GetCallsign()].History_one_points[i].x;
-							pos.m_Longitude = Patatoides[rt.GetCallsign()].History_one_points[i].y;
-
-							lpPoints[i] = { ConvertCoordFromPositionToPixel(pos).x, ConvertCoordFromPositionToPixel(pos).y };
-						}
-						dc.Polygon(lpPoints, Patatoides[rt.GetCallsign()].History_one_points.size());
-						dc.SelectObject(&pOldBrush);
-						dc.SelectObject(&pen);
-					}
-
-					if (i != 2) {
-						if (!Patatoides[rt.GetCallsign()].History_two_points.empty() && showPrimaryTarget) {
-							CBrush brush;
-							brush.CreateSolidBrush(SMR_H2_COLOR);
-							CBrush* pOldBrush;
-							pOldBrush = dc.SelectObject(&brush);
-							CPen pen(PS_SOLID, 1, SMR_H2_COLOR);
-							CPen* pOldPen = dc.SelectObject(&pen);
-							CPoint lpPoints[100];
-							for (unsigned int i = 0; i < Patatoides[rt.GetCallsign()].History_two_points.size(); i++)
-							{
-								CPosition pos;
-								pos.m_Latitude = Patatoides[rt.GetCallsign()].History_two_points[i].x;
-								pos.m_Longitude = Patatoides[rt.GetCallsign()].History_two_points[i].y;
-
-								lpPoints[i] = { ConvertCoordFromPositionToPixel(pos).x, ConvertCoordFromPositionToPixel(pos).y };
-							}
-							dc.Polygon(lpPoints, Patatoides[rt.GetCallsign()].History_two_points.size());
-							dc.SelectObject(&pOldBrush);
-							dc.SelectObject(&pen);
-						}
-					}
-
-					if (i == 2 && !Patatoides[rt.GetCallsign()].History_three_points.empty() && showPrimaryTarget) {
-						CBrush brush;
-						brush.CreateSolidBrush(SMR_H3_COLOR);
-						CBrush* pOldBrush;
-						pOldBrush = dc.SelectObject(&brush);
-						CPen pen(PS_SOLID, 1, SMR_H3_COLOR);
-						CPen* pOldPen = dc.SelectObject(&pen);
-						CPoint lpPoints[100];
-						for (unsigned int i = 0; i < Patatoides[rt.GetCallsign()].History_three_points.size(); i++)
-						{
-							CPosition pos;
-							pos.m_Latitude = Patatoides[rt.GetCallsign()].History_three_points[i].x;
-							pos.m_Longitude = Patatoides[rt.GetCallsign()].History_three_points[i].y;
-
-							lpPoints[i] = { ConvertCoordFromPositionToPixel(pos).x, ConvertCoordFromPositionToPixel(pos).y };
-						}
-						dc.Polygon(lpPoints, Patatoides[rt.GetCallsign()].History_three_points.size());
-						dc.SelectObject(&pOldBrush);
-						dc.SelectObject(&pen);
-					}
-
-					CPen qTrailPen(PS_SOLID, 1, RGB(255, 255, 255));
-					CPen* pqOrigPen = dc.SelectObject(&qTrailPen);
-
-					dc.Rectangle(middlePos.x - 1, middlePos.y - 1, middlePos.x + 1, middlePos.y + 1);
-
-					if (i != 2) {
-						dc.Rectangle(acPosPix.x - 1, acPosPix.y - 1, acPosPix.x + 1, acPosPix.y + 1);
-					}
-					dc.SelectObject(pqOrigPen);
-				}
-
-			}
-
-			if (showPrimaryTarget) {
-				CBrush brush;
-				brush.CreateSolidBrush(SMR_TARGET_COLOR);
-				CBrush* pOldBrush;
-				pOldBrush = dc.SelectObject(&brush);
-				CPen pen(PS_SOLID, 1, SMR_TARGET_COLOR);
-				CPen* pOldPen = dc.SelectObject(&pen);
-				CPoint lpPoints[100];
-				for (unsigned int i = 0; i < Patatoides[rt.GetCallsign()].points.size(); i++)
-				{
-					CPosition pos;
-					pos.m_Latitude = Patatoides[rt.GetCallsign()].points[i].x;
-					pos.m_Longitude = Patatoides[rt.GetCallsign()].points[i].y;
-
-					lpPoints[i] = { ConvertCoordFromPositionToPixel(pos).x, ConvertCoordFromPositionToPixel(pos).y };
-				}
-				dc.Polygon(lpPoints, Patatoides[rt.GetCallsign()].points.size());
-				dc.SelectObject(&pOldBrush);
-				dc.SelectObject(&pen);
-			}
-			acPosPix = ConvertCoordFromPositionToPixel(RtPos.GetPosition());
-
-			CPen qTrailPen(PS_SOLID, 1, RGB(255, 255, 255));
-			CPen* pqOrigPen = dc.SelectObject(&qTrailPen);
-
-			if (RtPos.GetTransponderC()) {
-				dc.MoveTo(acPosPix.x, acPosPix.y - 6);
-				dc.LineTo(acPosPix.x - 6, acPosPix.y);
-				dc.MoveTo(acPosPix.x - 6, acPosPix.y);
-				dc.LineTo(acPosPix.x, acPosPix.y + 6);
-				dc.MoveTo(acPosPix.x, acPosPix.y + 6);
-				dc.LineTo(acPosPix.x + 6, acPosPix.y);
-				dc.MoveTo(acPosPix.x + 6, acPosPix.y);
-				dc.LineTo(acPosPix.x, acPosPix.y - 6);
-			}
-			else {
-				th.DrawEllipse(dc, acPosPix.x - 4, acPosPix.y - 4, acPosPix.x + 4, acPosPix.y + 4, RGB(255, 255, 255));
-			}
-
-			AddScreenObject(DRAWING_AC_SYMBOL, rt.GetCallsign(), { acPosPix.x - 4, acPosPix.y - 4, acPosPix.x + 4, acPosPix.y + 4 }, false, GetBottomLine(rt.GetCallsign()).c_str());
-
-			dc.SelectObject(pqOrigPen);
-			
-		}
-		else if (rt.GetGS() >= 50 && rt.GetGS() < 180 && rt.GetPosition().GetPressureAltitude() < (GetPlugIn()->GetTransitionAltitude()-2000)) {
-			TGraphics th;
-
-			POINT acPosPix = ConvertCoordFromPositionToPixel(RtPos.GetPosition());
+		if (rt.GetGS() > 5) {
 			POINT oldacPosPix;
-			CRadarTargetPositionData pAcPos = RtPos;
+			CRadarTargetPositionData pAcPos = rt.GetPosition();
 
 			for (int i = 1; i <= 2; i++) {
 				oldacPosPix = ConvertCoordFromPositionToPixel(pAcPos.GetPosition());
 				pAcPos = rt.GetPreviousPosition(pAcPos);
 				acPosPix = ConvertCoordFromPositionToPixel(pAcPos.GetPosition());
 
-				int middlex = (acPosPix.x + oldacPosPix.x) / 2;
-				int middley = (acPosPix.y + oldacPosPix.y) / 2;
+				int middlex = (oldacPosPix.x);
+				int middley = (oldacPosPix.y);
 				POINT middlePos; middlePos.x = middlex; middlePos.y = middley;
 
-				if (i == 1 && !Patatoides[rt.GetCallsign()].History_one_points.empty() && showPrimaryTarget) {
+				if (i == 1 && !Patatoides[rt.GetCallsign()].History_one_points.empty() && CurrentConfig->getActiveProfile()["targets"]["show_primary_target"].GetBool()) {
+					CBrush* pOldBrush;
 					CBrush brush;
 					brush.CreateSolidBrush(SMR_H1_COLOR);
-					CBrush* pOldBrush;
 					pOldBrush = dc.SelectObject(&brush);
 					CPen pen(PS_SOLID, 1, SMR_H1_COLOR);
 					CPen* pOldPen = dc.SelectObject(&pen);
@@ -1105,7 +961,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 				}
 
 				if (i != 2) {
-					if (!Patatoides[rt.GetCallsign()].History_two_points.empty() && showPrimaryTarget) {
+					if (!Patatoides[rt.GetCallsign()].History_two_points.empty() && CurrentConfig->getActiveProfile()["targets"]["show_primary_target"].GetBool()) {
 						CBrush brush;
 						brush.CreateSolidBrush(SMR_H2_COLOR);
 						CBrush* pOldBrush;
@@ -1127,7 +983,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 					}
 				}
 
-				if (i == 2 && !Patatoides[rt.GetCallsign()].History_three_points.empty() && showPrimaryTarget) {
+				if (i == 2 && !Patatoides[rt.GetCallsign()].History_three_points.empty() && CurrentConfig->getActiveProfile()["targets"]["show_primary_target"].GetBool()) {
 					CBrush brush;
 					brush.CreateSolidBrush(SMR_H3_COLOR);
 					CBrush* pOldBrush;
@@ -1147,52 +1003,62 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 					dc.SelectObject(&pOldBrush);
 					dc.SelectObject(&pen);
 				}
-			}
 
+				CPen qTrailPen(PS_SOLID, 1, RGB(255, 255, 255));
+				CPen* pqOrigPen = dc.SelectObject(&qTrailPen);
 
-			acPosPix = ConvertCoordFromPositionToPixel(RtPos.GetPosition());
+				dc.Rectangle(middlePos.x - 1, middlePos.y - 1, middlePos.x + 1, middlePos.y + 1);
 
-			if (showPrimaryTarget) {
-				CBrush brush;
-				brush.CreateSolidBrush(SMR_TARGET_COLOR);
-				CBrush* pOldBrush;
-				pOldBrush = dc.SelectObject(&brush);
-				CPen pen(PS_SOLID, 1, SMR_TARGET_COLOR);
-				CPen* pOldPen = dc.SelectObject(&pen);
-				CPoint lpPoints[100];
-				for (unsigned int i = 0; i < Patatoides[rt.GetCallsign()].points.size(); i++)
-				{
-					CPosition pos;
-					pos.m_Latitude = Patatoides[rt.GetCallsign()].points[i].x;
-					pos.m_Longitude = Patatoides[rt.GetCallsign()].points[i].y;
-
-					lpPoints[i] = { ConvertCoordFromPositionToPixel(pos).x, ConvertCoordFromPositionToPixel(pos).y };
+				if (i != 2) {
+					dc.Rectangle(acPosPix.x - 1, acPosPix.y - 1, acPosPix.x + 1, acPosPix.y + 1);
 				}
-				dc.Polygon(lpPoints, Patatoides[rt.GetCallsign()].points.size());
-				dc.SelectObject(&pOldBrush);
-				dc.SelectObject(&pen);
-			}
-			CPen qTrailPen(PS_SOLID, 1, RGB(255, 255, 255));
-			CPen* pqOrigPen = dc.SelectObject(&qTrailPen);
-
-			if (RtPos.GetTransponderC()) {
-				dc.MoveTo(acPosPix.x, acPosPix.y - 6);
-				dc.LineTo(acPosPix.x - 6, acPosPix.y);
-				dc.MoveTo(acPosPix.x - 6, acPosPix.y);
-				dc.LineTo(acPosPix.x, acPosPix.y + 6);
-				dc.MoveTo(acPosPix.x, acPosPix.y + 6);
-				dc.LineTo(acPosPix.x + 6, acPosPix.y);
-				dc.MoveTo(acPosPix.x + 6, acPosPix.y);
-				dc.LineTo(acPosPix.x, acPosPix.y - 6);
-			}
-			else {
-				th.DrawEllipse(dc, acPosPix.x - 4, acPosPix.y - 4, acPosPix.x + 4, acPosPix.y + 4, RGB(255, 255, 255));
+				dc.SelectObject(pqOrigPen);
 			}
 
-			AddScreenObject(DRAWING_AC_SYMBOL, rt.GetCallsign(), { acPosPix.x - 4, acPosPix.y - 4, acPosPix.x + 4, acPosPix.y + 4 }, false, GetBottomLine(rt.GetCallsign()).c_str());
-
-			dc.SelectObject(pqOrigPen);
 		}
+
+		if (CurrentConfig->getActiveProfile()["targets"]["show_primary_target"].GetBool()) {
+			CBrush brush;
+			brush.CreateSolidBrush(SMR_TARGET_COLOR);
+			CBrush* pOldBrush;
+			pOldBrush = dc.SelectObject(&brush);
+			CPen pen(PS_SOLID, 1, SMR_TARGET_COLOR);
+			CPen* pOldPen = dc.SelectObject(&pen);
+			CPoint lpPoints[100];
+			for (unsigned int i = 0; i < Patatoides[rt.GetCallsign()].points.size(); i++)
+			{
+				CPosition pos;
+				pos.m_Latitude = Patatoides[rt.GetCallsign()].points[i].x;
+				pos.m_Longitude = Patatoides[rt.GetCallsign()].points[i].y;
+
+				lpPoints[i] = { ConvertCoordFromPositionToPixel(pos).x, ConvertCoordFromPositionToPixel(pos).y };
+			}
+			dc.Polygon(lpPoints, Patatoides[rt.GetCallsign()].points.size());
+			dc.SelectObject(&pOldBrush);
+			dc.SelectObject(&pen);
+		}
+		acPosPix = ConvertCoordFromPositionToPixel(RtPos.GetPosition());
+
+		CPen qTrailPen(PS_SOLID, 1, RGB(255, 255, 255));
+		CPen* pqOrigPen = dc.SelectObject(&qTrailPen);
+
+		if (RtPos.GetTransponderC()) {
+			dc.MoveTo(acPosPix.x, acPosPix.y - 6);
+			dc.LineTo(acPosPix.x - 6, acPosPix.y);
+			dc.MoveTo(acPosPix.x - 6, acPosPix.y);
+			dc.LineTo(acPosPix.x, acPosPix.y + 6);
+			dc.MoveTo(acPosPix.x, acPosPix.y + 6);
+			dc.LineTo(acPosPix.x + 6, acPosPix.y);
+			dc.MoveTo(acPosPix.x + 6, acPosPix.y);
+			dc.LineTo(acPosPix.x, acPosPix.y - 6);
+		}
+		else {
+			th.DrawEllipse(dc, acPosPix.x - 4, acPosPix.y - 4, acPosPix.x + 4, acPosPix.y + 4, RGB(255, 255, 255));
+		}
+
+		AddScreenObject(DRAWING_AC_SYMBOL, rt.GetCallsign(), { acPosPix.x - 4, acPosPix.y - 4, acPosPix.x + 4, acPosPix.y + 4 }, false, GetBottomLine(rt.GetCallsign()).c_str());
+
+		dc.SelectObject(pqOrigPen);
 	}
 
 #pragma endregion Drawing of the symbols
@@ -1232,6 +1098,29 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 		CFlightPlan fp = GetPlugIn()->FlightPlanSelect(rt.GetCallsign());
 		int reportedGs = RtPos.GetReportedGS();
 
+		// Filtering the targets
+
+		int radarRange = CurrentConfig->getActiveProfile()["filters"]["radar_range_nm"].GetInt();
+		int altitudeFilter = CurrentConfig->getActiveProfile()["filters"]["hide_above_alt"].GetInt();
+		int speedFilter = CurrentConfig->getActiveProfile()["filters"]["hide_above_spd"].GetInt();
+		bool isAcDisplayed = true;
+
+		if (AirportPositions[getActiveAirport()].DistanceTo(RtPos.GetPosition()) > radarRange)
+			isAcDisplayed = false;
+
+		if (altitudeFilter != 0) {
+			if (RtPos.GetPressureAltitude() > altitudeFilter)
+				isAcDisplayed = false;
+		}
+
+		if (speedFilter != 0) {
+			if (reportedGs > speedFilter)
+				isAcDisplayed = false;
+		}
+
+		if (!isAcDisplayed)
+			continue;
+
 		// Getting the tag center/offset
 
 		POINT TagCenter;
@@ -1251,7 +1140,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 
 		TagTypes TagType = TagTypes::Departure;
 			
-		if (fp.IsValid() && strcmp(fp.GetFlightPlanData().GetDestination(), RimcasInstance->getActiveAirport().c_str()) == 0) {
+		if (fp.IsValid() && strcmp(fp.GetFlightPlanData().GetDestination(), getActiveAirport().c_str()) == 0) {
 			TagType = TagTypes::Arrival;
 		}
 
@@ -1269,11 +1158,10 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 		// seprwy: Departure runway that changes to speed if speed > 25kts *
 		// gate: Gate, from speed or scratchpad *
 		// sate: Gate, from speed or scratchpad that changes to speed if speed > 25kts *
-		// flightlevel: Flightlevel of the ac *
+		// flightlevel: Flightlevel/Pressure altitude of the ac *
 		// gs: Ground speed of the ac *
 		// tendency: Climbing or descending symbol *
 		// wake: Wake turbulance cat *
-		// TODO: Current owner
 		// ----
 
 		// ----- Callsign -------
@@ -1367,13 +1255,17 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 			sate = speed; 
 
 		// ----- Flightlevel -------
-		string flightlevel = ""; 
+		string flightlevel = "F"; 
 		int FL = RtPos.GetFlightLevel();
+		if (RtPos.GetPressureAltitude() < GetPlugIn()->GetTransitionAltitude()) {
+			flightlevel = "A";
+			FL = RtPos.GetPressureAltitude();
+		}
 		string str = std::to_string(FL);
 		for (size_t i = 0; i < 6 - str.length(); i++)
 			str = "0" + str;
 		str.erase(str.begin() + 3, str.end());
-		flightlevel = str;
+		flightlevel += str;
 
 		// ----- Tendency -------
 		string tendency = "";
@@ -1409,6 +1301,20 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 		TagReplacingMap["tendency"] = tendency;
 		TagReplacingMap["wake"] = wake;
 
+		// ----- Generating the clickable map -----
+		map<string, int> TagClickableMap;
+		TagClickableMap[callsign] = TAG_CITEM_CALLSIGN;
+		TagClickableMap[actype] = TAG_CITEM_FPBOX;
+		TagClickableMap[sctype] = TAG_CITEM_FPBOX;
+		TagClickableMap[sqerror] = TAG_CITEM_NO;
+		TagClickableMap[deprwy] = TAG_CITEM_RWY;
+		TagClickableMap[seprwy] = TAG_CITEM_RWY;
+		TagClickableMap[gate] = TAG_CITEM_GATE;
+		TagClickableMap[sate] = TAG_CITEM_GATE;
+		TagClickableMap[flightlevel] = TAG_CITEM_NO;
+		TagClickableMap[speed] = TAG_CITEM_NO;
+		TagClickableMap[tendency] = TAG_CITEM_NO;
+		TagClickableMap[wake] = TAG_CITEM_FPBOX;
 
 		//
 		// ----- Now the hard part, drawing (using gdi+) -------
@@ -1449,7 +1355,6 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 			}
 		}
 
-
 		for (std::map<string, string>::iterator it = TagReplacingMap.begin(); it != TagReplacingMap.end(); ++it)
 		{
 			replaceAll(line1_size, it->first, it->second);
@@ -1482,7 +1387,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 
 		// Pfiou, done with that, now we can draw the actual rectangle.
 
-		//COLORREF TagBackgroundColor2 = RimcasInstance->GetAircraftColor(rt.GetCallsign(), );
+		//COLORREF TagBackgroundColor2 = RimcasInstance->GetAircraftColor(rt.GetCallsign());
 		Color TagBackgroundColor = CurrentConfig->getConfigColor(LabelsSettings[Utils2::getEnumString(TagType).c_str()]["background_color"]);
 		
 		CRect TagBackgroundRect(TagCenter.x - (TagWidth / 2), TagCenter.y - (TagHeight / 2), TagCenter.x + (TagWidth / 2), TagCenter.y + (TagHeight / 2));
@@ -1509,135 +1414,113 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 
 			dc.SetTextColor(oldColor);
 		}
+		
+		// Drawing the leader line
+		RECT TagBackRectData = TagBackgroundRect;
+		POINT toDraw1, toDraw2;
+		if (LiangBarsky(TagBackRectData, acPosPix, TagBackgroundRect.CenterPoint(), toDraw1, toDraw2))
+			graphics.DrawLine(&Pen(Color::White), PointF(acPosPix.x, acPosPix.y), PointF(toDraw1.x, toDraw1.y));
 
-		/*
-		if (rt.GetGS() >= 50 && rt.GetGS() < 180 && rt.GetPosition().GetPressureAltitude() < 2000) {
-			map<string, POINT>::iterator it = TagsOffsets.find(rt.GetCallsign());
-			if (it != TagsOffsets.end()) {
-				TagCenter = { acPosPix.x + it->second.x, acPosPix.y + it->second.y };
-			}
-			else {
-				TagCenter = { acPosPix.x + 35, acPosPix.y - 40 };
-			}
+		// Adding the tag screen object
 
-			RECT Temp = { TagCenter.x - 40, TagCenter.y - 20, TagCenter.x + 29, TagCenter.y + 9 };
-			CRect TagArea(Temp);
-			TagArea.NormalizeRect();
+		AddScreenObject(DRAWING_TAG, rt.GetCallsign(), TagBackgroundRect, true, GetBottomLine(rt.GetCallsign()).c_str());
 
-			CPen qLinePen(PS_SOLID, 1, RGB(255, 255, 255));
-			CPen* pqOrigPen = dc.SelectObject(&qLinePen);
+		// Now adding the clickable zones
 
-			dc.MoveTo(acPosPix.x, acPosPix.y);
-			if (TagArea.CenterPoint().y > acPosPix.y)
-				dc.LineTo(TagArea.CenterPoint().x, TagArea.TopLeft().y);
-			else
-				dc.LineTo(TagArea.CenterPoint().x, TagArea.BottomRight().y);
+		// We need to get the size of a blank space
+		int blank_space_width = 0;
+		CRect blankSpace(0, 0, 0, 0);
+		dc.DrawText(" ", &blankSpace, DT_CALCRECT);
+		int blank_space_width = blankSpace.right;
 
-			dc.SelectObject(pqOrigPen);
-			AddScreenObject(DRAWING_TAG, rt.GetCallsign(), TagArea, true, GetBottomLine(fp.GetCallsign()).c_str());
+		vector<string> line1_items = split(line1_size, ' ');
+		int offset = 0;
+		for (auto &item : line1_items)
+		{
+			if (TagClickableMap.find(item) != TagClickableMap.end()) {
+				// We need to get the area that text covers
 
-			dc.SetTextColor(RGB(255, 255, 255));
-			int oldTextAlign = dc.SetTextAlign(TA_LEFT);
-			string callsign = rt.GetCallsign();
+				if (TagClickableMap[item] == TAG_CITEM_NO)
+					continue;
 
-			if (fp.IsValid()) {
-				if (fp.GetCorrelatedRadarTarget().IsValid()) {
-					if (fp.GetControllerAssignedData().GetCommunicationType() != ' ' && fp.GetControllerAssignedData().GetCommunicationType() != NULL) {
-						if (fp.GetControllerAssignedData().GetCommunicationType() != 'v' && fp.GetControllerAssignedData().GetCommunicationType() != 'V') {
-							callsign.append("/");
-							callsign += fp.GetControllerAssignedData().GetCommunicationType();
-						}
-					}
-					else if (fp.GetFlightPlanData().GetCommunicationType() == 't' || fp.GetFlightPlanData().GetCommunicationType() == 'r' || fp.GetFlightPlanData().GetCommunicationType() == 'T' || fp.GetFlightPlanData().GetCommunicationType() == 'R' && fp.GetControllerAssignedData().GetCommunicationType() != ' ' && fp.GetControllerAssignedData().GetCommunicationType() != NULL) {
-						callsign.append("/");
-						callsign += fp.GetFlightPlanData().GetCommunicationType();
-					}
+				int ItemWidth, ItemHeight;
+				if (CurrentConfig->getActiveProfile()["font"]["use_custom_font"].GetBool()) {
+					wstring item_sizew = wstring(item.begin(), item.end());
+
+					RectF itemBox;
+
+					graphics.MeasureString(item_sizew.c_str(), wcslen(item_sizew.c_str()), customFonts[currentFontSize], PointF(0, 0), &Gdiplus::StringFormat(), &itemBox);
+					ItemWidth = itemBox.GetRight();
+					ItemHeight = itemBox.GetBottom() - 2;
 				}
 				else {
-					callsign = rt.GetPosition().GetSquawk();
+					CRect itemSize(0, 0, 0, 0);
+					dc.DrawText(item.c_str(), &itemSize, DT_CALCRECT);
+
+					ItemWidth = itemSize.right;
+					ItemHeight = itemSize.bottom;
 				}
 
-				switch (fp.GetState()) {
+				// We then calculate the rectangle
+				CRect ItemRect(TagBackgroundRect.left + offset, 
+					TagBackgroundRect.top, 
+					(TagBackgroundRect.left + offset) + ItemWidth,
+					TagBackgroundRect.top + ItemHeight);
 
-				case FLIGHT_PLAN_STATE_TRANSFER_TO_ME_INITIATED:
-					callsign = ">>" + callsign;
-					break;
+				// We then add the screen object
+				AddScreenObject(TagClickableMap[item], rt.GetCallsign(), ItemRect, false, GetBottomLine(rt.GetCallsign()).c_str());
 
-				case FLIGHT_PLAN_STATE_TRANSFER_FROM_ME_INITIATED:
-					callsign = callsign + ">>";
-					break;
+				// Finally, we update the offset
 
-				}
-
-				if ((fp.GetState() == FLIGHT_PLAN_STATE_TRANSFER_FROM_ME_INITIATED || fp.GetState() == FLIGHT_PLAN_STATE_TRANSFER_TO_ME_INITIATED) && BLINK) {
-					if (fp.GetState() == FLIGHT_PLAN_STATE_TRANSFER_FROM_ME_INITIATED) {
-						string blank = "";
-						for (size_t i = 0; i <= strlen(callsign.c_str()) - 2; ++i) {
-							blank.append(" ");
-						}
-						blank.append(">>");
-						dc.TextOutA(TagArea.left + 2, TagArea.top + 1, blank.c_str());
-					}
-
-					if (fp.GetState() == FLIGHT_PLAN_STATE_TRANSFER_TO_ME_INITIATED) {
-						dc.TextOutA(TagArea.left + 2, TagArea.top + 1, ">>");
-					}
-				}
-				else {
-					dc.TextOutA(TagArea.left + 2, TagArea.top + 1, callsign.c_str());
-				}
-
-				RECT CallsignArea = { TagArea.left + 2, TagArea.top + 1, (TagArea.left + 2) + dc.GetTextExtent(callsign.c_str()).cx, (TagArea.top + 1) + dc.GetTextExtent(callsign.c_str()).cy };
-				AddScreenObject(TAG_CITEM_CALLSIGN, rt.GetCallsign(), CallsignArea, true, GetBottomLine(fp.GetCallsign()).c_str());
-
-				const char * assr = fp.GetControllerAssignedData().GetSquawk();
-				const char * ssr = rt.GetPosition().GetSquawk();
-				bool has_squawk_error = false;
-				string squawk_error;
-				if (strlen(assr) != 0 && !startsWith(ssr, assr)) {
-					has_squawk_error = true;
-					squawk_error = "A";
-					squawk_error.append(assr);
-				}
-
-				string to_display;
-				if (has_squawk_error && BLINK) {
-					dc.SetTextColor(RGB(255, 50, 50));
-					to_display = squawk_error;
-				}
-				else {
-					to_display = "A";
-					int FL = RtPos.GetPressureAltitude();
-					if (FL > GetPlugIn()->GetTransitionAltitude()) {
-						to_display = "F";
-						FL = RtPos.GetFlightLevel();
-					}
-					ostringstream strs;
-					strs << FL;
-					string str = strs.str();
-					for (size_t i = 0; i < 6 - str.length(); i++)
-						str = "0" + str;
-					str.erase(str.begin() + 3, str.end());
-					to_display.append(str);
-					int delta_fl = FL - rt.GetPreviousPosition(RtPos).GetPressureAltitude();
-					if (abs(delta_fl) >= 20) {
-						if (delta_fl < 0) {
-							to_display.append(" |");
-						}
-						else {
-							to_display.append(" ^");
-						}
-					}
-
-				}
-				dc.TextOutA(TagArea.left + 2, TagArea.top + 14, to_display.c_str());
-				dc.SetTextColor(RGB(255, 255, 255));
-				RECT actArea = { TagArea.left + 2, TagArea.top + 14, (TagArea.left + 2) + dc.GetTextExtent(fp.GetFlightPlanData().GetAircraftFPType()).cx, (TagArea.top + 14) + dc.GetTextExtent(fp.GetFlightPlanData().GetAircraftFPType()).cy };
-				AddScreenObject(TAG_CITEM_FPBOX, rt.GetCallsign(), actArea, true, GetBottomLine(fp.GetCallsign()).c_str());
-
+				offset += ItemWidth + blank_space_width;
 			}
+		}
 
-		}*/
+		// If there is a line 2, then we do it all over again :p
+		if (LabelsSettings[Utils2::getEnumString(TagType).c_str()]["two_lines_tag"].GetBool()) {
+			vector<string> line2_items = split(line2_size, ' ');
+			offset = 0;
+			for (auto &item : line1_items)
+			{
+				if (TagClickableMap.find(item) != TagClickableMap.end()) {
+					// We need to get the area that text covers
+
+					if (TagClickableMap[item] == TAG_CITEM_NO)
+						continue;
+
+					int ItemWidth, ItemHeight;
+					if (CurrentConfig->getActiveProfile()["font"]["use_custom_font"].GetBool()) {
+						wstring item_sizew = wstring(item.begin(), item.end());
+
+						RectF itemBox;
+
+						graphics.MeasureString(item_sizew.c_str(), wcslen(item_sizew.c_str()), customFonts[currentFontSize], PointF(0, 0), &Gdiplus::StringFormat(), &itemBox);
+						ItemWidth = itemBox.GetRight();
+						ItemHeight = itemBox.GetBottom() - 2;
+					}
+					else {
+						CRect itemSize(0, 0, 0, 0);
+						dc.DrawText(item.c_str(), &itemSize, DT_CALCRECT);
+
+						ItemWidth = itemSize.right;
+						ItemHeight = itemSize.bottom;
+					}
+
+					// We then calculate the rectangle
+					CRect ItemRect(TagBackgroundRect.left + offset,
+						TagBackgroundRect.top + (TagHeight / 2),
+						(TagBackgroundRect.left + offset) + ItemWidth,
+						(TagBackgroundRect.top + (TagHeight / 2) ) + ItemHeight);
+
+					// We then add the screen object
+					AddScreenObject(TagClickableMap[item], rt.GetCallsign(), ItemRect, false, GetBottomLine(rt.GetCallsign()).c_str());
+
+					// Finally, we update the offset
+
+					offset += ItemWidth + blank_space_width;
+				}
+			}
+		}
 	}
 
 	/*
@@ -1678,7 +1561,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 		times[3] = 30;
 		times[4] = 15;
 
-		if (RimcasInstance->RunwayTimerShort == false) {
+		if (!CurrentConfig->getActiveProfile()["rimcas"]["short_timer"].GetBool()) {
 			times[1] = 120; 
 			times[2] = 90; 
 			times[3] = 60; 
@@ -1716,48 +1599,43 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 
 	}
 
-	if (ShowLists["CA Arrival"]) {
-		GetPlugIn()->OpenPopupList(ListAreas["CA Arrival"], "CA Arrival", 1);
+	if (ShowLists["Conflict Alert ARR"]) {
+		GetPlugIn()->OpenPopupList(ListAreas["Conflict Alert ARR"], "CA Arrival", 1);
 		for (std::map<string, CRimcas::RunwayAreaType>::iterator it = RimcasInstance->RunwayAreas.begin(); it != RimcasInstance->RunwayAreas.end(); ++it)
 		{
 			GetPlugIn()->AddPopupListElement(it->first.c_str(), "", RIMCAS_CA_ARRIVAL_FUNC, false, RimcasInstance->MonitoredRunwayArr[it->first.c_str()]);
 		}
 		GetPlugIn()->AddPopupListElement("Close", "", RIMCAS_CLOSE, false, 2, false, true);
-		ShowLists["CA Arrival"] = false;
+		ShowLists["Conflict Alert ARR"] = false;
 	}
 
-	if (ShowLists["CA Monitor"]) {
-		GetPlugIn()->OpenPopupList(ListAreas["CA Monitor"], "CA Monitor", 1);
+	if (ShowLists["Conflict Alert DEP"]) {
+		GetPlugIn()->OpenPopupList(ListAreas["Conflict Alert DEP"], "CA Departure", 1);
 		for (std::map<string, CRimcas::RunwayAreaType>::iterator it = RimcasInstance->RunwayAreas.begin(); it != RimcasInstance->RunwayAreas.end(); ++it)
 		{
 			GetPlugIn()->AddPopupListElement(it->first.c_str(), "", RIMCAS_CA_MONITOR_FUNC, false, RimcasInstance->MonitoredRunwayDep[it->first.c_str()]);
 		}
 		GetPlugIn()->AddPopupListElement("Close", "", RIMCAS_CLOSE, false, 2, false, true);
-		ShowLists["CA Monitor"] = false;
+		ShowLists["Conflict Alert DEP"] = false;
 	}
 
-	if (ShowLists["Closed Runways"]) {
-		GetPlugIn()->OpenPopupList(ListAreas["Closed Runways"], "Closed Runways", 1);
+	if (ShowLists["Runway closed"]) {
+		GetPlugIn()->OpenPopupList(ListAreas["Runway closed"], "Runway Closed", 1);
 		for (std::map<string, CRimcas::RunwayAreaType>::iterator it = RimcasInstance->RunwayAreas.begin(); it != RimcasInstance->RunwayAreas.end(); ++it)
 		{
 			GetPlugIn()->AddPopupListElement(it->first.c_str(), "", RIMCAS_CLOSED_RUNWAYS_FUNC, false, RimcasInstance->ClosedRunway[it->first.c_str()]);
 		}
 		GetPlugIn()->AddPopupListElement("Close", "", RIMCAS_CLOSE, false, 2, false, true);
-		ShowLists["Closed Runways"] = false;
+		ShowLists["Runway closed"] = false;
 	}
 
-	if (ShowLists["Tags  >"]) {
-		GetPlugIn()->OpenPopupList(ListAreas["Tags  >"], "Tags Menu", 1);
-		GetPlugIn()->AddPopupListElement("Tag Colour 1", "", RIMCAS_TAGCOLOR, false, TagColorIsFirst);
-		GetPlugIn()->AddPopupListElement("Tag Colour 2", "", RIMCAS_TAGCOLOR, false, !TagColorIsFirst);
-		GetPlugIn()->AddPopupListElement("2nd line", "", RIMCAS_TAGS_2NDLINE, false, Display2ndLine);
-		GetPlugIn()->AddPopupListElement("Hide a/c type", "", RIMCAS_TAGS_ACTYPE, false, HideAcType); 
-		GetPlugIn()->AddPopupListElement("Display squawk warning", "", RIMCAS_TAGS_SQWARNING, false, DisplaySquawkWarning);
-		GetPlugIn()->AddPopupListElement("Display aspeed for gate", "", RIMCAS_TAGS_SPEEDGATE, false, UseSpeedForGate);
+	if (ShowLists["Visibility"]) {
+		GetPlugIn()->OpenPopupList(ListAreas["Visibility"], "Visibility", 1);
+		GetPlugIn()->AddPopupListElement("Normal", "", RIMCAS_CLOSE);
+		GetPlugIn()->AddPopupListElement("Low", "", RIMCAS_CLOSE);
 		GetPlugIn()->AddPopupListElement("Close", "", RIMCAS_CLOSE, false, 2, false, true);
-		ShowLists["Tags  >"] = false;
+		ShowLists["Visibility"] = false;
 	}
-
 
 	//---------------------------------
 	// QRD
@@ -1767,7 +1645,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 		CPen Pen(PS_SOLID, 1, RGB(255, 255, 255));
 		CPen *oldPen = dc.SelectObject(&Pen);
 
-		POINT AirportPos = ConvertCoordFromPositionToPixel(AirportPositions[RimcasInstance->ActiveAirport]);
+		POINT AirportPos = ConvertCoordFromPositionToPixel(AirportPositions[getActiveAirport()]);
 		dc.MoveTo(AirportPos);
 		POINT p;
 		if (GetCursorPos(&p))
@@ -1775,8 +1653,8 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 			dc.LineTo(p);
 
 			CPosition CursorPos = ConvertCoordFromPixelToPosition(p);
-			double Distance = AirportPositions[RimcasInstance->ActiveAirport].DistanceTo(CursorPos);
-			double Bearing = AirportPositions[RimcasInstance->ActiveAirport].DirectionTo(CursorPos);
+			double Distance = AirportPositions[getActiveAirport()].DistanceTo(CursorPos);
+			double Bearing = AirportPositions[getActiveAirport()].DirectionTo(CursorPos);
 
 			TGraphics th;
 			th.DrawEllipse(dc, p.x - 5, p.y - 5, p.x + 5, p.y + 5, RGB(255, 255, 255));
@@ -1807,7 +1685,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 		}
 
 		dc.SelectObject(oldPen);
-	
+		RequestRefresh();
 	}
 
 	//---------------------------------
@@ -1823,15 +1701,15 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 	COLORREF oldTextColor = dc.SetTextColor(RGB(0, 0, 0));
 
 	int offset = 2;
-	dc.TextOutA(ToolBarAreaTop.left + offset, ToolBarAreaTop.top + 4, RimcasInstance->ActiveAirport.c_str());
-	AddScreenObject(7999, "ActiveAirport", { ToolBarAreaTop.left + offset, ToolBarAreaTop.top + 4, ToolBarAreaTop.left + offset + dc.GetTextExtent(RimcasInstance->ActiveAirport.c_str()).cx, ToolBarAreaTop.top + 4 + dc.GetTextExtent(RimcasInstance->ActiveAirport.c_str()).cy }, false, "Active Airport");
+	dc.TextOutA(ToolBarAreaTop.left + offset, ToolBarAreaTop.top + 4, getActiveAirport().c_str());
+	AddScreenObject(7999, "ActiveAirport", { ToolBarAreaTop.left + offset, ToolBarAreaTop.top + 4, ToolBarAreaTop.left + offset + dc.GetTextExtent(getActiveAirport().c_str()).cx, ToolBarAreaTop.top + 4 + dc.GetTextExtent(getActiveAirport().c_str()).cy }, false, "Active Airport");
 
-	offset += dc.GetTextExtent(RimcasInstance->ActiveAirport.c_str()).cx + 10;
+	offset += dc.GetTextExtent(getActiveAirport().c_str()).cx + 10;
 	dc.TextOutA(ToolBarAreaTop.left + offset, ToolBarAreaTop.top + 4, "Display");
 	AddScreenObject(8000, "DisplayMenu", { ToolBarAreaTop.left + offset, ToolBarAreaTop.top + 4, ToolBarAreaTop.left + offset + dc.GetTextExtent("Display").cx, ToolBarAreaTop.top + 4 + dc.GetTextExtent("Display").cy }, false, "Display menu");
 
 	offset += dc.GetTextExtent("Display").cx + 10;
-	dc.TextOutA(ToolBarAreaTop.left + offset, ToolBarAreaTop.top + 4, "RIMCAS");
+	dc.TextOutA(ToolBarAreaTop.left + offset, ToolBarAreaTop.top + 4, "Alerts");
 	AddScreenObject(8001, "RIMCASMenu", { ToolBarAreaTop.left + offset, ToolBarAreaTop.top + 4, ToolBarAreaTop.left + offset + dc.GetTextExtent("RIMCAS").cx, ToolBarAreaTop.top + 4 + +dc.GetTextExtent("RIMCAS").cy }, false, "RIMCAS menu");
 
 	dc.SetTextColor(oldTextColor);
@@ -1860,14 +1738,14 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 
 			POINT t1s, t2s;
 
-			dist = AirportPositions[RimcasInstance->ActiveAirport].DistanceTo(pt1);
-			dir = TrueBearing(AirportPositions[RimcasInstance->ActiveAirport], pt1);
+			dist = AirportPositions[getActiveAirport()].DistanceTo(pt1);
+			dir = TrueBearing(AirportPositions[getActiveAirport()], pt1);
 
 			t1s.x = refPt.x + int(scale * dist * sin(dir) + 0.5);
 			t1s.y = refPt.y - int(scale * dist * cos(dir) + 0.5);
 
-			dist = AirportPositions[RimcasInstance->ActiveAirport].DistanceTo(pt2);
-			dir = TrueBearing(AirportPositions[RimcasInstance->ActiveAirport], pt2);
+			dist = AirportPositions[getActiveAirport()].DistanceTo(pt2);
+			dir = TrueBearing(AirportPositions[getActiveAirport()], pt2);
 
 			t2s.x = refPt.x + int(scale * dist * sin(dir) + 0.5);
 			t2s.y = refPt.y - int(scale * dist * cos(dir) + 0.5);
@@ -1882,8 +1760,8 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 
 			// Extended centerlines
 			if (RimcasInstance->MonitoredRunwayArr[it->first]) {
-				dist = AirportPositions[RimcasInstance->ActiveAirport].DistanceTo(it->second.threshold);
-				dir = TrueBearing(AirportPositions[RimcasInstance->ActiveAirport], it->second.threshold);
+				dist = AirportPositions[getActiveAirport()].DistanceTo(it->second.threshold);
+				dir = TrueBearing(AirportPositions[getActiveAirport()], it->second.threshold);
 
 				t1s.x = refPt.x + int(scale * dist * sin(dir) + 0.5);
 				t1s.y = refPt.y - int(scale * dist * cos(dir) + 0.5);
@@ -1894,8 +1772,8 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 				double exsize = 18520.0;
 				CPosition Far = Haversine(it->second.threshold, RadToDeg(float(revHdg)), exsize);
 				POINT pt;
-				revHdg = TrueBearing(AirportPositions[RimcasInstance->ActiveAirport], Far);
-				exsize = AirportPositions[RimcasInstance->ActiveAirport].DistanceTo(Far);
+				revHdg = TrueBearing(AirportPositions[getActiveAirport()], Far);
+				exsize = AirportPositions[getActiveAirport()].DistanceTo(Far);
 				pt.x = refPt.x + int(scale * exsize * sin(revHdg) + 0.5);
 				pt.y = refPt.y - int(scale * exsize * cos(revHdg) + 0.5);
 
@@ -1912,13 +1790,13 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 					CPosition Far2 = Haversine(Far1, fmod(RadToDeg(float(revHdg)) - 90, 360), 500);
 					CPosition Far3 = Haversine(Far1, fmod(RadToDeg(float(revHdg)) + 90, 360), 500);
 					POINT pt2, pt3;
-					revHdg = TrueBearing(AirportPositions[RimcasInstance->ActiveAirport], Far2);
-					exsize = AirportPositions[RimcasInstance->ActiveAirport].DistanceTo(Far2);
+					revHdg = TrueBearing(AirportPositions[getActiveAirport()], Far2);
+					exsize = AirportPositions[getActiveAirport()].DistanceTo(Far2);
 					pt2.x = refPt.x + int(scale * exsize * sin(revHdg) + 0.5);
 					pt2.y = refPt.y - int(scale * exsize * cos(revHdg) + 0.5);
 
-					revHdg = TrueBearing(AirportPositions[RimcasInstance->ActiveAirport], Far3);
-					exsize = AirportPositions[RimcasInstance->ActiveAirport].DistanceTo(Far3);
+					revHdg = TrueBearing(AirportPositions[getActiveAirport()], Far3);
+					exsize = AirportPositions[getActiveAirport()].DistanceTo(Far3);
 					pt3.x = refPt.x + int(scale * exsize * sin(revHdg) + 0.5);
 					pt3.y = refPt.y - int(scale * exsize * cos(revHdg) + 0.5);
 					
@@ -1951,8 +1829,8 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 			POINT RtPoint, hPoint;
 			double hdg, dist;
 
-			hdg = TrueBearing(AirportPositions[RimcasInstance->ActiveAirport], RtPos2);
-			dist = AirportPositions[RimcasInstance->ActiveAirport].DistanceTo(RtPos2);
+			hdg = TrueBearing(AirportPositions[getActiveAirport()], RtPos2);
+			dist = AirportPositions[getActiveAirport()].DistanceTo(RtPos2);
 			RtPoint.x = refPt.x + int(scale * dist * sin(hdg) + 0.5);
 			RtPoint.y = refPt.y - int(scale * dist * cos(hdg) + 0.5);
 
@@ -1961,8 +1839,8 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 				if (!hPos.IsValid())
 					continue;
 
-				hdg = TrueBearing(AirportPositions[RimcasInstance->ActiveAirport], hPos.GetPosition());
-				dist = AirportPositions[RimcasInstance->ActiveAirport].DistanceTo(hPos.GetPosition());
+				hdg = TrueBearing(AirportPositions[getActiveAirport()], hPos.GetPosition());
+				dist = AirportPositions[getActiveAirport()].DistanceTo(hPos.GetPosition());
 				hPoint.x = refPt.x + int(scale * dist * sin(hdg) + 0.5);
 				hPoint.y = refPt.y - int(scale * dist * cos(hdg) + 0.5);
 

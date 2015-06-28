@@ -142,14 +142,6 @@ public:
 
 	bool RunwayTimerShort = true;
 
-	inline string getActiveAirport() {
-		return this->ActiveAirport;
-	}
-
-	inline string setActiveAirport(string value) {
-		return this->ActiveAirport = value;
-	}
-
 	inline void toggleClosedRunway(string runway) {
 		if (ClosedRunway.find(runway) == ClosedRunway.end())
 			ClosedRunway[runway] = true;
@@ -157,8 +149,8 @@ public:
 			ClosedRunway[runway] = !ClosedRunway[runway];
 	}
 
-	inline void toggleShortTimer() {
-		RunwayTimerShort = !RunwayTimerShort;
+	inline void toggleShortTimer(bool setting) {
+		RunwayTimerShort = setting;
 	}
 
 	inline void toggleMonitoredRunwayDep(string runway) {
@@ -175,6 +167,5 @@ public:
 			MonitoredRunwayArr[runway] = !MonitoredRunwayArr[runway];
 	}
 
-	string ActiveAirport = "EGKK";
 	map<string, bool> ClosedRunway;
 };

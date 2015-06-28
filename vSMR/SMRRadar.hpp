@@ -75,12 +75,6 @@ public:
 	int appWindowScale = 15;
 	int appWindowFilter = 6000;
 
-	bool showPrimaryTarget = true;
-	bool TagColorIsFirst = true;
-	bool DisplaySquawkWarning = true;
-	bool HideAcType = false;
-	bool UseSpeedForGate = false;
-
 	map<string, RECT> TimePopupAreas;
 
 	map<int, string> TimePopupData;
@@ -93,6 +87,21 @@ public:
 	map<string, bool> DisplayMenu;
 
 	const float Pi = float(atan2(0, -1));
+
+	CRimcas * RimcasInstance = NULL;
+	CConfig * CurrentConfig = NULL;
+
+	//---ActiveAirport--------------------------------------------
+
+	string ActiveAirport = "EGKK";
+
+	inline string getActiveAirport() {
+		return this->ActiveAirport;
+	}
+
+	inline string setActiveAirport(string value) {
+		return this->ActiveAirport = value;
+	}
 
 	//---LoadCustomFont--------------------------------------------
 
@@ -214,6 +223,8 @@ public:
 
 	inline virtual void OnAsrContentToBeClosed(void)
 	{
+		delete RimcasInstance;
+		delete CurrentConfig;
 		delete this;
 	};
 };
