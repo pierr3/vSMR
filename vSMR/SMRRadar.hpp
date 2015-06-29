@@ -86,8 +86,6 @@ public:
 	map<string, RECT> MenuPositions;
 	map<string, bool> DisplayMenu;
 
-	const float Pi = float(atan2(0, -1));
-
 	CRimcas * RimcasInstance = NULL;
 	CConfig * CurrentConfig = NULL;
 
@@ -206,18 +204,6 @@ public:
 	//---OnFunctionCall-------------------------------------------------
 
 	virtual void OnFunctionCall(int FunctionId, const char * sItemString, POINT Pt, RECT Area);
-
-	//---Radians-----------------------------------------
-
-	inline float DegToRad(float x)
-	{
-		return x / 180 * Pi;
-	}
-
-	inline float RadToDeg(float x)
-	{
-		return x / Pi * 180;
-	}
 
 	//---OnAsrContentToBeClosed-----------------------------------------
 

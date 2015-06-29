@@ -7,16 +7,17 @@
 #include <map>
 #include <algorithm>
 #include <string>
+#include <GdiPlus.h>
+#include <GdiPlusColor.h>
 
 using namespace std;
+using namespace Gdiplus;
 using namespace EuroScopePlugIn;
 
 class CRimcas {
 public:
 	CRimcas();
 	virtual ~CRimcas();
-
-	const float Pi = float(atan2(0, -1));
 
 	const string string_false = "!NO";
 
@@ -25,18 +26,6 @@ public:
 		double bearing;
 		bool set = false;
 	};
-
-	//---Radians-----------------------------------------
-
-	inline float DegToRad(float x)
-	{
-		return x / 180 * Pi;
-	}
-
-	inline float RadToDeg(float x)
-	{
-		return x / Pi * 180;
-	}
 
 	int Is_Left(const POINT &p0, const POINT &p1, const POINT &point)
 	{
@@ -119,19 +108,22 @@ public:
 	string GetAcInRunwayArea(CRadarTarget Ac, CRadarScreen *instance);
 	string GetAcInRunwayAreaSoon(CRadarTarget Ac, CRadarScreen *instance);
 	void AddRunwayArea(CRadarScreen *instance, string runway_name1, string runway_name2, CPosition Left, CPosition Right, double bearing1, double bearing2, float hwidth = 92.5f, float hlenght = 250.0f);
-	COLORREF GetAircraftColor(string AcCallsign, COLORREF AcColor);
+	Color GetAircraftColor(string AcCallsign, Color StandardColor, Color OnRunwayColor, Color RimcasStageOne, Color RimcasStageTwo);
+	Color GetAircraftColor(string AcCallsign, Color StandardColor, Color OnRunwayColor);
 
-	bool isAcOnRunway(CRadarTarget rt);
+	bool isAcOnRunway(string callsign);
 
 	RunwayAreaType GetRunwayArea(CRadarScreen *instance, CPosition Left, CPosition Right, int threshold, double bearing, float hwidth = 92.5f, float hlenght = 250.0f);
 
 	void OnRefreshBegin();
 	void OnRefresh(CRadarTarget Rt, CRadarScreen *instance);
-	void OnRefreshEnd();
+	void OnRefreshEnd(CRadarScreen *instance, int threshold);
 	void Reset();
 
 	COLORREF WarningColor = RGB(160, 90, 30); //RGB(180, 100, 50)
 	COLORREF AlertColor = RGB(150, 0, 0);
+
+	static enum RimcasAlertTypes { NoAlert, StageOne, StageTwo };
 
 	map<string, RunwayAreaType> RunwayAreas;
 	multimap<string, string> AcOnRunway;

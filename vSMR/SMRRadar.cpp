@@ -1067,7 +1067,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 	AcOnRunway.clear();
 	ColorAC.clear();
 
-	RimcasInstance->OnRefreshEnd();
+	RimcasInstance->OnRefreshEnd(this, CurrentConfig->getActiveProfile()["rimcas"]["rimcas_stage_two_speed_threshold"].GetInt());
 
 	// Creating the gdi+ graphics
 	Graphics graphics(hDC);
@@ -1345,7 +1345,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 				line1_size.append(" ");
 		}
 
-			// If there is a second line, then we determine it's size.
+		// If there is a second line, then we determine its size.
 		if (LabelsSettings[Utils2::getEnumString(TagType).c_str()]["two_lines_tag"].GetBool()) {
 			for (SizeType i = 0; i < LabelsSettings[Utils2::getEnumString(TagType).c_str()]["line2"].Size(); i++) {
 				const Value& item = LabelsSettings[Utils2::getEnumString(TagType).c_str()]["line2"][i];
@@ -1387,9 +1387,20 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 
 		// Pfiou, done with that, now we can draw the actual rectangle.
 
-		//COLORREF TagBackgroundColor2 = RimcasInstance->GetAircraftColor(rt.GetCallsign());
-		Color TagBackgroundColor = CurrentConfig->getConfigColor(LabelsSettings[Utils2::getEnumString(TagType).c_str()]["background_color"]);
-		
+		// We need to figure out if the tag color changes according to RIMCAS alerts, or not
+		bool rimcasLabelOnly = CurrentConfig->getActiveProfile()["rimcas"]["rimcas_label_only"].GetBool();
+
+		Color TagBackgroundColor = RimcasInstance->GetAircraftColor(rt.GetCallsign(), 
+			CurrentConfig->getConfigColor(LabelsSettings[Utils2::getEnumString(TagType).c_str()]["background_color"]),
+			CurrentConfig->getConfigColor(LabelsSettings[Utils2::getEnumString(TagType).c_str()]["background_color_on_runway"]),
+			CurrentConfig->getConfigColor(CurrentConfig->getActiveProfile()["rimcas"]["background_color_stage_one"]),
+			CurrentConfig->getConfigColor(CurrentConfig->getActiveProfile()["rimcas"]["background_color_stage_one"]));
+
+		if (rimcasLabelOnly)
+			TagBackgroundColor = RimcasInstance->GetAircraftColor(rt.GetCallsign(),
+			CurrentConfig->getConfigColor(LabelsSettings[Utils2::getEnumString(TagType).c_str()]["background_color"]),
+			CurrentConfig->getConfigColor(LabelsSettings[Utils2::getEnumString(TagType).c_str()]["background_color_on_runway"]));
+	
 		CRect TagBackgroundRect(TagCenter.x - (TagWidth / 2), TagCenter.y - (TagHeight / 2), TagCenter.x + (TagWidth / 2), TagCenter.y + (TagHeight / 2));
 		SolidBrush TagBackgroundBrush(TagBackgroundColor);
 		graphics.FillRectangle(&TagBackgroundBrush, CopyRect(TagBackgroundRect));
@@ -1577,7 +1588,12 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 		tempS = std::to_string(times[3]) + ": " + RimcasInstance->TimeTable[it->first][times[3]];
 		dc.SetTextColor(RGB(33, 33, 33));
 		if (RimcasInstance->AcColor.find(RimcasInstance->TimeTable[it->first][30]) != RimcasInstance->AcColor.end() && RimcasInstance->RunwayTimerShort) {
-			CBrush OrangeBrush(RimcasInstance->GetAircraftColor(RimcasInstance->TimeTable[it->first][30], RGB(0, 0, 0))); // RGB(180, 100, 50)
+			CBrush OrangeBrush(RimcasInstance->GetAircraftColor(RimcasInstance->TimeTable[it->first][30], 
+				Color::Black, 
+				Color::Black,
+				CurrentConfig->getConfigColor(CurrentConfig->getActiveProfile()["rimcas"]["background_color_stage_one"]),
+				CurrentConfig->getConfigColor(CurrentConfig->getActiveProfile()["rimcas"]["background_color_stage_two"])).ToCOLORREF()
+				); // RGB(180, 100, 50)
 			CRect TempRect = { CRectTime.left, CRectTime.top + TextHeight * 3, CRectTime.right, CRectTime.top + TextHeight * 4 };
 			dc.FillRect(TempRect, &OrangeBrush);
 			dc.SetTextColor(RGB(238, 238, 208));
@@ -1586,7 +1602,12 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 		tempS = std::to_string(times[4]) + ": " + RimcasInstance->TimeTable[it->first][times[4]];
 		dc.SetTextColor(RGB(33, 33, 33));
 		if (RimcasInstance->AcColor.find(RimcasInstance->TimeTable[it->first][times[4]]) != RimcasInstance->AcColor.end()) {
-			CBrush OrangeBrush(RimcasInstance->GetAircraftColor(RimcasInstance->TimeTable[it->first][times[4]], RGB(0, 0, 0)));
+			CBrush OrangeBrush(RimcasInstance->GetAircraftColor(RimcasInstance->TimeTable[it->first][times[4]],
+				Color::Black,
+				Color::Black,
+				CurrentConfig->getConfigColor(CurrentConfig->getActiveProfile()["rimcas"]["background_color_stage_one"]),
+				CurrentConfig->getConfigColor(CurrentConfig->getActiveProfile()["rimcas"]["background_color_stage_two"])).ToCOLORREF()
+				); // RGB(180, 100, 50)
 			CRect TempRect = { CRectTime.left, CRectTime.top + TextHeight * 4, CRectTime.right, CRectTime.top + TextHeight * 5 };
 			dc.FillRect(TempRect, &OrangeBrush);
 			dc.SetTextColor(RGB(238, 238, 208));

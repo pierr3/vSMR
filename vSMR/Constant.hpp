@@ -16,6 +16,8 @@ const int TAG_FUNC_DATALINK_STBY = 546;
 const int TAG_FUNC_DATALINK_VOICE = 547;
 const int TAG_FUNC_DATALINK_RESET = 548;
 
+const float Pi = float(atan2(0, -1));
+
 inline static bool startsWith(const char *pre, const char *str)
 {
 	size_t lenpre = strlen(pre), lenstr = strlen(str);
@@ -76,6 +78,18 @@ inline std::vector<std::string> split(const std::string &s, char delim) {
 	std::vector<std::string> elems;
 	split(s, delim, elems);
 	return elems;
+};
+
+//---Radians-----------------------------------------
+
+inline float DegToRad(float x)
+{
+	return x / 180 * Pi;
+};
+
+inline float RadToDeg(float x)
+{
+	return x / Pi * 180;
 };
 
 const int DRAWING_TAG = 1211;

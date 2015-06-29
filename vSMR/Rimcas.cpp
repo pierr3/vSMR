@@ -52,7 +52,7 @@ string CRimcas::GetAcInRunwayArea(CRadarTarget Ac, CRadarScreen *instance) {
 
 		vector<POINT> RwyPolygon = { tTopLeft, tTopRight, tBottomRight, tBottomLeft };
 
-		if (Is_Inside(AcPosPix, RwyPolygon) && Ac.GetGS() < 200) {
+		if (Is_Inside(AcPosPix, RwyPolygon) && Ac.GetGS() < 180) {
 			AcOnRunway.insert(std::pair<string, string>(it->first, Ac.GetCallsign()));
 			return string(it->first);
 		}
@@ -177,9 +177,9 @@ CRimcas::RunwayAreaType CRimcas::GetRunwayArea(CRadarScreen *instance, CPosition
 
 }
 
-void CRimcas::OnRefreshEnd() {
+void CRimcas::OnRefreshEnd(CRadarScreen *instance, int threshold) {
 
-	for (std::map<string, RunwayAreaType>::iterator it = RunwayAreas.begin(); it != RunwayAreas.end(); ++it)
+	for (map<string, RunwayAreaType>::iterator it = RunwayAreas.begin(); it != RunwayAreas.end(); ++it)
 	{
 
 		if (!MonitoredRunwayArr[string(it->first)] && !MonitoredRunwayDep[string(it->first)])
@@ -197,14 +197,30 @@ void CRimcas::OnRefreshEnd() {
 
 			auto AcOnRunwayRange = AcOnRunway.equal_range(it->first);
 
-			// Iterate over all map elements with key == theKey
+			string isAnotherAcApproaching = "no";
 
-			for (std::map<string, string>::iterator it2 = AcOnRunwayRange.first; it2 != AcOnRunwayRange.second; ++it2)
+			for (map<string, string>::iterator it2 = AcOnRunwayRange.first; it2 != AcOnRunwayRange.second; ++it2)
 			{
-				if (isOnClosedRunway)
-					AcColor[it2->second] = WarningColor;
-				else
-					AcColor[it2->second] = WarningColor;
+				if (isOnClosedRunway) {
+					if (isAnotherAcApproaching != "no") {
+						AcColor[it2->second] = StageTwo;
+					}
+					else {
+						AcColor[it2->second] = StageOne;
+						CRadarTarget rt = instance->GetPlugIn()->RadarTargetSelect(it2->second.c_str());
+
+						if (rt.IsValid() && rt.GetPosition().GetReportedGS() > threshold) {
+							if (isAnotherAcApproaching == "no")
+								isAnotherAcApproaching = it2->second;
+
+							AcColor[it2->second] = StageTwo;
+						}
+					}
+				}
+			}
+
+			if (isAnotherAcApproaching != "no") {
+				AcColor[isAnotherAcApproaching] = StageTwo;
 			}
 
 		}
@@ -213,22 +229,41 @@ void CRimcas::OnRefreshEnd() {
 
 }
 
-bool CRimcas::isAcOnRunway(CRadarTarget rt) {
+bool CRimcas::isAcOnRunway(string callsign) {
 
 	for (std::map<string, string>::iterator it = AcOnRunway.begin(); it != AcOnRunway.end(); ++it)
 	{
-		if (it->second == string(rt.GetCallsign()))
+		if (it->second == callsign)
 			return true;
 	}
 
 	return false;
 }
 
-COLORREF CRimcas::GetAircraftColor(string AcCallsign, COLORREF Color) {
+Color CRimcas::GetAircraftColor(string AcCallsign, Color StandardColor, Color OnRunwayColor, Color RimcasStageOne, Color RimcasStageTwo) {
 	if (AcColor.find(AcCallsign) == AcColor.end()) {
-		return Color;
+		if (isAcOnRunway(AcCallsign)) {
+			return OnRunwayColor;
+		}
+		else {
+			return StandardColor;
+		}
 	}
 	else {
-		return AcColor[AcCallsign];
+		if (AcColor[AcCallsign] == StageOne) {
+			return RimcasStageOne;
+		}
+		else {
+			return RimcasStageTwo;
+		}
+	}
+}
+
+Color CRimcas::GetAircraftColor(string AcCallsign, Color StandardColor, Color OnRunwayColor) {
+	if (isAcOnRunway(AcCallsign)) {
+		return OnRunwayColor;
+	}
+	else {
+		return StandardColor;
 	}
 }

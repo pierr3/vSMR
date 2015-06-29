@@ -2,15 +2,15 @@
     {
         "name": "AVISO",
         "font": {
-          "use_custom_font": true,
-          "font_name": "EuroScope",
-          "weight": "Bold",
-          "sizes": {
-            "one": 11,
-            "two": 12,
-            "three": 14,
-            "four": 14
-          }
+            "use_custom_font": true,
+            "font_name": "EuroScope",
+            "weight": "Bold",
+            "sizes": {
+                "one": 11,
+                "two": 12,
+                "three": 14,
+                "four": 14
+            }
         },
         "filters": {
             "hide_above_alt": 4000,
@@ -20,19 +20,19 @@
         "labels": {
             "use_aspeed_for_gate": false,
             "squawk_error_color": {
-              "r": 100,
-              "g": 100,
-              "b": 100
+                "r": 100,
+                "g": 100,
+                "b": 100
             },
             "departure": {
                 "two_lines_tag": true,
                 "line1": [
-                  "callsign",
-                  "deprwy"
+                    "callsign",
+                    "deprwy"
                 ],
                 "line2": [
-                  "gate",
-                  "actype"
+                    "gate",
+                    "actype"
                 ],
                 "background_color": {
                     "r": 0,
@@ -53,14 +53,14 @@
                 }
             },
             "arrival": {
-              "two_lines_tag": true,
-              "line1": [
-                "callsign"
-              ],
-              "line2": [
-                "actype",
-                "deprwy"
-              ],
+                "two_lines_tag": true,
+                "line1": [
+                    "callsign"
+                ],
+                "line2": [
+                    "actype",
+                    "deprwy"
+                ],
                 "background_color": {
                     "r": 100,
                     "g": 100,
@@ -80,15 +80,16 @@
                 }
             },
             "airborne": {
-              "two_lines_tag": true,
-              "line1": [
-                "callsign"
-              ],
-              "line2": [
-                "flightlevel",
-                "tendency",
-                "gs"
-              ],
+                "two_lines_tag": true,
+                "use_departure_arrival_coloring": false,
+                "line1": [
+                    "callsign"
+                ],
+                "line2": [
+                    "flightlevel",
+                    "tendency",
+                    "gs"
+                ],
                 "text_color": {
                     "r": 100,
                     "g": 100,
@@ -103,55 +104,63 @@
             }
         },
         "rimcas": {
-          "use_red_symbol_for_emergencies": true,
-          "short_timer": true,
-          "background_color": {
-            "r": 100,
-            "g": 100,
-            "b": 100,
-            "a": 255
-          }
+            "rimcas_label_only": true,
+            "use_red_symbol_for_emergencies": true,
+            "short_timer": true,
+            "rimcas_stage_two_speed_threshold": 25,
+            "background_color_stage_one": {
+                "r": 100,
+                "g": 100,
+                "b": 100,
+                "a": 255
+            },
+            "background_color_stage_two": {
+                "r": 100,
+                "g": 100,
+                "b": 100,
+                "a": 255
+            }
         },
         "targets": {
-          "show_primary_target": true,
-          "target_color": {
-            "r": 100,
-            "g": 100,
-            "b": 100,
-            "a": 255
-          },
-          "history_one_color": {
-            "r": 100,
-            "g": 100,
-            "b": 100,
-            "a": 255
-          },
-          "history_two_color": {
-            "r": 100,
-            "g": 100,
-            "b": 100,
-            "a": 255
-          },
-          "history_three_color": {
-            "r": 100,
-            "g": 100,
-            "b": 100,
-            "a": 255
-          }
+            "show_primary_target": true,
+            "target_color": {
+                "r": 100,
+                "g": 100,
+                "b": 100,
+                "a": 255
+            },
+            "history_one_color": {
+                "r": 100,
+                "g": 100,
+                "b": 100,
+                "a": 255
+            },
+            "history_two_color": {
+                "r": 100,
+                "g": 100,
+                "b": 100,
+                "a": 255
+            },
+            "history_three_color": {
+                "r": 100,
+                "g": 100,
+                "b": 100,
+                "a": 255
+            }
         },
         "approach_insets": {
-          "extended_lines_lenght": 10,
-          "extended_lines_ticks_spacing": 1,
-          "extended_lines_color": {
-            "r": 100,
-            "g": 100,
-            "b": 100
-          },
-          "background_color": {
-            "r": 100,
-            "g": 100,
-            "b": 100
-          }
+            "extended_lines_lenght": 10,
+            "extended_lines_ticks_spacing": 1,
+            "extended_lines_color": {
+                "r": 100,
+                "g": 100,
+                "b": 100
+            },
+            "background_color": {
+                "r": 100,
+                "g": 100,
+                "b": 100
+            }
         }
     }
 ]
