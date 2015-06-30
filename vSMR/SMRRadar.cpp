@@ -1781,6 +1781,14 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 	AddScreenObject(8000, "DisplayMenu", { ToolBarAreaTop.left + offset, ToolBarAreaTop.top + 4, ToolBarAreaTop.left + offset + dc.GetTextExtent("Display").cx, ToolBarAreaTop.top + 4 + dc.GetTextExtent("Display").cy }, false, "Display menu");
 
 	offset += dc.GetTextExtent("Display").cx + 10;
+	dc.TextOutA(ToolBarAreaTop.left + offset, ToolBarAreaTop.top + 4, "Map");
+	AddScreenObject(8000, "DisplayMenu", { ToolBarAreaTop.left + offset, ToolBarAreaTop.top + 4, ToolBarAreaTop.left + offset + dc.GetTextExtent("Map").cx, ToolBarAreaTop.top + 4 + dc.GetTextExtent("Map").cy }, false, "Map menu");
+
+	offset += dc.GetTextExtent("Map").cx + 10;
+	dc.TextOutA(ToolBarAreaTop.left + offset, ToolBarAreaTop.top + 4, "Colour");
+	AddScreenObject(8000, "DisplayMenu", { ToolBarAreaTop.left + offset, ToolBarAreaTop.top + 4, ToolBarAreaTop.left + offset + dc.GetTextExtent("Colour").cx, ToolBarAreaTop.top + 4 + dc.GetTextExtent("Colour").cy }, false, "Colour menu");
+
+	offset += dc.GetTextExtent("Colour").cx + 10;
 	dc.TextOutA(ToolBarAreaTop.left + offset, ToolBarAreaTop.top + 4, "Alerts");
 	AddScreenObject(8001, "RIMCASMenu", { ToolBarAreaTop.left + offset, ToolBarAreaTop.top + 4, ToolBarAreaTop.left + offset + dc.GetTextExtent("RIMCAS").cx, ToolBarAreaTop.top + 4 + +dc.GetTextExtent("RIMCAS").cy }, false, "RIMCAS menu");
 
@@ -1830,7 +1838,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 			t2s.x = refPt.x + int(scale * dist * sin(dir) + 0.5);
 			t2s.y = refPt.y - int(scale * dist * cos(dir) + 0.5);
 
-			CPen PenT(PS_SOLID, 1, RGB(0, 0, 0));
+			CPen PenT(PS_SOLID, 1, CurrentConfig->getConfigColorRef(CurrentConfig->getActiveProfile()["approach_insets"]["runway_color"]));
 			dc.SelectObject(PenT);
 			POINT toDraw1, toDraw2;
 			if (LiangBarsky(appWindowAreas[appWindowId], t1s, t2s, toDraw1, toDraw2)) {
@@ -1845,7 +1853,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 
 				t1s.x = refPt.x + int(scale * dist * sin(dir) + 0.5);
 				t1s.y = refPt.y - int(scale * dist * cos(dir) + 0.5);
-				CPen PenC(PS_SOLID, 1, RGB(255, 255, 255));
+				CPen PenC(PS_SOLID, 1, CurrentConfig->getConfigColorRef(CurrentConfig->getActiveProfile()["approach_insets"]["extended_lines_color"]));
 				dc.SelectObject(PenC);
 
 				double revHdg = it->second.bearing;
