@@ -64,22 +64,6 @@ inline double TrueBearing(CPosition pos1, CPosition pos2)
 	return dir / 180 * PI;
 };
 
-inline std::vector<std::string> &split(const std::string &s, char delim, std::vector<std::string> &elems) {
-	std::stringstream ss(s);
-	std::string item;
-	while (std::getline(ss, item, delim)) {
-		elems.push_back(item);
-	}
-	return elems;
-};
-
-
-inline std::vector<std::string> split(const std::string &s, char delim) {
-	std::vector<std::string> elems;
-	split(s, delim, elems);
-	return elems;
-};
-
 //---Radians-----------------------------------------
 
 inline float DegToRad(float x)
@@ -116,3 +100,10 @@ const int RIMCAS_APPWINDOW = 8010;
 const int RIMCAS_UPDATERANGE = 8011;
 const int RIMCAS_UPDATEFILTER = 8012;
 const int RIMCAS_TIMER = 8015;
+const int RIMCAS_APPWINDOW2 = 8016;
+const int RIMCAS_UPDATERANGE2 = 8017;
+const int RIMCAS_UPDATEFILTER2 = 8018;
+
+const int APPWINDOW_BASE = 8887;
+const int APPWINDOW_ONE = 8888;
+const int APPWINDOW_TWO = 8889;

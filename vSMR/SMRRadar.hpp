@@ -66,14 +66,14 @@ public:
 	map<string, bool> ShowLists;
 	map<string, RECT> ListAreas;
 
-	bool Display2ndLine = true;
+	map<int, int> appWindowIds;
+	map<int, bool> appWindowDisplays;
+	map<int, RECT> appWindowAreas;
+	map<int, POINT> appWindowOffsets;
+	map<int, int> appWindowScales;
+	map<int, int> appWindowFilters;
 
-	bool appWindow = false;
-	RECT appWindowArea;
 	bool QDMenabled = false;
-
-	int appWindowScale = 15;
-	int appWindowFilter = 6000;
 
 	map<string, RECT> TimePopupAreas;
 

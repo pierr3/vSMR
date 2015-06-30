@@ -13,4 +13,4 @@ Download the plugin here: <https://github.com/pierr3/vSMR/releases>
 
 Find out all you need to know on the wiki: <https://github.com/pierr3/vSMR/wiki>
 
-Big thanks to Even Rognlien and Juha Holopainen for their help with the code and thanks to Sam White and Theo Bearman for their help on the wiki!
+Big thanks to Even Rognlien, Juha Holopainen and Lionel Bischof for their help with the code and thanks to Sam White and Theo Bearman for their help on the wiki!

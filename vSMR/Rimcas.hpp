@@ -9,6 +9,7 @@
 #include <string>
 #include <GdiPlus.h>
 #include <GdiPlusColor.h>
+#include "Constant.hpp"
 
 using namespace std;
 using namespace Gdiplus;

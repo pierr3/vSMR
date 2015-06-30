@@ -31,6 +31,27 @@ void CRimcas::OnRefresh(CRadarTarget Rt, CRadarScreen *instance) {
 	GetAcInRunwayAreaSoon(Rt, instance);
 }
 
+bool IsPointInPolygon(vector<CPosition> poly, CPosition point)
+{
+	int sides = poly.size() - 1;
+	int j = sides - 1;
+	bool pointStatus = false;
+	for (int i = 0; i < sides; i++)
+	{
+		if (poly[i].m_Longitude < point.m_Longitude && poly[j].m_Longitude >= point.m_Longitude ||
+			poly[j].m_Longitude < point.m_Longitude && poly[i].m_Longitude >= point.m_Longitude)
+		{
+			if (poly[i].m_Latitude + (point.m_Longitude - poly[i].m_Longitude) /
+				(poly[j].m_Longitude - poly[i].m_Longitude) * (poly[j].m_Latitude - poly[i].m_Latitude) < point.m_Latitude)
+			{
+				pointStatus = !pointStatus;
+			}
+		}
+		j = i;
+	}
+	return pointStatus;
+};
+
 void CRimcas::AddRunwayArea(CRadarScreen *instance, string runway_name1, string runway_name2, CPosition Left, CPosition Right, double bearing1, double bearing2, float hwidth, float hlenght) {
 	RunwayAreas[runway_name1] = GetRunwayArea(instance, Left, Right, 0, bearing1, hwidth, hlenght);
 	RunwayAreas[runway_name2] = GetRunwayArea(instance, Left, Right, 1, bearing2, hwidth, hlenght);
@@ -45,14 +66,9 @@ string CRimcas::GetAcInRunwayArea(CRadarTarget Ac, CRadarScreen *instance) {
 		if (!MonitoredRunwayDep[string(it->first)])
 			continue;
 
-		POINT tTopLeft = instance->ConvertCoordFromPositionToPixel(it->second.topLeft);
-		POINT tTopRight = instance->ConvertCoordFromPositionToPixel(it->second.topRight);
-		POINT tBottomLeft = instance->ConvertCoordFromPositionToPixel(it->second.bottomLeft);
-		POINT tBottomRight = instance->ConvertCoordFromPositionToPixel(it->second.bottomRight);
+		vector<CPosition> RwyPolygon = { it->second.topLeft, it->second.topRight, it->second.bottomLeft, it->second.bottomRight };
 
-		vector<POINT> RwyPolygon = { tTopLeft, tTopRight, tBottomRight, tBottomLeft };
-
-		if (Is_Inside(AcPosPix, RwyPolygon) && Ac.GetGS() < 180) {
+		if (IsPointInPolygon(RwyPolygon, Ac.GetPosition().GetPosition()) && Ac.GetPosition().GetReportedGS() < 180) {
 			AcOnRunway.insert(std::pair<string, string>(it->first, Ac.GetCallsign()));
 			return string(it->first);
 		}
@@ -62,7 +78,7 @@ string CRimcas::GetAcInRunwayArea(CRadarTarget Ac, CRadarScreen *instance) {
 }
 
 string CRimcas::GetAcInRunwayAreaSoon(CRadarTarget Ac, CRadarScreen *instance) {
-	if (Ac.GetGS() < 25)
+	if (Ac.GetPosition().GetReportedGS() < 25)
 		return CRimcas::string_false;
 
 	POINT AcPosPix = instance->ConvertCoordFromPositionToPixel(Ac.GetPosition().GetPosition());
@@ -74,19 +90,15 @@ string CRimcas::GetAcInRunwayAreaSoon(CRadarTarget Ac, CRadarScreen *instance) {
 
 		if (RunwayTimerShort) {
 			for (int i = 15; i <= 60; i = i + 15) {
-				POINT tTopLeft = instance->ConvertCoordFromPositionToPixel(it->second.topLeft);
-				POINT tTopRight = instance->ConvertCoordFromPositionToPixel(it->second.topRight);
-				POINT tBottomLeft = instance->ConvertCoordFromPositionToPixel(it->second.bottomLeft);
-				POINT tBottomRight = instance->ConvertCoordFromPositionToPixel(it->second.bottomRight);
-
-				vector<POINT> RwyPolygon = { tTopLeft, tTopRight, tBottomRight, tBottomLeft };
+				vector<CPosition> RwyPolygon = { it->second.topLeft, it->second.topRight, it->second.bottomLeft, it->second.bottomRight };
 
 				float Distance = float(Ac.GetGS())*0.514444f;
 				Distance = Distance * float(i);
 				CPosition TempPosition = Haversine(Ac.GetPosition().GetPosition(), float(Ac.GetTrackHeading()), Distance);
-				POINT TempPoint = instance->ConvertCoordFromPositionToPixel(TempPosition);
 
-				if (Is_Inside(TempPoint, RwyPolygon) && !Is_Inside(AcPosPix, RwyPolygon) && Ac.GetGS() < 200) {
+				if (IsPointInPolygon(RwyPolygon, TempPosition) && 
+					!IsPointInPolygon(RwyPolygon, Ac.GetPosition().GetPosition()) && 
+					Ac.GetPosition().GetReportedGS() < 200) {
 					TimeTable[it->first][i] = string(Ac.GetCallsign());
 
 					// If aircraft is 30 seconds from landing, then it's considered on the runway
@@ -101,19 +113,14 @@ string CRimcas::GetAcInRunwayAreaSoon(CRadarTarget Ac, CRadarScreen *instance) {
 		}
 		else {
 			for (int i = 30; i <= 120; i = i + 30) {
-				POINT tTopLeft = instance->ConvertCoordFromPositionToPixel(it->second.topLeft);
-				POINT tTopRight = instance->ConvertCoordFromPositionToPixel(it->second.topRight);
-				POINT tBottomLeft = instance->ConvertCoordFromPositionToPixel(it->second.bottomLeft);
-				POINT tBottomRight = instance->ConvertCoordFromPositionToPixel(it->second.bottomRight);
-
-				vector<POINT> RwyPolygon = { tTopLeft, tTopRight, tBottomRight, tBottomLeft };
+				vector<CPosition> RwyPolygon = { it->second.topLeft, it->second.topRight, it->second.bottomLeft, it->second.bottomRight };
 
 				float Distance = float(Ac.GetGS())*0.514444f;
 				Distance = Distance * float(i);
 				CPosition TempPosition = Haversine(Ac.GetPosition().GetPosition(), float(Ac.GetTrackHeading()), Distance);
-				POINT TempPoint = instance->ConvertCoordFromPositionToPixel(TempPosition);
 
-				if (Is_Inside(TempPoint, RwyPolygon) && !Is_Inside(AcPosPix, RwyPolygon)) {
+				if (IsPointInPolygon(RwyPolygon, TempPosition) &&
+					!IsPointInPolygon(RwyPolygon, Ac.GetPosition().GetPosition())) {
 					TimeTable[it->first][i] = string(Ac.GetCallsign());
 
 					// If aircraft is 30 seconds from landing, then it's considered on the runway
