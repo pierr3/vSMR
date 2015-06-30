@@ -280,15 +280,15 @@ void CSMRRadar::OnClickScreenObject(int ObjectType, const char * sObjectId, POIN
 		if (strcmp(sObjectId, "close") == 0)
 			appWindowDisplays[appWindowId] = false;
 		if (strcmp(sObjectId, "range") == 0) {
-			GetPlugIn()->OpenPopupEdit(Area, RIMCAS_UPDATERANGE, std::to_string(appWindowScales[appWindowId]).c_str());
+			GetPlugIn()->OpenPopupEdit(Area, RIMCAS_UPDATERANGE + appWindowId, std::to_string(appWindowScales[appWindowId]).c_str());
 		}
 		if (strcmp(sObjectId, "filter") == 0) {
 			GetPlugIn()->OpenPopupList(Area, "Filter", 1);
-			GetPlugIn()->AddPopupListElement("66000", "", RIMCAS_UPDATEFILTER);
-			GetPlugIn()->AddPopupListElement("24500", "", RIMCAS_UPDATEFILTER);
-			GetPlugIn()->AddPopupListElement("8000", "", RIMCAS_UPDATEFILTER);
-			GetPlugIn()->AddPopupListElement("6000", "", RIMCAS_UPDATEFILTER);
-			GetPlugIn()->AddPopupListElement("3000", "", RIMCAS_UPDATEFILTER);
+			GetPlugIn()->AddPopupListElement("66000", "", RIMCAS_UPDATEFILTER + appWindowId);
+			GetPlugIn()->AddPopupListElement("24500", "", RIMCAS_UPDATEFILTER + appWindowId);
+			GetPlugIn()->AddPopupListElement("8000", "", RIMCAS_UPDATEFILTER + appWindowId);
+			GetPlugIn()->AddPopupListElement("6000", "", RIMCAS_UPDATEFILTER + appWindowId);
+			GetPlugIn()->AddPopupListElement("3000", "", RIMCAS_UPDATEFILTER + appWindowId);
 			GetPlugIn()->AddPopupListElement("Close", "", RIMCAS_CLOSE, false, 2, false, true);
 		}
 	}
@@ -304,8 +304,8 @@ void CSMRRadar::OnClickScreenObject(int ObjectType, const char * sObjectId, POIN
 
 		GetPlugIn()->OpenPopupList(Area, "Display Menu", 1);
 		GetPlugIn()->AddPopupListElement("QDR", "", RIMCAS_QDM_TOGGLE);
-		GetPlugIn()->AddPopupListElement("Approach Inset 1", "", RIMCAS_APPWINDOW);
-		GetPlugIn()->AddPopupListElement("Approach Inset 2", "", RIMCAS_APPWINDOW);
+		GetPlugIn()->AddPopupListElement("Approach Inset 1", "", APPWINDOW_ONE);
+		GetPlugIn()->AddPopupListElement("Approach Inset 2", "", APPWINDOW_TWO);
 		GetPlugIn()->AddPopupListElement("Close", "", RIMCAS_CLOSE, false, 2, false, true);
 	}
 
@@ -393,8 +393,9 @@ void CSMRRadar::OnClickScreenObject(int ObjectType, const char * sObjectId, POIN
 
 void CSMRRadar::OnFunctionCall(int FunctionId, const char * sItemString, POINT Pt, RECT Area) {
 
-	if (FunctionId == RIMCAS_APPWINDOW) {
-		appWindowDisplays[1] = !appWindowDisplays[1];
+	if (FunctionId == APPWINDOW_ONE || APPWINDOW_TWO) {
+		int id = FunctionId - APPWINDOW_BASE;
+		appWindowDisplays[id] = !appWindowDisplays[id];
 	}
 
 	if (FunctionId == RIMCAS_ACTIVE_AIRPORT_FUNC) {
@@ -406,12 +407,14 @@ void CSMRRadar::OnFunctionCall(int FunctionId, const char * sItemString, POINT P
 		QDMenabled = !QDMenabled;
 	}
 
-	if (FunctionId == RIMCAS_UPDATEFILTER) {
-		appWindowFilters[1] = atoi(sItemString);
+	if (FunctionId == RIMCAS_UPDATEFILTER1 || FunctionId == RIMCAS_UPDATEFILTER2) {
+		int id = FunctionId - RIMCAS_UPDATEFILTER;
+		appWindowFilters[id] = atoi(sItemString);
 	}
 
-	if (FunctionId == RIMCAS_UPDATERANGE) {
-		appWindowScales[1] = atoi(sItemString);
+	if (FunctionId == RIMCAS_UPDATERANGE1 || FunctionId == RIMCAS_UPDATERANGE2) {
+		int id = FunctionId - RIMCAS_UPDATERANGE;
+		appWindowScales[id] = atoi(sItemString);
 	}
 
 	if (FunctionId == RIMCAS_CA_ARRIVAL_FUNC) {
@@ -2439,7 +2442,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 		CRect ResizeArea = { TopLeft, BottomRight };
 		ResizeArea.NormalizeRect();
 		dc.FillSolidRect(ResizeArea, qBackgroundColor);
-		AddScreenObject(APPWINDOW_ONE, "resize", ResizeArea, true, "");
+		AddScreenObject(appWindowId + APPWINDOW_BASE, "resize", ResizeArea, true, "");
 
 		CPen DarkPenResize(PS_SOLID, 1, RGB(0, 0, 0));
 		dc.SelectObject(&DarkPenResize);
@@ -2462,7 +2465,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 		POINT TopLeftText = { TopBar.left + 5, TopBar.bottom - dc.GetTextExtent("Approach Window (zoom: 10, filter: 6000ft)").cy };
 		COLORREF oldTextColorC = dc.SetTextColor(RGB(238, 238, 208));
 
-		AddScreenObject(APPWINDOW_ONE, "topbar", TopBar, true, "");
+		AddScreenObject(appWindowId + APPWINDOW_BASE, "topbar", TopBar, true, "");
 
 		string Toptext = "Approach Inset " + std::to_string(appWindowId) + " (zoom: ";
 		Toptext += std::to_string(appWindowScales[appWindowId]);
@@ -2473,13 +2476,13 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 
 		int TextOffset = dc.GetTextExtent("Approach Inset 1 (zoom: ").cx;
 		string temp = std::to_string(appWindowScales[appWindowId]);
-		AddScreenObject(APPWINDOW_ONE, "range", Utils::GetAreaFromText(&dc, temp.c_str(), { TopLeftText.x + TextOffset, TopLeftText.y }), false, "");
+		AddScreenObject(appWindowId + APPWINDOW_BASE, "range", Utils::GetAreaFromText(&dc, temp.c_str(), { TopLeftText.x + TextOffset, TopLeftText.y }), false, "");
 
 		TextOffset += dc.GetTextExtent(temp.c_str()).cx;
 		TextOffset += dc.GetTextExtent(", filter: ").cx;
 		temp = std::to_string(appWindowFilters[appWindowId]);
 		temp += "ft";
-		AddScreenObject(APPWINDOW_ONE, "filter", Utils::GetAreaFromText(&dc, temp.c_str(), { TopLeftText.x + TextOffset, TopLeftText.y }), false, "");
+		AddScreenObject(appWindowId + APPWINDOW_BASE, "filter", Utils::GetAreaFromText(&dc, temp.c_str(), { TopLeftText.x + TextOffset, TopLeftText.y }), false, "");
 
 		dc.SetTextColor(oldTextColorC);
 
@@ -2496,7 +2499,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 		dc.LineTo(CloseRect.BottomRight());
 		dc.MoveTo({ CloseRect.right - 1, CloseRect.top });
 		dc.LineTo({ CloseRect.left - 1, CloseRect.bottom });
-		AddScreenObject(APPWINDOW_ONE, "close", CloseRect, false, "");
+		AddScreenObject(appWindowId + APPWINDOW_BASE, "close", CloseRect, false, "");
 	}
 
 	dc.Detach();
