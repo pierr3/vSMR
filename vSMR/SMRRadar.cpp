@@ -43,6 +43,9 @@ CSMRRadar::CSMRRadar()
 	if (CurrentConfig == NULL)
 		CurrentConfig = new CConfig(DllPath + "\\vSMR_Profiles.json");
 
+	if (MapData == NULL)
+		MapData = new CMapData(DllPath + "\\vSMR_Maps.json");
+
 	appWindowIds[1] = APPWINDOW_ONE;
 	appWindowIds[2] = APPWINDOW_TWO;
 	appWindowDisplays[1] = false;
@@ -297,29 +300,53 @@ void CSMRRadar::OnClickScreenObject(int ObjectType, const char * sObjectId, POIN
 		GetPlugIn()->OpenPopupEdit(Area, RIMCAS_ACTIVE_AIRPORT_FUNC, getActiveAirport().c_str());
 	}
 
-	if (ObjectType == RIMCAS_DISPLAY_MENU) {
+	if (ObjectType == RIMCAS_MENU) {
 
-		Area.top = Area.top + 30;
-		Area.bottom = Area.bottom + 30;
+		if (strcmp(sObjectId, "DisplayMenu") == 0) {
+			Area.top = Area.top + 30;
+			Area.bottom = Area.bottom + 30;
 
-		GetPlugIn()->OpenPopupList(Area, "Display Menu", 1);
-		GetPlugIn()->AddPopupListElement("QDR", "", RIMCAS_QDM_TOGGLE);
-		GetPlugIn()->AddPopupListElement("Approach Inset 1", "", APPWINDOW_ONE);
-		GetPlugIn()->AddPopupListElement("Approach Inset 2", "", APPWINDOW_TWO);
-		GetPlugIn()->AddPopupListElement("Close", "", RIMCAS_CLOSE, false, 2, false, true);
-	}
+			GetPlugIn()->OpenPopupList(Area, "Display Menu", 1);
+			GetPlugIn()->AddPopupListElement("QDR Fixed Reference", "", RIMCAS_QDM_TOGGLE);
+			GetPlugIn()->AddPopupListElement("Approach Inset 1", "", APPWINDOW_ONE);
+			GetPlugIn()->AddPopupListElement("Approach Inset 2", "", APPWINDOW_TWO);
+			GetPlugIn()->AddPopupListElement("Font size", "", RIMCAS_OPEN_LIST);
+			GetPlugIn()->AddPopupListElement("Profiles", "", RIMCAS_OPEN_LIST);
+			GetPlugIn()->AddPopupListElement("Close", "", RIMCAS_CLOSE, false, 2, false, true);
+		}
 
-	if (ObjectType == RIMCAS_RIMCAS_MENU) {
+		if (strcmp(sObjectId, "MapMenu") == 0) {
+			Area.top = Area.top + 30;
+			Area.bottom = Area.bottom + 30;
 
-		Area.top = Area.top + 30;
-		Area.bottom = Area.bottom + 30;
+			GetPlugIn()->OpenPopupList(Area, "Maps", 1);
+			GetPlugIn()->AddPopupListElement("Airport Maps", "", RIMCAS_OPEN_LIST);
+			GetPlugIn()->AddPopupListElement("Custom Maps", "", RIMCAS_OPEN_LIST);
+			GetPlugIn()->AddPopupListElement("Close", "", RIMCAS_CLOSE, false, 2, false, true);
+		}
 
-		GetPlugIn()->OpenPopupList(Area, "Alerts", 1);
-		GetPlugIn()->AddPopupListElement("Conflict Alert ARR", "", RIMCAS_OPEN_LIST);
-		GetPlugIn()->AddPopupListElement("Conflict Alert DEP", "", RIMCAS_OPEN_LIST);
-		GetPlugIn()->AddPopupListElement("Runway closed", "", RIMCAS_OPEN_LIST);
-		GetPlugIn()->AddPopupListElement("Visibility", "", RIMCAS_OPEN_LIST);
-		GetPlugIn()->AddPopupListElement("Close", "", RIMCAS_CLOSE, false, 2, false, true);
+		if (strcmp(sObjectId, "ColourMenu") == 0) {
+			Area.top = Area.top + 30;
+			Area.bottom = Area.bottom + 30;
+
+			GetPlugIn()->OpenPopupList(Area, "Colours", 1);
+			GetPlugIn()->AddPopupListElement("Colour Settings", "", RIMCAS_OPEN_LIST);
+			GetPlugIn()->AddPopupListElement("Brightness", "", RIMCAS_OPEN_LIST);
+			GetPlugIn()->AddPopupListElement("Close", "", RIMCAS_CLOSE, false, 2, false, true);
+		}
+
+		if (strcmp(sObjectId, "RIMCASMenu") == 0) {
+			Area.top = Area.top + 30;
+			Area.bottom = Area.bottom + 30;
+
+			GetPlugIn()->OpenPopupList(Area, "Alerts", 1);
+			GetPlugIn()->AddPopupListElement("Conflict Alert ARR", "", RIMCAS_OPEN_LIST);
+			GetPlugIn()->AddPopupListElement("Conflict Alert DEP", "", RIMCAS_OPEN_LIST);
+			GetPlugIn()->AddPopupListElement("Runway closed", "", RIMCAS_OPEN_LIST);
+			GetPlugIn()->AddPopupListElement("Visibility", "", RIMCAS_OPEN_LIST);
+			GetPlugIn()->AddPopupListElement("Close", "", RIMCAS_CLOSE, false, 2, false, true);
+		}
+		
 	}
 
 	if (ObjectType == DRAWING_TAG) {
@@ -403,8 +430,27 @@ void CSMRRadar::OnFunctionCall(int FunctionId, const char * sItemString, POINT P
 		SaveDataToAsr("Airport", "Active airport", getActiveAirport().c_str());
 	}
 
+	if (FunctionId == RIMCAS_UPDATE_FONTS) {
+		if (strcmp(sItemString, "Size 1") == 0)
+			currentFontSize = 1;
+		if (strcmp(sItemString, "Size 2") == 0)
+			currentFontSize = 2;
+		if (strcmp(sItemString, "Size 3") == 0)
+			currentFontSize = 3;
+		if (strcmp(sItemString, "Size 4") == 0)
+			currentFontSize = 4;
+
+		ShowLists["Font size"] = true;
+	}
+
 	if (FunctionId == RIMCAS_QDM_TOGGLE) {
 		QDMenabled = !QDMenabled;
+	}
+
+	if (FunctionId == RIMCAS_UPDATE_PROFILE) {
+		CurrentConfig->setActiveProfile(sItemString);
+
+		ShowLists["Profiles"] = true;
 	}
 
 	if (FunctionId == RIMCAS_UPDATEFILTER1 || FunctionId == RIMCAS_UPDATEFILTER2) {
@@ -415,6 +461,15 @@ void CSMRRadar::OnFunctionCall(int FunctionId, const char * sItemString, POINT P
 	if (FunctionId == RIMCAS_UPDATERANGE1 || FunctionId == RIMCAS_UPDATERANGE2) {
 		int id = FunctionId - RIMCAS_UPDATERANGE;
 		appWindowScales[id] = atoi(sItemString);
+	}
+
+	if (FunctionId == RIMCAS_UPDATE_BRIGHNESS) {
+		if (strcmp(sItemString, "Day") == 0)
+			ColorSettingsDay = true;
+		else
+			ColorSettingsDay = false;
+
+		ShowLists["Colour Settings"] = true;
 	}
 
 	if (FunctionId == RIMCAS_CA_ARRIVAL_FUNC) {
@@ -436,7 +491,7 @@ void CSMRRadar::OnFunctionCall(int FunctionId, const char * sItemString, POINT P
 	if (FunctionId == RIMCAS_CLOSED_RUNWAYS_FUNC) {
 		RimcasInstance->toggleClosedRunway(string(sItemString));
 
-		ShowLists["Closed Runways"] = true;
+		ShowLists["Runway closed"] = true;
 
 		RequestRefresh();
 	}
@@ -550,7 +605,6 @@ void CSMRRadar::OnRadarTargetPositionUpdate(CRadarTarget RadarTarget)
 	CPosition leftTop = Haversine(middleBottomLeft, leftTrackHead, 0.7f*HalfSpanWidth);
 	CPosition leftBottom = Haversine(leftTop, inverseTrackHead, cabin_width);
 
-
 	CPosition basePoints[12];
 	basePoints[0] = topLeft;
 	basePoints[1] = middleTopLeft;
@@ -655,6 +709,7 @@ bool CSMRRadar::OnCompileCommand(const char * sCommandLine)
 {
 	if (strcmp(sCommandLine, ".smr reload") == 0) {
 		CurrentConfig = new CConfig(DllPath + "\\vSMR_Profiles.json");
+		MapData = new CMapData(DllPath + "\\vSMR_Maps.json");
 		LoadCustomFont();
 		return true;
 	}
@@ -770,6 +825,34 @@ inline bool LiangBarsky(RECT Area, POINT fromSrc, POINT toSrc, POINT &ClipFrom, 
 
 void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 {
+	if (Phase == REFRESH_PHASE_AFTER_LISTS) {
+		if (!ColorSettingsDay) {
+			// Creating the gdi+ graphics
+			Graphics graphics(hDC);
+			graphics.SetPageUnit(Gdiplus::UnitPixel);
+
+			// Get Device DPI Resolutions //
+			int nLogPx = ::GetDeviceCaps(hDC, LOGPIXELSX);
+			// Get GDI+ resolution
+			int nGdiPlusLogPx = (int)graphics.GetDpiX();
+			// set to pixels
+			graphics.SetPageUnit(UnitPixel);
+			// Adjust to match
+			graphics.SetPageScale(((REAL)nGdiPlusLogPx / (REAL)nLogPx));
+
+			graphics.SetSmoothingMode(SmoothingModeAntiAlias);
+
+			SolidBrush AlphaBrush(Color(CurrentConfig->getActiveProfile()["filters"]["night_alpha_setting"].GetInt(), 0, 0, 0));
+
+			CRect RadarArea(GetRadarArea());
+			RadarArea.bottom = GetChatArea().bottom;
+
+			graphics.FillRectangle(&AlphaBrush, CopyRect(CRect(RadarArea)));
+
+			graphics.ReleaseHDC(hDC);
+		}
+	}
+
 	if (Phase != REFRESH_PHASE_BEFORE_TAGS)
 		return;
 
@@ -1700,7 +1783,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 		GetPlugIn()->AddPopupListElement("Close", "", RIMCAS_CLOSE, false, 2, false, true);
 		ShowLists["Runway closed"] = false;
 	}
-
+	
 	if (ShowLists["Visibility"]) {
 		GetPlugIn()->OpenPopupList(ListAreas["Visibility"], "Visibility", 1);
 		GetPlugIn()->AddPopupListElement("Normal", "", RIMCAS_CLOSE, false, EuroScopePlugIn::POPUP_ELEMENT_CHECKED);
@@ -1708,6 +1791,35 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 		GetPlugIn()->AddPopupListElement("Close", "", RIMCAS_CLOSE, false, 2, false, true);
 		ShowLists["Visibility"] = false;
 	}
+
+	if (ShowLists["Profiles"]) {
+		GetPlugIn()->OpenPopupList(ListAreas["Profiles"], "Profiles", 1);
+		vector<string> allProfiles = CurrentConfig->getAllProfiles();
+		for (std::vector<string>::iterator it = allProfiles.begin(); it != allProfiles.end(); ++it) {
+			GetPlugIn()->AddPopupListElement(it->c_str(), "", RIMCAS_UPDATE_PROFILE, false, int(CurrentConfig->isItActiveProfile(it->c_str())));
+		}
+		GetPlugIn()->AddPopupListElement("Close", "", RIMCAS_CLOSE, false, 2, false, true);
+		ShowLists["Profiles"] = false;
+	}
+	
+	if (ShowLists["Colour Settings"]) {
+		GetPlugIn()->OpenPopupList(ListAreas["Colour Settings"], "Colour Settings", 1);
+		GetPlugIn()->AddPopupListElement("Day", "", RIMCAS_UPDATE_BRIGHNESS, false, int(ColorSettingsDay));
+		GetPlugIn()->AddPopupListElement("Night", "", RIMCAS_UPDATE_BRIGHNESS, false, int(!ColorSettingsDay));
+		GetPlugIn()->AddPopupListElement("Close", "", RIMCAS_CLOSE, false, 2, false, true);
+		ShowLists["Colour Settings"] = false;
+	}
+
+	if (ShowLists["Font size"]) {
+		GetPlugIn()->OpenPopupList(ListAreas["Font size"], "Font size", 1);
+		GetPlugIn()->AddPopupListElement("Size 1", "", RIMCAS_UPDATE_FONTS, false, int(bool(currentFontSize == 1)));
+		GetPlugIn()->AddPopupListElement("Size 2", "", RIMCAS_UPDATE_FONTS, false, int(bool(currentFontSize == 2)));
+		GetPlugIn()->AddPopupListElement("Size 3", "", RIMCAS_UPDATE_FONTS, false, int(bool(currentFontSize == 3)));
+		GetPlugIn()->AddPopupListElement("Size 4", "", RIMCAS_UPDATE_FONTS, false, int(bool(currentFontSize == 4)));
+		GetPlugIn()->AddPopupListElement("Close", "", RIMCAS_CLOSE, false, 2, false, true);
+		ShowLists["Font size"] = false;
+	}
+	
 
 	//---------------------------------
 	// QRD
@@ -1747,10 +1859,10 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 			decimal_pos = bearings.find(".");
 			bearings = bearings.substr(0, decimal_pos + 2);
 
-			string text = distances;
-			text += "m ";
-			text += bearings;
-			text += "°";
+			string text = bearings;
+			text += "° / ";
+			text += distances;
+			text += "m";
 			COLORREF oldColor = dc.SetTextColor(RGB(255, 255, 255));
 			dc.TextOutA(TextPos.x, TextPos.y, text.c_str());
 			dc.SetTextColor(oldColor);
@@ -1774,23 +1886,23 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 
 	int offset = 2;
 	dc.TextOutA(ToolBarAreaTop.left + offset, ToolBarAreaTop.top + 4, getActiveAirport().c_str());
-	AddScreenObject(7999, "ActiveAirport", { ToolBarAreaTop.left + offset, ToolBarAreaTop.top + 4, ToolBarAreaTop.left + offset + dc.GetTextExtent(getActiveAirport().c_str()).cx, ToolBarAreaTop.top + 4 + dc.GetTextExtent(getActiveAirport().c_str()).cy }, false, "Active Airport");
+	AddScreenObject(RIMCAS_ACTIVE_AIRPORT, "ActiveAirport", { ToolBarAreaTop.left + offset, ToolBarAreaTop.top + 4, ToolBarAreaTop.left + offset + dc.GetTextExtent(getActiveAirport().c_str()).cx, ToolBarAreaTop.top + 4 + dc.GetTextExtent(getActiveAirport().c_str()).cy }, false, "Active Airport");
 
 	offset += dc.GetTextExtent(getActiveAirport().c_str()).cx + 10;
 	dc.TextOutA(ToolBarAreaTop.left + offset, ToolBarAreaTop.top + 4, "Display");
-	AddScreenObject(8000, "DisplayMenu", { ToolBarAreaTop.left + offset, ToolBarAreaTop.top + 4, ToolBarAreaTop.left + offset + dc.GetTextExtent("Display").cx, ToolBarAreaTop.top + 4 + dc.GetTextExtent("Display").cy }, false, "Display menu");
+	AddScreenObject(RIMCAS_MENU, "DisplayMenu", { ToolBarAreaTop.left + offset, ToolBarAreaTop.top + 4, ToolBarAreaTop.left + offset + dc.GetTextExtent("Display").cx, ToolBarAreaTop.top + 4 + dc.GetTextExtent("Display").cy }, false, "Display menu");
 
 	offset += dc.GetTextExtent("Display").cx + 10;
-	dc.TextOutA(ToolBarAreaTop.left + offset, ToolBarAreaTop.top + 4, "Map");
-	AddScreenObject(8000, "DisplayMenu", { ToolBarAreaTop.left + offset, ToolBarAreaTop.top + 4, ToolBarAreaTop.left + offset + dc.GetTextExtent("Map").cx, ToolBarAreaTop.top + 4 + dc.GetTextExtent("Map").cy }, false, "Map menu");
+	dc.TextOutA(ToolBarAreaTop.left + offset, ToolBarAreaTop.top + 4, "Maps");
+	AddScreenObject(RIMCAS_MENU, "MapMenu", { ToolBarAreaTop.left + offset, ToolBarAreaTop.top + 4, ToolBarAreaTop.left + offset + dc.GetTextExtent("Map").cx, ToolBarAreaTop.top + 4 + dc.GetTextExtent("Map").cy }, false, "Map menu");
 
-	offset += dc.GetTextExtent("Map").cx + 10;
-	dc.TextOutA(ToolBarAreaTop.left + offset, ToolBarAreaTop.top + 4, "Colour");
-	AddScreenObject(8000, "DisplayMenu", { ToolBarAreaTop.left + offset, ToolBarAreaTop.top + 4, ToolBarAreaTop.left + offset + dc.GetTextExtent("Colour").cx, ToolBarAreaTop.top + 4 + dc.GetTextExtent("Colour").cy }, false, "Colour menu");
+	offset += dc.GetTextExtent("Maps").cx + 10;
+	dc.TextOutA(ToolBarAreaTop.left + offset, ToolBarAreaTop.top + 4, "Colours");
+	AddScreenObject(RIMCAS_MENU, "ColourMenu", { ToolBarAreaTop.left + offset, ToolBarAreaTop.top + 4, ToolBarAreaTop.left + offset + dc.GetTextExtent("Colour").cx, ToolBarAreaTop.top + 4 + dc.GetTextExtent("Colour").cy }, false, "Colour menu");
 
-	offset += dc.GetTextExtent("Colour").cx + 10;
+	offset += dc.GetTextExtent("Colours").cx + 10;
 	dc.TextOutA(ToolBarAreaTop.left + offset, ToolBarAreaTop.top + 4, "Alerts");
-	AddScreenObject(8001, "RIMCASMenu", { ToolBarAreaTop.left + offset, ToolBarAreaTop.top + 4, ToolBarAreaTop.left + offset + dc.GetTextExtent("RIMCAS").cx, ToolBarAreaTop.top + 4 + +dc.GetTextExtent("RIMCAS").cy }, false, "RIMCAS menu");
+	AddScreenObject(RIMCAS_MENU, "RIMCASMenu", { ToolBarAreaTop.left + offset, ToolBarAreaTop.top + 4, ToolBarAreaTop.left + offset + dc.GetTextExtent("RIMCAS").cx, ToolBarAreaTop.top + 4 + +dc.GetTextExtent("RIMCAS").cy }, false, "RIMCAS menu");
 
 	dc.SetTextColor(oldTextColor);
 

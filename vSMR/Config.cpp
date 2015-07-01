@@ -10,6 +10,7 @@ CConfig::CConfig(string configPath)
 }
 
 void CConfig::loadConfig() {
+	Document document;
 	stringstream ss;
 	ifstream ifs;
 	ifs.open(config_path.c_str(), std::ios::binary);
@@ -18,7 +19,6 @@ void CConfig::loadConfig() {
 
 	if (document.Parse<0>(ss.str().c_str()).HasParseError())
 		throw std::invalid_argument("json parse error");
-
 
 	profiles.clear();
 

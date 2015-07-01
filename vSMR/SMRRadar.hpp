@@ -13,6 +13,7 @@
 #include "CallsignLookup.hpp"
 #include "Config.hpp"
 #include "TGraphics.h"
+#include "MapData.h"
 #include "Rimcas.hpp"
 
 using namespace std;
@@ -75,6 +76,8 @@ public:
 
 	bool QDMenabled = false;
 
+	bool ColorSettingsDay = true;
+
 	map<string, RECT> TimePopupAreas;
 
 	map<int, string> TimePopupData;
@@ -88,10 +91,11 @@ public:
 
 	CRimcas * RimcasInstance = NULL;
 	CConfig * CurrentConfig = NULL;
+	CMapData * MapData = NULL;
 
 	//---ActiveAirport--------------------------------------------
 
-	string ActiveAirport = "EGKK";
+	string ActiveAirport = "LFPG";
 
 	inline string getActiveAirport() {
 		return this->ActiveAirport;

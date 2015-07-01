@@ -15,7 +15,8 @@
         "filters": {
             "hide_above_alt": 4000,
             "hide_above_spd": 250,
-            "radar_range_nm": 30
+            "radar_range_nm": 30,
+            "night_alpha_setting": 110
         },
         "labels": {
             "use_aspeed_for_gate": false,
@@ -127,51 +128,227 @@
             }
         },
         "targets": {
-          "use_pro_mode": true,
-          "show_primary_target": true,
-          "target_color": {
-            "r": 255,
-            "g": 242,
-            "b": 73,
-            "a": 255
-          },
-          "history_one_color": {
-            "r": 0,
-            "g": 255,
-            "b": 255,
-            "a": 255
-          },
-          "history_two_color": {
-            "r": 0,
-            "g": 219,
-            "b": 219,
-            "a": 255
-          },
-          "history_three_color": {
-            "r": 0,
-            "g": 183,
-            "b": 183,
-            "a": 255
-          }
+            "use_pro_mode": true,
+            "show_primary_target": true,
+            "target_color": {
+                "r": 255,
+                "g": 242,
+                "b": 73,
+                "a": 255
+            },
+            "history_one_color": {
+                "r": 0,
+                "g": 255,
+                "b": 255,
+                "a": 255
+            },
+            "history_two_color": {
+                "r": 0,
+                "g": 219,
+                "b": 219,
+                "a": 255
+            },
+            "history_three_color": {
+                "r": 0,
+                "g": 183,
+                "b": 183,
+                "a": 255
+            }
         },
         "approach_insets": {
-          "extended_lines_lenght": 15,
-          "extended_lines_ticks_spacing": 1,
-          "extended_lines_color": {
-            "r": 255,
-            "g": 255,
-            "b": 255
-          },
-          "runway_color": {
-            "r": 0,
-            "g": 0,
-            "b": 0
-          },
-          "background_color": {
-            "r": 127,
-            "g": 122,
-            "b": 122
-          }
+            "extended_lines_lenght": 15,
+            "extended_lines_ticks_spacing": 1,
+            "extended_lines_color": {
+                "r": 255,
+                "g": 255,
+                "b": 255
+            },
+            "runway_color": {
+                "r": 0,
+                "g": 0,
+                "b": 0
+            },
+            "background_color": {
+                "r": 127,
+                "g": 122,
+                "b": 122
+            }
+        }
+    },
+    {
+        "name": "Default",
+        "font": {
+            "use_custom_font": true,
+            "font_name": "EuroScope",
+            "weight": "Bold",
+            "sizes": {
+                "one": 11,
+                "two": 12,
+                "three": 13,
+                "four": 14
+            }
+        },
+        "filters": {
+            "hide_above_alt": 4000,
+            "hide_above_spd": 250,
+            "radar_range_nm": 30,
+            "night_alpha_setting": 110
+        },
+        "labels": {
+            "use_aspeed_for_gate": false,
+            "squawk_error_color": {
+                "r": 255,
+                "g": 255,
+                "b": 0
+            },
+            "departure": {
+                "two_lines_tag": true,
+                "line1": [
+                    "callsign"
+                ],
+                "line2": [
+                    "sctype",
+                    "deprwy"
+                ],
+                "background_color": {
+                    "r": 40,
+                    "g": 50,
+                    "b": 200,
+                    "a": 255
+                },
+                "background_color_on_runway": {
+                    "r": 40,
+                    "g": 50,
+                    "b": 200,
+                    "a": 255
+                },
+                "text_color": {
+                    "r": 255,
+                    "g": 255,
+                    "b": 255
+                }
+            },
+            "arrival": {
+                "two_lines_tag": true,
+                "line1": [
+                    "callsign"
+                ],
+                "line2": [
+                    "sate",
+                    "actype"
+                ],
+                "background_color": {
+                    "r": 170,
+                    "g": 50,
+                    "b": 50,
+                    "a": 255
+                },
+                "background_color_on_runway": {
+                    "r": 170,
+                    "g": 50,
+                    "b": 50,
+                    "a": 255
+                },
+                "text_color": {
+                    "r": 255,
+                    "g": 255,
+                    "b": 255
+                }
+            },
+            "airborne": {
+                "two_lines_tag": true,
+                "use_departure_arrival_coloring": false,
+                "line1": [
+                    "callsign"
+                ],
+                "line2": [
+                    "flightlevel",
+                    "tendency",
+                    "gs"
+                ],
+                "text_color": {
+                    "r": 255,
+                    "g": 255,
+                    "b": 255
+                },
+                "background_color": {
+                    "r": 0,
+                    "g": 0,
+                    "b": 0,
+                    "a": 0
+                },
+                "background_color_on_runway": {
+                    "r": 0,
+                    "g": 0,
+                    "b": 0,
+                    "a": 0
+                }
+            }
+        },
+        "rimcas": {
+            "rimcas_label_only": true,
+            "use_red_symbol_for_emergencies": true,
+            "short_timer": true,
+            "rimcas_stage_two_speed_threshold": 25,
+            "background_color_stage_one": {
+                "r": 160,
+                "g": 90,
+                "b": 30,
+                "a": 255
+            },
+            "background_color_stage_two": {
+                "r": 150,
+                "g": 0,
+                "b": 0,
+                "a": 255
+            }
+        },
+        "targets": {
+            "use_pro_mode": true,
+            "show_primary_target": true,
+            "target_color": {
+                "r": 255,
+                "g": 242,
+                "b": 73,
+                "a": 255
+            },
+            "history_one_color": {
+                "r": 0,
+                "g": 255,
+                "b": 255,
+                "a": 255
+            },
+            "history_two_color": {
+                "r": 0,
+                "g": 219,
+                "b": 219,
+                "a": 255
+            },
+            "history_three_color": {
+                "r": 0,
+                "g": 183,
+                "b": 183,
+                "a": 255
+            }
+        },
+        "approach_insets": {
+            "extended_lines_lenght": 15,
+            "extended_lines_ticks_spacing": 1,
+            "extended_lines_color": {
+                "r": 255,
+                "g": 255,
+                "b": 255
+            },
+            "runway_color": {
+                "r": 0,
+                "g": 0,
+                "b": 0
+            },
+            "background_color": {
+                "r": 127,
+                "g": 122,
+                "b": 122
+            }
         }
     }
 ]

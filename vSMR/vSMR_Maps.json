@@ -1,0 +1,31 @@
+[
+    {
+        "icao": "EGKK",
+        "runways": [
+            {
+                "name_one": "26L",
+                "name_two": "08R",
+                "definition_standard": [
+                    {
+                        "lat": "N000",
+                        "lon": "E000"
+                    }
+                ],
+                "definition_lvp": [
+                    {
+                        "lat": "N000",
+                        "lon": "E000"
+                    }
+                ]
+            }
+        ],
+        "freetext_zoom": [
+          {
+            "show_under_zoom": 15,
+            "display": [
+              "EGKK Test"
+            ]
+          }
+        ]
+    }
+]

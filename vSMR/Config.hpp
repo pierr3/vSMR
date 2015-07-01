@@ -20,18 +20,26 @@ public:
 
 	void setProfile(string profile_name);
 	const Value& getActiveProfile();
-	
+
 	Gdiplus::Color getConfigColor(const Value& config_path);
 	COLORREF getConfigColorRef(const Value& config_path);
 
 	vector<string> getAllProfiles();
 
+	inline int isItActiveProfile(string toTest) {
+		if (active_profile == toTest)
+			return 1;
+		return 0;
+	};
+
+	inline void setActiveProfile(string newProfile) {
+		active_profile = newProfile;
+	}
+
 protected:
-	Document document;
 	string config_path;
 	string active_profile;
 	map<string, const Value&> profiles;
 
 	void loadConfig();
 };
-
