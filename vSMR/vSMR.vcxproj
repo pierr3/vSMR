@@ -59,11 +59,11 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_WINDOWS;_DEBUG;_USRDLL;%(PreprocessorDefinitions);CURL_STATICLIB;CURL_STATIC</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>C:\Users\Pierre\Documents\Visual Studio 2013\Projects\vSMR\lib\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Users\Pierre\Documents\Visual Studio 2013\Projects\vSMR\lib\include;C:\Users\Pierre\Documents\Visual Studio 2013\Projects\vSMR\curl\include</AdditionalIncludeDirectories>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <TreatWChar_tAsBuiltInType>false</TreatWChar_tAsBuiltInType>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <MinimalRebuild>false</MinimalRebuild>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
@@ -72,7 +72,7 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <ModuleDefinitionFile>.\vSMR.def</ModuleDefinitionFile>
-      <AdditionalDependencies>C:\Users\Pierre\Documents\Visual Studio 2013\Projects\vSMR\lib\EuroScopePlugInDll.lib;C:\Users\Pierre\Documents\Visual Studio 2013\Projects\vSMR\lib\libcurl.lib</AdditionalDependencies>
+      <AdditionalDependencies>C:\Users\Pierre\Documents\Visual Studio 2013\Projects\vSMR\lib\EuroScopePlugInDll.lib;C:\Users\Pierre\Documents\Visual Studio 2013\Projects\vSMR\curl\build\Win32\VC12\LIB Release\libcurl.lib</AdditionalDependencies>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>/ignore:4099 %(AdditionalOptions)</AdditionalOptions>
@@ -96,7 +96,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;_USRDLL;%(PreprocessorDefinitions);CURL_STATICLIB;CURL_STATIC</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>C:\Users\Pierre\Documents\Visual Studio 2013\Projects\vSMR\lib\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Users\Pierre\Documents\Visual Studio 2013\Projects\vSMR\lib\include;C:\Users\Pierre\Documents\Visual Studio 2013\Projects\vSMR\curl\include</AdditionalIncludeDirectories>
       <TreatWChar_tAsBuiltInType>false</TreatWChar_tAsBuiltInType>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
@@ -106,7 +106,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <ModuleDefinitionFile>.\vSMR.def</ModuleDefinitionFile>
-      <AdditionalDependencies>C:\Users\Pierre\Documents\Visual Studio 2013\Projects\vSMR\lib\EuroScopePlugInDll.lib;C:\Users\Pierre\Documents\Visual Studio 2013\Projects\vSMR\lib\libcurl.lib</AdditionalDependencies>
+      <AdditionalDependencies>C:\Users\Pierre\Documents\Visual Studio 2013\Projects\vSMR\lib\EuroScopePlugInDll.lib;C:\Users\Pierre\Documents\Visual Studio 2013\Projects\vSMR\curl\build\Win32\VC12\LIB Release\libcurl.lib</AdditionalDependencies>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>/ignore:4099 %(AdditionalOptions)</AdditionalOptions>
@@ -130,7 +130,6 @@
     <ClCompile Include="CPDLCSettingsDialog.cpp" />
     <ClCompile Include="DataLinkDialog.cpp" />
     <ClCompile Include="HttpHelper.cpp" />
-    <ClCompile Include="MapData.cpp" />
     <ClCompile Include="Rimcas.cpp" />
     <ClCompile Include="SMRPlugin.cpp" />
     <ClCompile Include="SMRRadar.cpp" />
@@ -148,7 +147,6 @@
     <ClInclude Include="CPDLCSettingsDialog.hpp" />
     <ClInclude Include="DataLinkDialog.hpp" />
     <ClInclude Include="HttpHelper.hpp" />
-    <ClInclude Include="MapData.h" />
     <ClInclude Include="rapidjson\document.h" />
     <ClInclude Include="rapidjson\filestream.h" />
     <ClInclude Include="rapidjson\prettywriter.h" />

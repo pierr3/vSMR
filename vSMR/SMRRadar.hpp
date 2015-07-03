@@ -13,7 +13,6 @@
 #include "CallsignLookup.hpp"
 #include "Config.hpp"
 #include "TGraphics.h"
-#include "MapData.h"
 #include "Rimcas.hpp"
 
 using namespace std;
@@ -91,7 +90,6 @@ public:
 
 	CRimcas * RimcasInstance = NULL;
 	CConfig * CurrentConfig = NULL;
-	CMapData * MapData = NULL;
 
 	//---ActiveAirport--------------------------------------------
 

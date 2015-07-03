@@ -43,9 +43,6 @@ CSMRRadar::CSMRRadar()
 	if (CurrentConfig == NULL)
 		CurrentConfig = new CConfig(DllPath + "\\vSMR_Profiles.json");
 
-	if (MapData == NULL)
-		MapData = new CMapData(DllPath + "\\vSMR_Maps.json");
-
 	appWindowIds[1] = APPWINDOW_ONE;
 	appWindowIds[2] = APPWINDOW_TWO;
 	appWindowDisplays[1] = false;
@@ -709,7 +706,6 @@ bool CSMRRadar::OnCompileCommand(const char * sCommandLine)
 {
 	if (strcmp(sCommandLine, ".smr reload") == 0) {
 		CurrentConfig = new CConfig(DllPath + "\\vSMR_Profiles.json");
-		MapData = new CMapData(DllPath + "\\vSMR_Maps.json");
 		LoadCustomFont();
 		return true;
 	}
