@@ -249,7 +249,7 @@ CSMRPlugin::CSMRPlugin(void):CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLU
 	if ((p_value = GetDataFromSettings("cpdlc_password")) != NULL)
 		logonCode = p_value;
 	if ((p_value = GetDataFromSettings("cpdlc_sound")) != NULL)
-		PlaySoundClr = bool(atoi(p_value));
+		PlaySoundClr = bool(!!atoi(p_value));
 }
 
 CSMRPlugin::~CSMRPlugin()
@@ -297,7 +297,7 @@ bool CSMRPlugin::OnCompileCommand(const char * sCommandLine) {
 
 		logonCallsign = dia.m_Logon;
 		logonCode = dia.m_Password;
-		PlaySoundClr = bool(dia.m_Sound);
+		PlaySoundClr = bool(!!dia.m_Sound);
 		SaveDataToSettings("cpdlc_logon", "The CPDLC logon callsign", logonCallsign.c_str());
 		SaveDataToSettings("cpdlc_password", "The CPDLC logon password", logonCode.c_str());
 		int temp = 0;
