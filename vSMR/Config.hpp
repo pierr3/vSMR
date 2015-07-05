@@ -18,7 +18,6 @@ public:
 	CConfig(string configPath);
 	virtual ~CConfig();
 
-	void setProfile(string profile_name);
 	const Value& getActiveProfile();
 
 	Gdiplus::Color getConfigColor(const Value& config_path);
@@ -27,19 +26,21 @@ public:
 	vector<string> getAllProfiles();
 
 	inline int isItActiveProfile(string toTest) {
-		if (active_profile == toTest)
+		if (active_profile == profiles[toTest])
 			return 1;
 		return 0;
 	};
 
 	inline void setActiveProfile(string newProfile) {
-		active_profile = newProfile;
-	}
+		active_profile = profiles[newProfile];
+	};
+
+	Document document;
 
 protected:
 	string config_path;
-	string active_profile;
-	map<string, const Value&> profiles;
+	rapidjson::SizeType active_profile;
+	map<string, rapidjson::SizeType> profiles;
 
 	void loadConfig();
 };

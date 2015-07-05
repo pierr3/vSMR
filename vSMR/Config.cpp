@@ -6,11 +6,11 @@ CConfig::CConfig(string configPath)
 	config_path = configPath;
 	loadConfig();
 
-	active_profile = "AVISO";
+	setActiveProfile("AVISO");
 }
 
 void CConfig::loadConfig() {
-	Document document;
+	
 	stringstream ss;
 	ifstream ifs;
 	ifs.open(config_path.c_str(), std::ios::binary);
@@ -22,21 +22,18 @@ void CConfig::loadConfig() {
 
 	profiles.clear();
 
-	const Value& root = document;
-	for (SizeType i = 0; i < root.Size(); i++) {
-		const Value& profile = root[i];
+	assert(document.IsArray());
+
+	for (SizeType i = 0; i < document.Size(); i++) {
+		const Value& profile = document[i];
 		string profile_name = profile["name"].GetString();
 
-		profiles.insert(pair<string, const Value&>(profile_name, profile));
+		profiles.insert(pair<string, rapidjson::SizeType>(profile_name, i));
 	}
 }
 
-void CConfig::setProfile(string profile_name) {
-	active_profile = profile_name;
-}
-
 const Value& CConfig::getActiveProfile() {
-	return profiles[active_profile];
+	return document[active_profile];
 }
 
 Gdiplus::Color CConfig::getConfigColor(const Value& config_path) {
@@ -62,7 +59,7 @@ COLORREF CConfig::getConfigColorRef(const Value& config_path) {
 
 vector<string> CConfig::getAllProfiles() {
 	vector<string> toR;
-	for (std::map<string, const Value&>::iterator it = profiles.begin(); it != profiles.end(); ++it)
+	for (std::map<string, rapidjson::SizeType>::iterator it = profiles.begin(); it != profiles.end(); ++it)
 	{
 		toR.push_back(it->first);
 	}
