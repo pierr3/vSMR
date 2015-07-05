@@ -6,7 +6,7 @@ CConfig::CConfig(string configPath)
 	config_path = configPath;
 	loadConfig();
 
-	setActiveProfile("AVISO");
+	setActiveProfile("Default");
 }
 
 void CConfig::loadConfig() {
