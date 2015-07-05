@@ -101,6 +101,9 @@ void CSMRRadar::OnAsrContentLoaded(bool Loaded)
 			RimcasInstance->RunwayTimerShort = true;
 	}
 
+	if ((p_value = GetDataFromAsr("Profile")) != NULL)
+		CurrentConfig->setActiveProfile(string(p_value));
+
 	/*
 	if ((p_value = GetDataFromAsr("AppWindowTopLeftX")) != NULL)
 	{
@@ -167,10 +170,11 @@ void CSMRRadar::OnAsrContentToBeSaved(void)
 {
 	SaveDataToAsr("Airport", "Active airport for RIMCAS", getActiveAirport().c_str());
 
-	const char * to_save = "0";
+	SaveDataToAsr("Profile", "vSMR active profile", CurrentConfig->getActiveProfileName().c_str());
+
+	/*const char * to_save = "0";
 	string temp;
 
-	/*
 	temp = std::to_string(appWindowArea.left);
 	SaveDataToAsr("AppWindowTopLeftX", "Approach window position", temp.c_str());
 
@@ -193,11 +197,11 @@ void CSMRRadar::OnAsrContentToBeSaved(void)
 	if (appWindow)
 		to_save = "1";
 	SaveDataToAsr("AppWindow", "Display Approach window", to_save);
-	*/
+	
 	to_save = "0";
 	if (RimcasInstance->RunwayTimerShort)
 		to_save = "1";
-	SaveDataToAsr("ShortTimer", "Timer lenght", to_save);
+	SaveDataToAsr("ShortTimer", "Timer lenght", to_save);*/
 
 }
 
@@ -445,6 +449,7 @@ void CSMRRadar::OnFunctionCall(int FunctionId, const char * sItemString, POINT P
 
 	if (FunctionId == RIMCAS_UPDATE_PROFILE) {
 		CurrentConfig->setActiveProfile(sItemString);
+		SaveDataToAsr("Profile", "vSMR active profile", sItemString);
 
 		ShowLists["Profiles"] = true;
 	}

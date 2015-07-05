@@ -35,6 +35,16 @@ public:
 		active_profile = profiles[newProfile];
 	};
 
+	inline string getActiveProfileName() {
+		string name;
+		for (std::map<string, rapidjson::SizeType>::iterator it = profiles.begin(); it != profiles.end(); ++it)
+		{
+			if (it->second == active_profile)
+				name = it->first; break;
+		}
+		return name;
+	};
+
 	Document document;
 
 protected:
