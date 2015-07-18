@@ -24,6 +24,8 @@ public:
 
 	struct RunwayAreaType {
 		CPosition topLeft, topRight, bottomLeft, bottomRight, threshold;
+		bool isCustomRunway = false;
+		vector<CPosition> CustomDefinition;
 		double bearing;
 		bool set = false;
 	};
@@ -111,6 +113,8 @@ public:
 	void AddRunwayArea(CRadarScreen *instance, string runway_name1, string runway_name2, CPosition Left, CPosition Right, double bearing1, double bearing2, float hwidth = 92.5f, float hlenght = 250.0f);
 	Color GetAircraftColor(string AcCallsign, Color StandardColor, Color OnRunwayColor, Color RimcasStageOne, Color RimcasStageTwo);
 	Color GetAircraftColor(string AcCallsign, Color StandardColor, Color OnRunwayColor);
+
+	void AddCustomRunway(string runway_name1, string runway_name2, CPosition Left, CPosition Right, vector<CPosition> definition);
 
 	bool isAcOnRunway(string callsign);
 

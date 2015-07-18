@@ -8,6 +8,7 @@
 #include <Gdiplus.h>
 #include "rapidjson/document.h"
 #include "rapidjson/stringbuffer.h"
+#include "Constant.hpp"
 
 using namespace std;
 using namespace rapidjson;
@@ -19,6 +20,9 @@ public:
 	virtual ~CConfig();
 
 	const Value& getActiveProfile();
+	const Value& getAirportMapIfAny(string airport);
+	bool isAirportMapAvail(string airport);
+	bool isCustomRunwayAvail(string airport, string name1, string name2);
 
 	Gdiplus::Color getConfigColor(const Value& config_path);
 	COLORREF getConfigColorRef(const Value& config_path);

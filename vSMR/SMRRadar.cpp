@@ -504,6 +504,13 @@ void CSMRRadar::OnFunctionCall(int FunctionId, const char * sItemString, POINT P
 
 		RequestRefresh();
 	}
+
+	if (FunctionId == RIMCAS_UPDATE_LVP) {
+		if (strcmp(sItemString, "Normal") == 0)
+			isLVP = false;
+		if (strcmp(sItemString, "Low") == 0)
+			isLVP = true;
+	}
 }
 
 void CSMRRadar::RefreshAirportActivity(void) {
@@ -575,7 +582,7 @@ void CSMRRadar::OnRadarTargetPositionUpdate(CRadarTarget RadarTarget)
 	lenght = lenght + float((rand() % 5) - 2);
 
 
-	float trackHead = float(RadarTarget.GetPosition().GetReportedHeading());
+	float trackHead = float(RadarTarget.GetPosition().GetReportedHeadingTrueNorth());
 	float inverseTrackHead = float(fmod(trackHead + 180.0f, 360));
 	float leftTrackHead = float(fmod(trackHead - 90.0f, 360));
 	float rightTrackHead = float(fmod(trackHead + 90.0f, 360));
@@ -875,6 +882,12 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 	CDC dc;
 	dc.Attach(hDC);
 
+	// Creating the gdi+ graphics
+	Graphics graphics(hDC);
+	graphics.SetPageUnit(Gdiplus::UnitPixel);
+
+	graphics.SetSmoothingMode(SmoothingModeAntiAlias);
+
 	RECT RadarArea = GetRadarArea();
 	RECT ChatArea = GetChatArea();
 	RadarArea.bottom = ChatArea.top;
@@ -911,35 +924,109 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 			double bearing1 = TrueBearing(Left, Right);
 			double bearing2 = TrueBearing(Right, Left);
 
-			RimcasInstance->AddRunwayArea(this, runway_name, runway_name2, Left, Right, bearing1, bearing2);
+			const Value& CustomMap = CurrentConfig->getAirportMapIfAny(getActiveAirport());
+
+			if (CurrentConfig->isCustomRunwayAvail(getActiveAirport(), runway_name, runway_name2)) {
+				const Value& Runways = CustomMap["runways"];
+
+				assert(Runways.IsArray());
+
+				vector<CPosition> def;
+
+				for (SizeType i = 0; i < Runways.Size(); i++) {
+					if (startsWith(runway_name.c_str(), Runways[i]["runway_name"].GetString()) || 
+						startsWith(runway_name2.c_str(), Runways[i]["runway_name"].GetString())) {
+						
+						string path_name = "path";
+
+						if (isLVP)
+							path_name = "path_lvp";
+
+						const Value& Path = Runways[i][path_name.c_str()];
+						for (SizeType j = 0; j < Path.Size(); j++) {
+							CPosition p;
+							p.LoadFromStrings(Path[j][(SizeType)1].GetString(), Path[j][(SizeType)0].GetString());
+
+							def.push_back(p);
+						}
+						
+					}
+				}
+
+				RimcasInstance->AddCustomRunway(runway_name, runway_name2, Left, Right, def);
+			}
+			else {
+				RimcasInstance->AddRunwayArea(this, runway_name, runway_name2, Left, Right, bearing1, bearing2);
+			}
 
 			if (RimcasInstance->ClosedRunway.find(runway_name) != RimcasInstance->ClosedRunway.end() || RimcasInstance->ClosedRunway.find(runway_name2) != RimcasInstance->ClosedRunway.end()) {
 				if (RimcasInstance->ClosedRunway[runway_name] || RimcasInstance->ClosedRunway[runway_name2]) {
 
-					CRimcas::RunwayAreaType Area = RimcasInstance->GetRunwayArea(this, Left, Right, 0, bearing1);
-
-					POINT TopLeftPt = ConvertCoordFromPositionToPixel(Area.topLeft);
-
-					POINT BottomRightPt = ConvertCoordFromPositionToPixel(Area.bottomRight);
-
-					POINT TopRightPt = ConvertCoordFromPositionToPixel(Area.topRight);
-
-					POINT BottomLeftPt = ConvertCoordFromPositionToPixel(Area.bottomLeft);
-
 					CPen RedPen(PS_SOLID, 2, RGB(150, 0, 0));
 					CPen * oldPen = dc.SelectObject(&RedPen);
 
-					dc.MoveTo(TopLeftPt);
-					dc.LineTo(TopRightPt);
+					
+					if (CurrentConfig->isCustomRunwayAvail(getActiveAirport(), runway_name, runway_name2)) {
+						const Value& Runways = CustomMap["runways"];
+						
+						assert(Runways.IsArray());
 
-					dc.MoveTo(TopRightPt);
-					dc.LineTo(BottomRightPt);
+						for (SizeType i = 0; i < Runways.Size(); i++) {
+							if (startsWith(runway_name.c_str(), Runways[i]["runway_name"].GetString()) || 
+								startsWith(runway_name2.c_str(), Runways[i]["runway_name"].GetString())) {
 
-					dc.MoveTo(BottomRightPt);
-					dc.LineTo(BottomLeftPt);
+								string path_name = "path";
 
-					dc.MoveTo(BottomLeftPt);
-					dc.LineTo(TopLeftPt);
+								if (isLVP)
+									path_name = "path_lvp";
+
+								const Value& Path = Runways[i][path_name.c_str()];
+
+								PointF lpPoints[5000];
+
+								int k = 1;
+								int l = 0;
+								for (SizeType i = 0; i < Path.Size(); i++) {
+									CPosition p;
+									p.LoadFromStrings(Path[i][(SizeType)1].GetString(), Path[i][(SizeType)0].GetString());
+
+									POINT cv = ConvertCoordFromPositionToPixel(p);
+									lpPoints[l] = { REAL(cv.x), REAL(cv.y) };
+
+									k++;
+									l++;
+								}
+								
+								graphics.FillPolygon(&SolidBrush(Color(150, 0, 0)), lpPoints, k-1);
+
+								break;
+							}
+						}
+
+					}
+					else {
+						CRimcas::RunwayAreaType Area = RimcasInstance->GetRunwayArea(this, Left, Right, 0, bearing1);
+
+						POINT TopLeftPt = ConvertCoordFromPositionToPixel(Area.topLeft);
+
+						POINT BottomRightPt = ConvertCoordFromPositionToPixel(Area.bottomRight);
+
+						POINT TopRightPt = ConvertCoordFromPositionToPixel(Area.topRight);
+
+						POINT BottomLeftPt = ConvertCoordFromPositionToPixel(Area.bottomLeft);
+
+						dc.MoveTo(TopLeftPt);
+						dc.LineTo(TopRightPt);
+
+						dc.MoveTo(TopRightPt);
+						dc.LineTo(BottomRightPt);
+
+						dc.MoveTo(BottomRightPt);
+						dc.LineTo(BottomLeftPt);
+
+						dc.MoveTo(BottomLeftPt);
+						dc.LineTo(TopLeftPt);
+					}
 
 					dc.SelectObject(oldPen);
 				}
@@ -948,21 +1035,6 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 	}
 
 	RimcasInstance->OnRefreshBegin();
-
-	// Creating the gdi+ graphics
-	Graphics graphics(hDC);
-	graphics.SetPageUnit(Gdiplus::UnitPixel);
-
-	// Get Device DPI Resolutions //
-	int nLogPx = ::GetDeviceCaps(hDC, LOGPIXELSX);
-	// Get GDI+ resolution
-	int nGdiPlusLogPx = (int)graphics.GetDpiX();
-	// set to pixels
-	graphics.SetPageUnit(UnitPixel);
-	// Adjust to match
-	graphics.SetPageScale(((REAL)nGdiPlusLogPx / (REAL)nLogPx));
-
-	graphics.SetSmoothingMode(SmoothingModeAntiAlias);
 
 #pragma region symbols
 	// Drawing the symbols
@@ -1786,8 +1858,8 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 	
 	if (ShowLists["Visibility"]) {
 		GetPlugIn()->OpenPopupList(ListAreas["Visibility"], "Visibility", 1);
-		GetPlugIn()->AddPopupListElement("Normal", "", RIMCAS_CLOSE, false, EuroScopePlugIn::POPUP_ELEMENT_CHECKED);
-		GetPlugIn()->AddPopupListElement("Low", "", RIMCAS_CLOSE, false, EuroScopePlugIn::POPUP_ELEMENT_UNCHECKED);
+		GetPlugIn()->AddPopupListElement("Normal", "", RIMCAS_UPDATE_LVP, false, int(!isLVP));
+		GetPlugIn()->AddPopupListElement("Low", "", RIMCAS_UPDATE_LVP, false, int(isLVP));
 		GetPlugIn()->AddPopupListElement("Close", "", RIMCAS_CLOSE, false, 2, false, true);
 		ShowLists["Visibility"] = false;
 	}

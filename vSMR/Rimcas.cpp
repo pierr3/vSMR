@@ -36,6 +36,23 @@ void CRimcas::AddRunwayArea(CRadarScreen *instance, string runway_name1, string 
 	RunwayAreas[runway_name2] = GetRunwayArea(instance, Left, Right, 1, bearing2, hwidth, hlenght);
 }
 
+void CRimcas::AddCustomRunway(string runway_name1, string runway_name2, CPosition Left, CPosition Right, vector<CPosition> definition) {
+	RunwayAreaType rw1;
+	rw1.isCustomRunway = true;
+	rw1.CustomDefinition = definition;
+	rw1.threshold = Left;
+	rw1.set = true;
+
+	RunwayAreaType rw2;
+	rw2.isCustomRunway = true;
+	rw2.CustomDefinition = definition;
+	rw2.threshold = Right;
+	rw2.set = true;
+
+	RunwayAreas[runway_name1] = rw1;
+	RunwayAreas[runway_name2] = rw2;
+}
+
 string CRimcas::GetAcInRunwayArea(CRadarTarget Ac, CRadarScreen *instance) {
 
 	POINT AcPosPix = instance->ConvertCoordFromPositionToPixel(Ac.GetPosition().GetPosition());
@@ -45,12 +62,22 @@ string CRimcas::GetAcInRunwayArea(CRadarTarget Ac, CRadarScreen *instance) {
 		if (!MonitoredRunwayDep[string(it->first)])
 			continue;
 
-		POINT tTopLeft = instance->ConvertCoordFromPositionToPixel(it->second.topLeft);
-		POINT tTopRight = instance->ConvertCoordFromPositionToPixel(it->second.topRight);
-		POINT tBottomLeft = instance->ConvertCoordFromPositionToPixel(it->second.bottomLeft);
-		POINT tBottomRight = instance->ConvertCoordFromPositionToPixel(it->second.bottomRight);
+		vector<POINT> RwyPolygon;
 
-		vector<POINT> RwyPolygon = { tTopLeft, tTopRight, tBottomRight, tBottomLeft };
+		if (it->second.isCustomRunway) {
+			for (auto &rwy : it->second.CustomDefinition) // access by reference to avoid copying
+			{
+				RwyPolygon.push_back(instance->ConvertCoordFromPositionToPixel(rwy));
+			}
+		}
+		else {
+			POINT tTopLeft = instance->ConvertCoordFromPositionToPixel(it->second.topLeft);
+			POINT tTopRight = instance->ConvertCoordFromPositionToPixel(it->second.topRight);
+			POINT tBottomLeft = instance->ConvertCoordFromPositionToPixel(it->second.bottomLeft);
+			POINT tBottomRight = instance->ConvertCoordFromPositionToPixel(it->second.bottomRight);
+
+			RwyPolygon = { tTopLeft, tTopRight, tBottomRight, tBottomLeft };
+		}
 
 		if (Is_Inside(AcPosPix, RwyPolygon) && Ac.GetGS() < 180) {
 			AcOnRunway.insert(std::pair<string, string>(it->first, Ac.GetCallsign()));
@@ -74,12 +101,22 @@ string CRimcas::GetAcInRunwayAreaSoon(CRadarTarget Ac, CRadarScreen *instance) {
 
 		if (RunwayTimerShort) {
 			for (int i = 15; i <= 60; i = i + 15) {
-				POINT tTopLeft = instance->ConvertCoordFromPositionToPixel(it->second.topLeft);
-				POINT tTopRight = instance->ConvertCoordFromPositionToPixel(it->second.topRight);
-				POINT tBottomLeft = instance->ConvertCoordFromPositionToPixel(it->second.bottomLeft);
-				POINT tBottomRight = instance->ConvertCoordFromPositionToPixel(it->second.bottomRight);
+				vector<POINT> RwyPolygon;
 
-				vector<POINT> RwyPolygon = { tTopLeft, tTopRight, tBottomRight, tBottomLeft };
+				if (it->second.isCustomRunway) {
+					for (auto &rwy : it->second.CustomDefinition) // access by reference to avoid copying
+					{
+						RwyPolygon.push_back(instance->ConvertCoordFromPositionToPixel(rwy));
+					}
+				}
+				else {
+					POINT tTopLeft = instance->ConvertCoordFromPositionToPixel(it->second.topLeft);
+					POINT tTopRight = instance->ConvertCoordFromPositionToPixel(it->second.topRight);
+					POINT tBottomLeft = instance->ConvertCoordFromPositionToPixel(it->second.bottomLeft);
+					POINT tBottomRight = instance->ConvertCoordFromPositionToPixel(it->second.bottomRight);
+
+					RwyPolygon = { tTopLeft, tTopRight, tBottomRight, tBottomLeft };
+				}
 
 				float Distance = float(Ac.GetGS())*0.514444f;
 				Distance = Distance * float(i);

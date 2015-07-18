@@ -77,6 +77,8 @@ public:
 
 	bool ColorSettingsDay = true;
 
+	bool isLVP = false;
+
 	map<string, RECT> TimePopupAreas;
 
 	map<int, string> TimePopupData;

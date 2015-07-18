@@ -57,6 +57,43 @@ COLORREF CConfig::getConfigColorRef(const Value& config_path) {
 	return Color;
 }
 
+const Value& CConfig::getAirportMapIfAny(string airport) {
+	if (getActiveProfile().HasMember("maps")) {
+		const Value& map_data = getActiveProfile()["maps"];
+		if (map_data.HasMember(airport.c_str())) {
+			const Value& airport_map = map_data[airport.c_str()];
+			return airport_map;
+		}
+	}
+	return getActiveProfile();
+}
+
+bool CConfig::isAirportMapAvail(string airport) {
+	if (getActiveProfile().HasMember("maps")) {
+		if (getActiveProfile()["maps"].HasMember(airport.c_str())) {
+			return true;
+		}
+	}
+	return false;
+}
+
+bool CConfig::isCustomRunwayAvail(string airport, string name1, string name2) {
+	if (getActiveProfile().HasMember("maps")) {
+		if (getActiveProfile()["maps"].HasMember(airport.c_str())) {
+			if (getActiveProfile()["maps"][airport.c_str()].HasMember("runways")) {
+				const Value& Runways = getActiveProfile()["maps"][airport.c_str()]["runways"];
+				for (SizeType i = 0; i < Runways.Size(); i++) {
+					if (startsWith(name1.c_str(), Runways[i]["runway_name"].GetString()) ||
+						startsWith(name2.c_str(), Runways[i]["runway_name"].GetString())) {
+						return true;
+					}
+				}
+			}
+		}
+	}
+	return false;
+}
+
 vector<string> CConfig::getAllProfiles() {
 	vector<string> toR;
 	for (std::map<string, rapidjson::SizeType>::iterator it = profiles.begin(); it != profiles.end(); ++it)
