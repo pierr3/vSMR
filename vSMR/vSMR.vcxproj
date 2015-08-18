@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
       <Configuration>Debug</Configuration>
@@ -19,7 +19,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v120_xp</PlatformToolset>
+    <PlatformToolset>v140_xp</PlatformToolset>
     <CharacterSet>MultiByte</CharacterSet>
     <UseOfMfc>Static</UseOfMfc>
     <WholeProgramOptimization>true</WholeProgramOptimization>
@@ -27,7 +27,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v120_xp</PlatformToolset>
+    <PlatformToolset>v140_xp</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>MultiByte</CharacterSet>
     <UseOfMfc>Static</UseOfMfc>
@@ -59,7 +59,7 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_WINDOWS;_DEBUG;_USRDLL;%(PreprocessorDefinitions);CURL_STATICLIB;CURL_STATIC</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>C:\Users\Pierre\Documents\Visual Studio 2013\Projects\vSMR\lib\include;C:\Users\Pierre\Documents\Visual Studio 2013\Projects\vSMR\curl\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Users\Pierre\Documents\Visual Studio 2015\Projects\vSMR\lib\include;C:\Users\Pierre\Documents\Visual Studio 2015\Projects\vSMR\curl\include</AdditionalIncludeDirectories>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <TreatWChar_tAsBuiltInType>false</TreatWChar_tAsBuiltInType>
       <IntrinsicFunctions>true</IntrinsicFunctions>
@@ -72,7 +72,7 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <ModuleDefinitionFile>.\vSMR.def</ModuleDefinitionFile>
-      <AdditionalDependencies>C:\Users\Pierre\Documents\Visual Studio 2013\Projects\vSMR\lib\EuroScopePlugInDll.lib;C:\Users\Pierre\Documents\Visual Studio 2013\Projects\vSMR\curl\build\Win32\VC12\LIB Debug\libcurld.lib</AdditionalDependencies>
+      <AdditionalDependencies>C:\Users\Pierre\Documents\Visual Studio 2015\Projects\vSMR\lib\EuroScopePlugInDll.lib;C:\Users\Pierre\Documents\Visual Studio 2015\Projects\vSMR\curl\build\Win32\VC14\LIB Debug\libcurld.lib</AdditionalDependencies>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>/ignore:4099 %(AdditionalOptions)</AdditionalOptions>
@@ -96,7 +96,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;_USRDLL;%(PreprocessorDefinitions);CURL_STATICLIB;CURL_STATIC</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>C:\Users\Pierre\Documents\Visual Studio 2013\Projects\vSMR\lib\include;C:\Users\Pierre\Documents\Visual Studio 2013\Projects\vSMR\curl\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Users\Pierre\Documents\Visual Studio 2015\Projects\vSMR\lib\include;C:\Users\Pierre\Documents\Visual Studio 2015\Projects\vSMR\curl\include</AdditionalIncludeDirectories>
       <TreatWChar_tAsBuiltInType>false</TreatWChar_tAsBuiltInType>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
@@ -106,7 +106,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <ModuleDefinitionFile>.\vSMR.def</ModuleDefinitionFile>
-      <AdditionalDependencies>C:\Users\Pierre\Documents\Visual Studio 2013\Projects\vSMR\lib\EuroScopePlugInDll.lib;C:\Users\Pierre\Documents\Visual Studio 2013\Projects\vSMR\curl\build\Win32\VC12\LIB Release\libcurl.lib</AdditionalDependencies>
+      <AdditionalDependencies>C:\Users\Pierre\Documents\Visual Studio 2015\Projects\vSMR\lib\EuroScopePlugInDll.lib;C:\Users\Pierre\Documents\Visual Studio 2015\Projects\vSMR\curl\build\Win32\VC14\LIB Release\libcurl.lib</AdditionalDependencies>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>/ignore:4099 %(AdditionalOptions)</AdditionalOptions>
