@@ -90,6 +90,8 @@ public:
 	map<string, RECT> MenuPositions;
 	map<string, bool> DisplayMenu;
 
+	map<string, string> ManuallyCorrelated;
+
 	CRimcas * RimcasInstance = NULL;
 	CConfig * CurrentConfig = NULL;
 

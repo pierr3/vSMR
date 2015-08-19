@@ -128,7 +128,7 @@ public:
 	COLORREF WarningColor = RGB(160, 90, 30); //RGB(180, 100, 50)
 	COLORREF AlertColor = RGB(150, 0, 0);
 
-	static enum RimcasAlertTypes { NoAlert, StageOne, StageTwo };
+	enum RimcasAlertTypes { NoAlert, StageOne, StageTwo };
 
 	map<string, RunwayAreaType> RunwayAreas;
 	multimap<string, string> AcOnRunway;

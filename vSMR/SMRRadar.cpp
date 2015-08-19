@@ -696,7 +696,7 @@ string CSMRRadar::GetBottomLine(const char * Callsign) {
 
 			to_render += " at ";
 			int rfl = fp.GetControllerAssignedData().GetFinalAltitude();
-			string rfl_s = "";
+			string rfl_s;
 			if (rfl == 0)
 				rfl = fp.GetFlightPlanData().GetFinalAltitude();
 			if (rfl > GetPlugIn()->GetTransitionAltitude())
@@ -802,7 +802,7 @@ inline bool LiangBarsky(RECT Area, POINT fromSrc, POINT toSrc, POINT &ClipFrom, 
 	double t0 = 0.0;    double t1 = 1.0;
 	double xdelta = x1src - x0src;
 	double ydelta = y1src - y0src;
-	double p, q, r;
+	double p = 0, q = 0, r;
 
 	for (int edge = 0; edge<4; edge++) {   // Traverse through left, right, bottom, top edges.
 		if (edge == 0) { p = -xdelta;    q = -(edgeLeft - x0src); }
@@ -986,9 +986,9 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 
 								int k = 1;
 								int l = 0;
-								for (SizeType i = 0; i < Path.Size(); i++) {
+								for (SizeType w = 0; w < Path.Size(); w++) {
 									CPosition p;
-									p.LoadFromStrings(Path[i][(SizeType)1].GetString(), Path[i][(SizeType)0].GetString());
+									p.LoadFromStrings(Path[w][static_cast<SizeType>(1)].GetString(), Path[w][static_cast<SizeType>(0)].GetString());
 
 									POINT cv = ConvertCoordFromPositionToPixel(p);
 									lpPoints[l] = { REAL(cv.x), REAL(cv.y) };
@@ -1168,6 +1168,25 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 		}
 		acPosPix = ConvertCoordFromPositionToPixel(RtPos.GetPosition());
 
+		bool isCorrelated = true;
+
+		CFlightPlan fp = GetPlugIn()->FlightPlanSelect(rt.GetCallsign());
+
+		if (CurrentConfig->getActiveProfile()["filters"]["pro_mode"].GetBool())
+		{
+			if (fp.IsValid())
+			{
+				if (strcmp(fp.GetControllerAssignedData().GetSquawk(), rt.GetPosition().GetSquawk()) != 0 && reportedGs < 3)
+				{
+					continue;
+				}
+				if (strcmp(fp.GetControllerAssignedData().GetSquawk(), rt.GetPosition().GetSquawk()) != 0 && reportedGs >= 3)
+				{
+					isCorrelated = false;
+				}
+			}
+		}
+
 		CPen qTrailPen(PS_SOLID, 1, RGB(255, 255, 255));
 		CPen* pqOrigPen = dc.SelectObject(&qTrailPen);
 
@@ -1185,7 +1204,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 			th.DrawEllipse(dc, acPosPix.x - 4, acPosPix.y - 4, acPosPix.x + 4, acPosPix.y + 4, RGB(255, 255, 255));
 		}
 
-		AddScreenObject(DRAWING_AC_SYMBOL, rt.GetCallsign(), { acPosPix.x - 4, acPosPix.y - 4, acPosPix.x + 4, acPosPix.y + 4 }, false, GetBottomLine(rt.GetCallsign()).c_str());
+		AddScreenObject(DRAWING_AC_SYMBOL, rt.GetCallsign(), { acPosPix.x - 4, acPosPix.y - 4, acPosPix.x + 4, acPosPix.y + 4 }, false, isCorrelated ? GetBottomLine(rt.GetCallsign()).c_str() : rt.GetSystemID());
 
 		dc.SelectObject(pqOrigPen);
 	}
@@ -1234,6 +1253,17 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 				isAcDisplayed = false;
 		}
 
+		if (CurrentConfig->getActiveProfile()["filters"]["pro_mode"].GetBool())
+		{
+			if (fp.IsValid())
+			{
+				if (strcmp(fp.GetControllerAssignedData().GetSquawk(), rt.GetPosition().GetSquawk()) != 0 && reportedGs < 3)
+				{
+					isAcDisplayed = false;
+				}
+			}
+		}
+
 		if (!isAcDisplayed)
 			continue;
 
@@ -1252,16 +1282,27 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 		// Tag types
 		//---
 
-		static enum TagTypes { Departure, Arrival, Airborne };
+		enum TagTypes { Departure, Arrival, Airborne, Uncorrelated };
 
 		TagTypes TagType = TagTypes::Departure;
-			
+
 		if (fp.IsValid() && strcmp(fp.GetFlightPlanData().GetDestination(), getActiveAirport().c_str()) == 0) {
 			TagType = TagTypes::Arrival;
 		}
 
 		if (reportedGs > 50) {
 			TagType = TagTypes::Airborne;
+		}
+
+		if (CurrentConfig->getActiveProfile()["filters"]["pro_mode"].GetBool())
+		{
+			if (fp.IsValid())
+			{
+				if (strcmp(fp.GetControllerAssignedData().GetSquawk(), rt.GetPosition().GetSquawk()) != 0 && reportedGs >= 3)
+				{
+					TagType = TagTypes::Uncorrelated;
+				}
+			}
 		}
 
 		// ----
@@ -1419,6 +1460,11 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 		TagReplacingMap["tendency"] = tendency;
 		TagReplacingMap["wake"] = wake;
 
+		// System ID for uncorrelated
+		TagReplacingMap["systemid"] = "T:";
+		string tpss = rt.GetSystemID();
+		TagReplacingMap["systemid"].append(tpss.substr(2, 6));
+
 		// ----- Generating the clickable map -----
 		map<string, int> TagClickableMap;
 		TagClickableMap[callsign] = TAG_CITEM_CALLSIGN;
@@ -1444,6 +1490,8 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 					return "departure";
 				if (type == TagTypes::Arrival)
 					return "arrival";
+				if (type == TagTypes::Uncorrelated)
+					return "uncorrelated";
 				return "airborne";
 			}
 		};
