@@ -95,6 +95,12 @@ public:
 	CRimcas * RimcasInstance = NULL;
 	CConfig * CurrentConfig = NULL;
 
+	//----
+	// Tag types
+	//---
+
+	enum TagTypes { Departure, Arrival, Airborne, Uncorrelated };
+
 	//---ActiveAirport--------------------------------------------
 
 	string ActiveAirport = "LFPG";
@@ -106,6 +112,50 @@ public:
 	inline string setActiveAirport(string value) {
 		return this->ActiveAirport = value;
 	}
+
+	//---IsCorrelatedFuncs---------------------------------------------
+
+	inline virtual bool IsCorrelated(CFlightPlan fp, CRadarTarget rt)
+	{
+		
+		if (CurrentConfig->getActiveProfile()["filters"]["pro_mode"]["enable"].GetBool())
+		{
+			if (fp.IsValid())
+			{
+				bool isCorr = false;
+				if (strcmp(fp.GetControllerAssignedData().GetSquawk(), rt.GetPosition().GetSquawk()) == 0)
+				{
+					isCorr = true;
+				}
+
+				if (CurrentConfig->getActiveProfile()["filters"]["pro_mode"]["accept_pilot_squawk"].GetBool())
+				{
+					isCorr = true;
+				}
+
+
+				if (isCorr)
+				{
+					const Value& sqs = CurrentConfig->getActiveProfile()["filters"]["pro_mode"]["do_not_autocorrelate_squawks"];
+					for (SizeType i = 0; i < sqs.Size(); i++) {
+						if (strcmp(rt.GetPosition().GetSquawk(), sqs[i].GetString()) == 0)
+						{
+							isCorr = false;
+							break;
+						}
+					}
+				}
+
+				return isCorr;
+			}
+
+			return false;
+		} else
+		{
+			// If the pro mode is not used, then the AC is always correlated
+			return true;
+		}
+	};
 
 	//---LoadCustomFont--------------------------------------------
 

@@ -17,7 +17,11 @@
             "hide_above_spd": 250,
             "radar_range_nm": 30,
             "night_alpha_setting": 110,
-			"pro_mode": true
+			"pro_mode": {
+				"enable":  true,
+				"accept_pilot_squawk": true,
+				"do_not_autocorrelate_squawks": ["2000", "2200", "1200", "7000"]
+			}
         },
         "labels": {
             "use_aspeed_for_gate": false,
@@ -154,7 +158,6 @@
             }
         },
         "targets": {
-            "use_pro_mode": true,
             "show_primary_target": true,
             "target_color": {
                 "r": 255,
@@ -218,7 +221,12 @@
             "hide_above_alt": 4000,
             "hide_above_spd": 250,
             "radar_range_nm": 30,
-            "night_alpha_setting": 110
+            "night_alpha_setting": 110,
+			"pro_mode": {
+				"enable":  true,
+				"accept_pilot_squawk": true,
+				"do_not_autocorrelate_squawks": ["2000", "2200", "1200", "7000"]
+			}
         },
         "labels": {
             "use_aspeed_for_gate": false,
@@ -330,7 +338,6 @@
             }
         },
         "targets": {
-            "use_pro_mode": true,
             "show_primary_target": true,
             "target_color": {
                 "r": 255,

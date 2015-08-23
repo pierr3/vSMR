@@ -1168,24 +1168,10 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 		}
 		acPosPix = ConvertCoordFromPositionToPixel(RtPos.GetPosition());
 
-		bool isCorrelated = true;
+		bool AcisCorrelated = IsCorrelated(GetPlugIn()->FlightPlanSelect(rt.GetCallsign()), rt);
 
-		CFlightPlan fp = GetPlugIn()->FlightPlanSelect(rt.GetCallsign());
-
-		if (CurrentConfig->getActiveProfile()["filters"]["pro_mode"].GetBool())
-		{
-			if (fp.IsValid())
-			{
-				if (strcmp(fp.GetControllerAssignedData().GetSquawk(), rt.GetPosition().GetSquawk()) != 0 && reportedGs < 3)
-				{
-					continue;
-				}
-				if (strcmp(fp.GetControllerAssignedData().GetSquawk(), rt.GetPosition().GetSquawk()) != 0 && reportedGs >= 3)
-				{
-					isCorrelated = false;
-				}
-			}
-		}
+		if (!AcisCorrelated && reportedGs < 3)
+			continue;
 
 		CPen qTrailPen(PS_SOLID, 1, RGB(255, 255, 255));
 		CPen* pqOrigPen = dc.SelectObject(&qTrailPen);
@@ -1204,7 +1190,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 			th.DrawEllipse(dc, acPosPix.x - 4, acPosPix.y - 4, acPosPix.x + 4, acPosPix.y + 4, RGB(255, 255, 255));
 		}
 
-		AddScreenObject(DRAWING_AC_SYMBOL, rt.GetCallsign(), { acPosPix.x - 4, acPosPix.y - 4, acPosPix.x + 4, acPosPix.y + 4 }, false, isCorrelated ? GetBottomLine(rt.GetCallsign()).c_str() : rt.GetSystemID());
+		AddScreenObject(DRAWING_AC_SYMBOL, rt.GetCallsign(), { acPosPix.x - 4, acPosPix.y - 4, acPosPix.x + 4, acPosPix.y + 4 }, false, AcisCorrelated ? GetBottomLine(rt.GetCallsign()).c_str() : rt.GetSystemID());
 
 		dc.SelectObject(pqOrigPen);
 	}
@@ -1253,16 +1239,10 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 				isAcDisplayed = false;
 		}
 
-		if (CurrentConfig->getActiveProfile()["filters"]["pro_mode"].GetBool())
-		{
-			if (fp.IsValid())
-			{
-				if (strcmp(fp.GetControllerAssignedData().GetSquawk(), rt.GetPosition().GetSquawk()) != 0 && reportedGs < 3)
-				{
-					isAcDisplayed = false;
-				}
-			}
-		}
+		bool AcisCorrelated = IsCorrelated(fp, rt);
+
+		if (!AcisCorrelated && reportedGs < 3)
+			isAcDisplayed = false;
 
 		if (!isAcDisplayed)
 			continue;
@@ -1278,12 +1258,6 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 			TagCenter = { acPosPix.x + 35, acPosPix.y - 40 };
 		}
 
-		//----
-		// Tag types
-		//---
-
-		enum TagTypes { Departure, Arrival, Airborne, Uncorrelated };
-
 		TagTypes TagType = TagTypes::Departure;
 
 		if (fp.IsValid() && strcmp(fp.GetFlightPlanData().GetDestination(), getActiveAirport().c_str()) == 0) {
@@ -1294,15 +1268,9 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 			TagType = TagTypes::Airborne;
 		}
 
-		if (CurrentConfig->getActiveProfile()["filters"]["pro_mode"].GetBool())
+		if (!AcisCorrelated && reportedGs >= 3)
 		{
-			if (fp.IsValid())
-			{
-				if (strcmp(fp.GetControllerAssignedData().GetSquawk(), rt.GetPosition().GetSquawk()) != 0 && reportedGs >= 3)
-				{
-					TagType = TagTypes::Uncorrelated;
-				}
-			}
+			TagType = TagTypes::Uncorrelated;
 		}
 
 		// ----
