@@ -1,7 +1,6 @@
 #pragma once
 #include <afxwin.h>
 #include <string>
-#include <algorithm>
 #include "EuroScopePlugIn.h"
 #include "stdafx.h"
 

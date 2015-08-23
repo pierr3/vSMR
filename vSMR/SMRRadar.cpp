@@ -1068,7 +1068,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 		if (!isAcDisplayed)
 			continue;
 
-		RimcasInstance->OnRefresh(rt, this);
+		RimcasInstance->OnRefresh(rt, this, IsCorrelated(GetPlugIn()->FlightPlanSelect(rt.GetCallsign()), rt));
 
 		CRadarTargetPositionData RtPos = rt.GetPosition();
 

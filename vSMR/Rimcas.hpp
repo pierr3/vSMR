@@ -1,16 +1,15 @@
 #pragma once
 #include <EuroScopePlugIn.h>
 #include <iostream>
-#include <sstream>
-#include <string>
 #include <vector>
 #include <map>
-#include <algorithm>
 #include <string>
+#include <algorithm>
 #include <GdiPlus.h>
 #include <GdiPlusColor.h>
 #include "Constant.hpp"
 
+class CSMRRadar;
 using namespace std;
 using namespace Gdiplus;
 using namespace EuroScopePlugIn;
@@ -109,7 +108,7 @@ public:
 	}
 
 	string GetAcInRunwayArea(CRadarTarget Ac, CRadarScreen *instance);
-	string GetAcInRunwayAreaSoon(CRadarTarget Ac, CRadarScreen *instance);
+	string GetAcInRunwayAreaSoon(CRadarTarget Ac, CRadarScreen *instance, bool isCorrelated);
 	void AddRunwayArea(CRadarScreen *instance, string runway_name1, string runway_name2, CPosition Left, CPosition Right, double bearing1, double bearing2, float hwidth = 92.5f, float hlenght = 250.0f);
 	Color GetAircraftColor(string AcCallsign, Color StandardColor, Color OnRunwayColor, Color RimcasStageOne, Color RimcasStageTwo);
 	Color GetAircraftColor(string AcCallsign, Color StandardColor, Color OnRunwayColor);
@@ -121,7 +120,7 @@ public:
 	RunwayAreaType GetRunwayArea(CRadarScreen *instance, CPosition Left, CPosition Right, int threshold, double bearing, float hwidth = 92.5f, float hlenght = 250.0f);
 
 	void OnRefreshBegin();
-	void OnRefresh(CRadarTarget Rt, CRadarScreen *instance);
+	void OnRefresh(CRadarTarget Rt, CRadarScreen *instance, bool isCorrelated);
 	void OnRefreshEnd(CRadarScreen *instance, int threshold);
 	void Reset();
 

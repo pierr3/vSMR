@@ -26,9 +26,9 @@ void CRimcas::OnRefreshBegin() {
 	TimeTable.clear();
 }
 
-void CRimcas::OnRefresh(CRadarTarget Rt, CRadarScreen *instance) {
+void CRimcas::OnRefresh(CRadarTarget Rt, CRadarScreen *instance, bool isCorrelated) {
 	GetAcInRunwayArea(Rt, instance);
-	GetAcInRunwayAreaSoon(Rt, instance);
+	GetAcInRunwayAreaSoon(Rt, instance, isCorrelated);
 }
 
 void CRimcas::AddRunwayArea(CRadarScreen *instance, string runway_name1, string runway_name2, CPosition Left, CPosition Right, double bearing1, double bearing2, float hwidth, float hlenght) {
@@ -88,7 +88,7 @@ string CRimcas::GetAcInRunwayArea(CRadarTarget Ac, CRadarScreen *instance) {
 	return string_false;
 }
 
-string CRimcas::GetAcInRunwayAreaSoon(CRadarTarget Ac, CRadarScreen *instance) {
+string CRimcas::GetAcInRunwayAreaSoon(CRadarTarget Ac, CRadarScreen *instance, bool isCorrelated) {
 	if (Ac.GetGS() < 25)
 		return CRimcas::string_false;
 
@@ -124,7 +124,12 @@ string CRimcas::GetAcInRunwayAreaSoon(CRadarTarget Ac, CRadarScreen *instance) {
 				POINT TempPoint = instance->ConvertCoordFromPositionToPixel(TempPosition);
 
 				if (Is_Inside(TempPoint, RwyPolygon) && !Is_Inside(AcPosPix, RwyPolygon) && Ac.GetGS() < 200) {
-					TimeTable[it->first][i] = string(Ac.GetCallsign());
+					string toDisplay = string(Ac.GetCallsign());
+					if (!isCorrelated)
+					{
+						toDisplay = Ac.GetSystemID();
+					}
+					TimeTable[it->first][i] = toDisplay;
 
 					// If aircraft is 30 seconds from landing, then it's considered on the runway
 
