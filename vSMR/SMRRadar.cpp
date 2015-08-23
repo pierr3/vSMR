@@ -2089,7 +2089,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 				dc.SelectObject(PenC);
 
 				double revHdg = it->second.bearing;
-				double exsize = double(CurrentConfig->getActiveProfile()["approach_insets"]["extended_lines_lenght"].GetInt()) * 1852.0;
+				double exsize = double(CurrentConfig->getActiveProfile()["approach_insets"]["extended_lines_length"].GetInt()) * 1852.0;
 				CPosition Far = Haversine(it->second.threshold, RadToDeg(float(revHdg)), exsize);
 				POINT pt;
 				revHdg = TrueBearing(AirportPositions[getActiveAirport()], Far);
@@ -2104,7 +2104,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 
 				int increment = CurrentConfig->getActiveProfile()["approach_insets"]["extended_lines_ticks_spacing"].GetInt() * 1852;
 
-				for (int j = increment; j <= int(CurrentConfig->getActiveProfile()["approach_insets"]["extended_lines_lenght"].GetInt() * 1852); j += increment) {
+				for (int j = increment; j <= int(CurrentConfig->getActiveProfile()["approach_insets"]["extended_lines_length"].GetInt() * 1852); j += increment) {
 
 					revHdg = it->second.bearing;
 					exsize = j;

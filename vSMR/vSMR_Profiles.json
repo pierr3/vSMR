@@ -181,7 +181,7 @@
             }
         },
         "approach_insets": {
-            "extended_lines_lenght": 15,
+            "extended_lines_length": 15,
             "extended_lines_ticks_spacing": 1,
             "extended_lines_color": {
                 "r": 255,
