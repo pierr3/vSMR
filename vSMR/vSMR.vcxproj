@@ -146,6 +146,7 @@
     <ClInclude Include="Constant.hpp" />
     <ClInclude Include="CPDLCSettingsDialog.hpp" />
     <ClInclude Include="DataLinkDialog.hpp" />
+    <ClInclude Include="HSV.hpp" />
     <ClInclude Include="HttpHelper.hpp" />
     <ClInclude Include="rapidjson\document.h" />
     <ClInclude Include="rapidjson\filestream.h" />

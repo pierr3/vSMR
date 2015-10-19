@@ -104,7 +104,7 @@ string CRimcas::GetAcInRunwayAreaSoon(CRadarTarget Ac, CRadarScreen *instance, b
 				vector<POINT> RwyPolygon;
 
 				if (it->second.isCustomRunway) {
-					for (auto &rwy : it->second.CustomDefinition) // access by reference to avoid copying
+					for (auto &rwy : it->second.CustomDefinition)
 					{
 						RwyPolygon.push_back(instance->ConvertCoordFromPositionToPixel(rwy));
 					}

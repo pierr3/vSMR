@@ -70,10 +70,18 @@ public:
 	map<int, bool> appWindowDisplays;
 	map<int, RECT> appWindowAreas;
 	map<int, POINT> appWindowOffsets;
+	map<int, POINT> appWindowOffsetsInit;
+	map<int, POINT> appWindowOffsetsDrag;
+	map<int, bool> appWindowOffsetsGrip;
 	map<int, int> appWindowScales;
 	map<int, int> appWindowFilters;
 
+	map<string, clock_t> OverAcSymbol;
+	map<string, float> TagAngles;
+
 	bool QDMenabled = false;
+	bool QDMSelectEnabled = false;
+	POINT QDMSelectPt;
 
 	bool ColorSettingsDay = true;
 
@@ -133,7 +141,6 @@ public:
 					isCorr = true;
 				}
 
-
 				if (isCorr)
 				{
 					const Value& sqs = CurrentConfig->getActiveProfile()["filters"]["pro_mode"]["do_not_autocorrelate_squawks"];
@@ -180,6 +187,10 @@ public:
 	//---OnMoveScreenObject---------------------------------------------
 
 	virtual void OnMoveScreenObject(int ObjectType, const char * sObjectId, POINT Pt, RECT Area, bool Released);
+
+	//---OnOverScreenObject---------------------------------------------
+
+	virtual void OnOverScreenObject(int ObjectType, const char * sObjectId, POINT Pt, RECT Area);
 
 	//---OnCompileCommand-----------------------------------------
 

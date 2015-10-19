@@ -54,6 +54,13 @@ CSMRRadar::CSMRRadar()
 	appWindowScales[2] = 15;
 	appWindowFilters[1] = 6000;
 	appWindowFilters[2] = 6000;
+	appWindowOffsetsGrip[1] = false;
+	appWindowOffsetsGrip[2] = false;
+	appWindowOffsetsInit[1] = { 0, 0 };
+	appWindowOffsetsInit[2] = { 0, 0 };
+	appWindowOffsetsDrag[1] = { 0, 0 };
+	appWindowOffsetsDrag[2] = { 0, 0 };
+	
 
 	LoadCustomFont();
 
@@ -211,14 +218,21 @@ void CSMRRadar::OnMoveScreenObject(int ObjectType, const char * sObjectId, POINT
 		int appWindowId = ObjectType - APPWINDOW_BASE;
 
 		if (strcmp(sObjectId, "window") == 0) {
-			CRect oldRect(appWindowAreas[appWindowId]);
-			CRect currentRect(Area);
-			
-			int delta_x = currentRect.CenterPoint().x - oldRect.CenterPoint().x;
-			int delta_y = currentRect.CenterPoint().y - oldRect.CenterPoint().y;
+			if (!appWindowOffsetsGrip[appWindowId])
+			{
+				appWindowOffsetsInit[appWindowId] = appWindowOffsets[appWindowId];
+				appWindowOffsetsDrag[appWindowId] = Pt;
+				appWindowOffsetsGrip[appWindowId] = true;
+			}
+			POINT maxoffset = { (appWindowAreas[appWindowId].right - appWindowAreas[appWindowId].left) / 2, 
+				(appWindowAreas[appWindowId].bottom - (appWindowAreas[appWindowId].top + 15)) / 2 };
+			appWindowOffsets[appWindowId].x = max(-maxoffset.x, min(maxoffset.x, appWindowOffsetsInit[appWindowId].x + (Pt.x - appWindowOffsetsDrag[appWindowId].x)));
+			appWindowOffsets[appWindowId].y = max(-maxoffset.y, min(maxoffset.y, appWindowOffsetsInit[appWindowId].y + (Pt.y - appWindowOffsetsDrag[appWindowId].y)));
 
-			appWindowOffsets[appWindowId] = { max(-(oldRect.Width() / 2), min((oldRect.Width() / 2), delta_x)),
-								max(-(oldRect.Height() / 2), min((oldRect.Height() / 2), delta_y)) };
+			if (Released)
+			{
+				appWindowOffsetsGrip[appWindowId] = false;
+			}
 		}
 		if (strcmp(sObjectId, "resize") == 0) {
 			POINT TopLeft = { appWindowAreas[appWindowId].left, appWindowAreas[appWindowId].top };
@@ -274,6 +288,20 @@ void CSMRRadar::OnMoveScreenObject(int ObjectType, const char * sObjectId, POINT
 
 }
 
+void CSMRRadar::OnOverScreenObject(int ObjectType, const char * sObjectId, POINT Pt, RECT Area)
+{
+	if (ObjectType == DRAWING_AC_SYMBOL)
+	{
+		CRadarTarget rt = GetPlugIn()->RadarTargetSelect(sObjectId);
+
+		if (rt.IsValid())
+		{
+			OverAcSymbol[sObjectId] = clock();
+			RequestRefresh();
+		}
+	}
+}
+
 void CSMRRadar::OnClickScreenObject(int ObjectType, const char * sObjectId, POINT Pt, RECT Area, int Button)
 {
 
@@ -300,6 +328,18 @@ void CSMRRadar::OnClickScreenObject(int ObjectType, const char * sObjectId, POIN
 		GetPlugIn()->OpenPopupEdit(Area, RIMCAS_ACTIVE_AIRPORT_FUNC, getActiveAirport().c_str());
 	}
 
+	if (ObjectType == DRAWING_BACKGROUND_CLICK)
+	{
+		if (QDMSelectEnabled)
+		{
+			if (Button == BUTTON_LEFT)
+			{
+				QDMSelectPt = Pt;
+				RequestRefresh();
+			}
+		}
+	}
+
 	if (ObjectType == RIMCAS_MENU) {
 
 		if (strcmp(sObjectId, "DisplayMenu") == 0) {
@@ -308,6 +348,7 @@ void CSMRRadar::OnClickScreenObject(int ObjectType, const char * sObjectId, POIN
 
 			GetPlugIn()->OpenPopupList(Area, "Display Menu", 1);
 			GetPlugIn()->AddPopupListElement("QDR Fixed Reference", "", RIMCAS_QDM_TOGGLE);
+			GetPlugIn()->AddPopupListElement("QDR Select Reference", "", RIMCAS_QDM_SELECT_TOGGLE);
 			GetPlugIn()->AddPopupListElement("Approach Inset 1", "", APPWINDOW_ONE);
 			GetPlugIn()->AddPopupListElement("Approach Inset 2", "", APPWINDOW_TWO);
 			GetPlugIn()->AddPopupListElement("Font size", "", RIMCAS_OPEN_LIST);
@@ -349,7 +390,7 @@ void CSMRRadar::OnClickScreenObject(int ObjectType, const char * sObjectId, POIN
 		
 	}
 
-	if (ObjectType == DRAWING_TAG) {
+	if (ObjectType == DRAWING_TAG || ObjectType == DRAWING_AC_SYMBOL) {
 		CFlightPlan Fp = GetPlugIn()->FlightPlanSelect(sObjectId);
 		CRadarTarget rt = GetPlugIn()->RadarTargetSelect(sObjectId);
 		if (rt.GetCorrelatedFlightPlan().IsValid()) {
@@ -357,6 +398,60 @@ void CSMRRadar::OnClickScreenObject(int ObjectType, const char * sObjectId, POIN
 		}
 		else {
 			GetPlugIn()->SetASELAircraft(Fp);
+		}
+
+		if (ObjectType == DRAWING_AC_SYMBOL)
+		{
+			if (QDMSelectEnabled)
+			{
+				if (Button == BUTTON_LEFT)
+				{
+					QDMSelectPt = Pt;
+					RequestRefresh();
+				}
+			} else
+			{
+				if (TagsOffsets.find(sObjectId) != TagsOffsets.end())
+					TagsOffsets.erase(sObjectId);
+
+				if (Button == BUTTON_LEFT)
+				{
+					if (TagAngles.find(sObjectId) == TagAngles.end())
+					{
+						TagAngles[sObjectId] = 0;
+					} else
+					{
+						if (TagAngles[sObjectId]-22.5f < 0)
+						{
+							TagAngles[sObjectId] = 360.0f;
+						} else
+						{
+							TagAngles[sObjectId] -= 22.5f;
+						}
+					}
+				}
+
+				if (Button == BUTTON_RIGHT)
+				{
+					if (TagAngles.find(sObjectId) == TagAngles.end())
+					{
+						TagAngles[sObjectId] = 0;
+					}
+					else
+					{
+						if (TagAngles[sObjectId] + 22.5f >= 360)
+						{
+							TagAngles[sObjectId] = 0;
+						}
+						else
+						{
+							TagAngles[sObjectId] += 22.5f;
+						}
+					}
+				}
+
+				RequestRefresh();
+			}
 		}
 	}
 
@@ -445,6 +540,17 @@ void CSMRRadar::OnFunctionCall(int FunctionId, const char * sItemString, POINT P
 
 	if (FunctionId == RIMCAS_QDM_TOGGLE) {
 		QDMenabled = !QDMenabled;
+		QDMSelectEnabled = false;
+	}
+
+	if (FunctionId == RIMCAS_QDM_SELECT_TOGGLE)
+	{
+		if (!QDMSelectEnabled)
+		{
+			QDMSelectPt = ConvertCoordFromPositionToPixel(AirportPositions[getActiveAirport()]);
+		}
+		QDMSelectEnabled = !QDMSelectEnabled;
+		QDMenabled = false;
 	}
 
 	if (FunctionId == RIMCAS_UPDATE_PROFILE) {
@@ -471,6 +577,8 @@ void CSMRRadar::OnFunctionCall(int FunctionId, const char * sItemString, POINT P
 			ColorSettingsDay = false;
 
 		ShowLists["Colour Settings"] = true;
+
+		RequestRefresh();
 	}
 
 	if (FunctionId == RIMCAS_CA_ARRIVAL_FUNC) {
@@ -510,6 +618,10 @@ void CSMRRadar::OnFunctionCall(int FunctionId, const char * sItemString, POINT P
 			isLVP = false;
 		if (strcmp(sItemString, "Low") == 0)
 			isLVP = true;
+
+		ShowLists["Visibility"] = true;
+
+		RequestRefresh();
 	}
 }
 
@@ -906,6 +1018,16 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 
 	RimcasInstance->RunwayAreas.clear();
 
+	if (QDMSelectEnabled)
+	{
+		CRect R(GetRadarArea());
+		R.top += 20;
+		R.bottom = GetChatArea().top;
+
+		R.NormalizeRect();
+		AddScreenObject(DRAWING_BACKGROUND_CLICK, "", R, false, "");
+	}
+
 	CSectorElement rwy;
 	for (rwy = GetPlugIn()->SectorFileElementSelectFirst(SECTOR_ELEMENT_RUNWAY);
 		rwy.IsValid();
@@ -965,7 +1087,6 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 					CPen RedPen(PS_SOLID, 2, RGB(150, 0, 0));
 					CPen * oldPen = dc.SelectObject(&RedPen);
 
-					
 					if (CurrentConfig->isCustomRunwayAvail(getActiveAirport(), runway_name, runway_name2)) {
 						const Value& Runways = CustomMap["runways"];
 						
@@ -1150,7 +1271,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 		}
 
 		if (CurrentConfig->getActiveProfile()["targets"]["show_primary_target"].GetBool()) {
-			//GraphicsPath *gp = new GraphicsPath();
+
 			SolidBrush H_Brush(CurrentConfig->getConfigColor(CurrentConfig->getActiveProfile()["targets"]["target_color"]));
 
 			PointF lpPoints[100];
@@ -1162,8 +1283,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 
 				lpPoints[i] = { REAL(ConvertCoordFromPositionToPixel(pos).x), REAL(ConvertCoordFromPositionToPixel(pos).y) };
 			}
-			//gp->AddClosedCurve(lpPoints, Patatoides[rt.GetCallsign()].points.size());
-			//graphics.FillPath(&H_Brush, gp);
+
 			graphics.FillPolygon(&H_Brush, lpPoints, Patatoides[rt.GetCallsign()].points.size());
 		}
 		acPosPix = ConvertCoordFromPositionToPixel(RtPos.GetPosition());
@@ -1175,6 +1295,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 
 		CPen qTrailPen(PS_SOLID, 1, RGB(255, 255, 255));
 		CPen* pqOrigPen = dc.SelectObject(&qTrailPen);
+
 
 		if (RtPos.GetTransponderC()) {
 			dc.MoveTo(acPosPix.x, acPosPix.y - 6);
@@ -1188,6 +1309,34 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 		}
 		else {
 			th.DrawEllipse(dc, acPosPix.x - 4, acPosPix.y - 4, acPosPix.x + 4, acPosPix.y + 4, RGB(255, 255, 255));
+		}
+
+		if (OverAcSymbol.find(rt.GetCallsign()) != OverAcSymbol.end()) {
+			double t = double(clock() - OverAcSymbol[rt.GetCallsign()]) / ((double)CLOCKS_PER_SEC);
+			if (t > 0.2)
+			{
+				OverAcSymbol.erase(rt.GetCallsign());
+			}
+
+			dc.MoveTo(acPosPix.x, acPosPix.y - 8);
+			dc.LineTo(acPosPix.x - 6, acPosPix.y - 12);
+			dc.MoveTo(acPosPix.x, acPosPix.y - 8);
+			dc.LineTo(acPosPix.x + 6, acPosPix.y - 12);
+
+			dc.MoveTo(acPosPix.x, acPosPix.y + 8);
+			dc.LineTo(acPosPix.x - 6, acPosPix.y + 12);
+			dc.MoveTo(acPosPix.x, acPosPix.y + 8);
+			dc.LineTo(acPosPix.x + 6, acPosPix.y + 12);
+
+			dc.MoveTo(acPosPix.x - 8, acPosPix.y );
+			dc.LineTo(acPosPix.x - 12, acPosPix.y -6);
+			dc.MoveTo(acPosPix.x - 8, acPosPix.y);
+			dc.LineTo(acPosPix.x - 12 , acPosPix.y + 6);
+
+			dc.MoveTo(acPosPix.x + 8, acPosPix.y);
+			dc.LineTo(acPosPix.x + 12, acPosPix.y - 6);
+			dc.MoveTo(acPosPix.x + 8, acPosPix.y);
+			dc.LineTo(acPosPix.x + 12, acPosPix.y + 6);
 		}
 
 		AddScreenObject(DRAWING_AC_SYMBOL, rt.GetCallsign(), { acPosPix.x - 4, acPosPix.y - 4, acPosPix.x + 4, acPosPix.y + 4 }, false, AcisCorrelated ? GetBottomLine(rt.GetCallsign()).c_str() : rt.GetSystemID());
@@ -1255,7 +1404,15 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 			TagCenter = { acPosPix.x + it->second.x, acPosPix.y + it->second.y };
 		}
 		else {
-			TagCenter = { acPosPix.x + 35, acPosPix.y - 40 };
+			// Use angle:
+
+			if (TagAngles.find(rt.GetCallsign()) == TagAngles.end())
+				TagAngles[rt.GetCallsign()] = 270.0f;
+
+			int lenght = 50;
+
+			TagCenter.x = long(acPosPix.x + float(lenght * cos(DegToRad(TagAngles[rt.GetCallsign()]))));
+			TagCenter.y = long(acPosPix.y + float(lenght * sin(DegToRad(TagAngles[rt.GetCallsign()]))));
 		}
 
 		TagTypes TagType = TagTypes::Departure;
@@ -1913,11 +2070,15 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 	// QRD
 	//---------------------------------
 
-	if (QDMenabled) {
+	if (QDMenabled || QDMSelectEnabled) {
 		CPen Pen(PS_SOLID, 1, RGB(255, 255, 255));
 		CPen *oldPen = dc.SelectObject(&Pen);
 
 		POINT AirportPos = ConvertCoordFromPositionToPixel(AirportPositions[getActiveAirport()]);
+		if (QDMSelectEnabled)
+		{
+			AirportPos = QDMSelectPt;
+		}
 		dc.MoveTo(AirportPos);
 		POINT p;
 		if (GetCursorPos(&p))
@@ -1981,10 +2142,10 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 	AddScreenObject(RIMCAS_MENU, "DisplayMenu", { ToolBarAreaTop.left + offset, ToolBarAreaTop.top + 4, ToolBarAreaTop.left + offset + dc.GetTextExtent("Display").cx, ToolBarAreaTop.top + 4 + dc.GetTextExtent("Display").cy }, false, "Display menu");
 
 	offset += dc.GetTextExtent("Display").cx + 10;
-	dc.TextOutA(ToolBarAreaTop.left + offset, ToolBarAreaTop.top + 4, "Maps");
+	dc.TextOutA(ToolBarAreaTop.left + offset, ToolBarAreaTop.top + 4, "Map");
 	AddScreenObject(RIMCAS_MENU, "MapMenu", { ToolBarAreaTop.left + offset, ToolBarAreaTop.top + 4, ToolBarAreaTop.left + offset + dc.GetTextExtent("Map").cx, ToolBarAreaTop.top + 4 + dc.GetTextExtent("Map").cy }, false, "Map menu");
 
-	offset += dc.GetTextExtent("Maps").cx + 10;
+	offset += dc.GetTextExtent("Map").cx + 10;
 	dc.TextOutA(ToolBarAreaTop.left + offset, ToolBarAreaTop.top + 4, "Colours");
 	AddScreenObject(RIMCAS_MENU, "ColourMenu", { ToolBarAreaTop.left + offset, ToolBarAreaTop.top + 4, ToolBarAreaTop.left + offset + dc.GetTextExtent("Colour").cx, ToolBarAreaTop.top + 4 + dc.GetTextExtent("Colour").cy }, false, "Colour menu");
 

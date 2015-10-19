@@ -3,7 +3,7 @@
         "name": "Default",
         "font": {
             "use_custom_font": true,
-            "font_name": "vCTR Text",
+            "font_name": "EuroScope",
             "weight": "Regular",
             "sizes": {
                 "one": 11,

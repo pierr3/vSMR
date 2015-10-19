@@ -77,6 +77,7 @@ inline float RadToDeg(float x)
 
 const int DRAWING_TAG = 1211;
 const int DRAWING_AC_SYMBOL = 1212;
+const int DRAWING_BACKGROUND_CLICK = 1213;
 
 const int TAG_CITEM_NO = 1910;
 const int TAG_CITEM_CALLSIGN = 1911;
@@ -90,6 +91,7 @@ const int RIMCAS_ACTIVE_AIRPORT = 7999;
 const int RIMCAS_ACTIVE_AIRPORT_FUNC = 8008;
 const int RIMCAS_MENU = 8000;
 const int RIMCAS_QDM_TOGGLE = 8006;
+const int RIMCAS_QDM_SELECT_TOGGLE = 8007;
 const int RIMCAS_OPEN_LIST = 9873;
 const int RIMCAS_CA_MONITOR_FUNC = 8022;
 const int RIMCAS_CA_ARRIVAL_FUNC = 8020;
