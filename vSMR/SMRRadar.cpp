@@ -421,13 +421,7 @@ void CSMRRadar::OnClickScreenObject(int ObjectType, const char * sObjectId, POIN
 						TagAngles[sObjectId] = 0;
 					} else
 					{
-						if (TagAngles[sObjectId]-22.5f < 0)
-						{
-							TagAngles[sObjectId] = 360.0f;
-						} else
-						{
-							TagAngles[sObjectId] -= 22.5f;
-						}
+						TagAngles[sObjectId] = fmod(TagAngles[sObjectId] - 22.5f, 360);
 					}
 				}
 
@@ -439,14 +433,7 @@ void CSMRRadar::OnClickScreenObject(int ObjectType, const char * sObjectId, POIN
 					}
 					else
 					{
-						if (TagAngles[sObjectId] + 22.5f >= 360)
-						{
-							TagAngles[sObjectId] = 0;
-						}
-						else
-						{
-							TagAngles[sObjectId] += 22.5f;
-						}
+						TagAngles[sObjectId] = fmod(TagAngles[sObjectId] + 22.5f, 360);
 					}
 				}
 
@@ -1313,7 +1300,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 
 		if (OverAcSymbol.find(rt.GetCallsign()) != OverAcSymbol.end()) {
 			double t = double(clock() - OverAcSymbol[rt.GetCallsign()]) / ((double)CLOCKS_PER_SEC);
-			if (t > 0.2)
+			if (t > 0.1)
 			{
 				OverAcSymbol.erase(rt.GetCallsign());
 			}
@@ -1339,7 +1326,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 			dc.LineTo(acPosPix.x + 12, acPosPix.y + 6);
 		}
 
-		AddScreenObject(DRAWING_AC_SYMBOL, rt.GetCallsign(), { acPosPix.x - 4, acPosPix.y - 4, acPosPix.x + 4, acPosPix.y + 4 }, false, AcisCorrelated ? GetBottomLine(rt.GetCallsign()).c_str() : rt.GetSystemID());
+		AddScreenObject(DRAWING_AC_SYMBOL, rt.GetCallsign(), { acPosPix.x - 5, acPosPix.y - 5, acPosPix.x + 5, acPosPix.y + 5 }, false, AcisCorrelated ? GetBottomLine(rt.GetCallsign()).c_str() : rt.GetSystemID());
 
 		dc.SelectObject(pqOrigPen);
 	}
@@ -1349,6 +1336,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 	TimePopupData.clear();
 	AcOnRunway.clear();
 	ColorAC.clear();
+	tagAreas.clear();
 
 	RimcasInstance->OnRefreshEnd(this, CurrentConfig->getActiveProfile()["rimcas"]["rimcas_stage_two_speed_threshold"].GetInt());
 
@@ -1775,7 +1763,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 		}
 
 		// Adding the tag screen object
-
+		tagAreas[rt.GetCallsign()] = TagBackgroundRect;
 		AddScreenObject(DRAWING_TAG, rt.GetCallsign(), TagBackgroundRect, true, GetBottomLine(rt.GetCallsign()).c_str());
 
 		TagBackgroundRect = oldCrectSave;
@@ -1912,12 +1900,6 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 			}
 		}
 	}
-
-	/*
-	SolidBrush TestNight(CurrentConfig->getConfigColor(CurrentConfig->getActiveProfile()["labels"]["airborne"]["background_color"]));
-	CRect tN = new CRect(GetRadarArea());
-	graphics.FillRectangle(&TestNight, CopyRect(tN));
-	*/
 
 #pragma endregion Drawing of the tags
 
@@ -2154,6 +2136,77 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 	AddScreenObject(RIMCAS_MENU, "RIMCASMenu", { ToolBarAreaTop.left + offset, ToolBarAreaTop.top + 4, ToolBarAreaTop.left + offset + dc.GetTextExtent("RIMCAS").cx, ToolBarAreaTop.top + 4 + +dc.GetTextExtent("RIMCAS").cy }, false, "RIMCAS menu");
 
 	dc.SetTextColor(oldTextColor);
+
+	//
+	// Tag deconflicting
+	//
+
+	for (const auto areas : tagAreas)
+	{
+		if (TagsOffsets.find(areas.first) != TagsOffsets.end())
+			continue;
+
+		if (RecentlyAutoMovedTags.find(areas.first) != RecentlyAutoMovedTags.end())
+		{
+			double delta_t = (double)clock() - RecentlyAutoMovedTags[areas.first] / ((double)CLOCKS_PER_SEC);
+			if (delta_t >= 0.8) {
+				RecentlyAutoMovedTags.erase(areas.first);
+			} else
+			{
+				continue;
+			}
+		}
+
+
+		// We then rotate the tags until we did a 360 or there is no more conflicts
+
+		POINT acPosPix = ConvertCoordFromPositionToPixel(GetPlugIn()->RadarTargetSelect(areas.first.c_str()).GetPosition().GetPosition());
+		int lenght = 50;
+
+		int width = areas.second.Width();
+		int height = areas.second.Height();
+
+		for (float rotated = 0.0f; rotated <= 360.0f;)
+		{
+			// We first rotate the tag
+			float newangle = fmod(TagAngles[areas.first] + rotated, 360.0f);
+
+			POINT TagCenter;
+			TagCenter.x = long(acPosPix.x + float(lenght * cos(DegToRad(newangle))));
+			TagCenter.y = long(acPosPix.y + float(lenght * sin(DegToRad(newangle))));
+
+			CRect NewRectangle(TagCenter.x - (width / 2), TagCenter.y - (height / 2), TagCenter.x + (width / 2), TagCenter.y + (height / 2));
+			NewRectangle.NormalizeRect();
+
+			// Assume there is no conflict, then try again
+
+			bool isTagConflicing = false;
+
+			for (const auto area2 : tagAreas)
+			{
+				if (areas.first == area2.first)
+					continue;
+
+				CRect h;
+
+				if (h.IntersectRect(NewRectangle, area2.second))
+				{
+					isTagConflicing = true;
+					break;
+				}
+			}
+
+			if (!isTagConflicing)
+			{
+				TagAngles[areas.first] = fmod(TagAngles[areas.first] + rotated, 360);
+				tagAreas[areas.first] = NewRectangle;
+				RecentlyAutoMovedTags[areas.first] = clock();
+				break;
+			}
+
+			rotated += 22.5f;
+		}
+	}
 
 	//
 	// App windows

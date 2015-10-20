@@ -2,6 +2,8 @@
 #include <afxwin.h>
 #include <string>
 #include "EuroScopePlugIn.h"
+#define _USE_MATH_DEFINES
+#include <math.h>
 #include "stdafx.h"
 
 using namespace std;
@@ -62,6 +64,16 @@ inline double TrueBearing(CPosition pos1, CPosition pos2)
 
 	return dir / 180 * PI;
 };
+
+inline bool RectIntersect(RECT RectA, RECT RectB)
+{
+	if (RectA.left < RectB.right && RectA.right > RectB.left &&
+		RectA.bottom < RectB.top && RectA.top > RectB.bottom)
+	{
+		return true;
+	}
+	return false;
+}
 
 //---Radians-----------------------------------------
 

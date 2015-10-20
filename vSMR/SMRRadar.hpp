@@ -9,6 +9,8 @@
 #include <time.h>
 #include <sstream>
 #include <GdiPlus.h>
+#define _USE_MATH_DEFINES
+#include <math.h>
 #include "Constant.hpp"
 #include "CallsignLookup.hpp"
 #include "Config.hpp"
@@ -76,6 +78,8 @@ public:
 	map<int, int> appWindowScales;
 	map<int, int> appWindowFilters;
 
+	map<string, CRect> tagAreas;
+
 	map<string, clock_t> OverAcSymbol;
 	map<string, float> TagAngles;
 
@@ -99,6 +103,7 @@ public:
 	map<string, bool> DisplayMenu;
 
 	map<string, string> ManuallyCorrelated;
+	map<string, clock_t> RecentlyAutoMovedTags;
 
 	CRimcas * RimcasInstance = NULL;
 	CConfig * CurrentConfig = NULL;
@@ -206,21 +211,22 @@ public:
 
 	//---Haversine---------------------------------------------
 	// Heading in deg, distance in m
+	const double PI = (double)M_PI;
+
 	inline virtual CPosition Haversine(CPosition origin, double heading, double distance) {
 
-		float lat1 = DegToRad(float(origin.m_Latitude));
-		float lon1 = DegToRad(float(origin.m_Longitude));
-
-		float R = 6372797.560856f;
-
-		float tbrng = DegToRad(float(heading));
-
-		float top_lat = asin(sin(lat1)*cos(float(distance) / R) + cos(lat1)*sin(float(distance) / R)*cos(tbrng));
-		float top_lon = lon1 + atan2(sin(tbrng)*sin(float(distance) / R)*cos(lat1), cos(float(distance) / R) - sin(lat1)*sin(top_lat));
-
 		CPosition newPos;
-		newPos.m_Latitude = RadToDeg(top_lat);
-		newPos.m_Longitude = RadToDeg(top_lon);
+
+		double d = (distance*0.00053996) / 60 * PI / 180;
+		double trk = DegToRad(heading);
+		double lat0 = DegToRad(origin.m_Latitude);
+		double lon0 = DegToRad(origin.m_Longitude);
+
+		double lat = asin(sin(lat0) * cos(d) + cos(lat0) * sin(d) * cos(trk));
+		double lon = cos(lat) == 0 ? lon0 : fmod(lon0 + asin(sin(trk) * sin(d) / cos(lat)) + PI, 2 * PI) - PI;
+
+		newPos.m_Latitude = RadToDeg(lat);
+		newPos.m_Longitude = RadToDeg(lon);
 
 		return newPos;
 	}

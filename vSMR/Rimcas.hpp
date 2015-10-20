@@ -5,6 +5,8 @@
 #include <map>
 #include <string>
 #include <algorithm>
+#define _USE_MATH_DEFINES
+#include <math.h>
 #include <GdiPlus.h>
 #include <GdiPlusColor.h>
 #include "Constant.hpp"
@@ -88,21 +90,22 @@ public:
 
 	//---Haversine---------------------------------------------
 	// Heading in deg, distance in m
+	const double PI = (double)M_PI;
+
 	CPosition Haversine(CPosition origin, float heading, float distance) {
 
-		float lat1 = DegToRad(float(origin.m_Latitude));
-		float lon1 = DegToRad(float(origin.m_Longitude));
-
-		float R = 6372797.560856f;
-
-		float tbrng = DegToRad(heading);
-
-		float top_lat = asin(sin(lat1)*cos(distance / R) + cos(lat1)*sin(distance / R)*cos(tbrng));
-		float top_lon = lon1 + atan2(sin(tbrng)*sin(distance / R)*cos(lat1), cos(distance / R) - sin(lat1)*sin(top_lat));
-
 		CPosition newPos;
-		newPos.m_Latitude = RadToDeg(top_lat);
-		newPos.m_Longitude = RadToDeg(top_lon);
+
+		double d = (distance*0.00053996) / 60 * PI / 180;
+		double trk = DegToRad(heading);
+		double lat0 = DegToRad(origin.m_Latitude);
+		double lon0 = DegToRad(origin.m_Longitude);
+
+		double lat = asin(sin(lat0) * cos(d) + cos(lat0) * sin(d) * cos(trk));
+		double lon = cos(lat) == 0 ? lon0 : fmod(lon0 + asin(sin(trk) * sin(d) / cos(lat)) + PI, 2 * PI) - PI;
+
+		newPos.m_Latitude = RadToDeg(lat);
+		newPos.m_Longitude = RadToDeg(lon);
 
 		return newPos;
 	}
