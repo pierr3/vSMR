@@ -40,13 +40,17 @@ void CRimcas::AddCustomRunway(string runway_name1, string runway_name2, CPositio
 	RunwayAreaType rw1;
 	rw1.isCustomRunway = true;
 	rw1.CustomDefinition = definition;
-	rw1.threshold = Left;
+	rw1.threshold = Right;
+	rw1.threshold2 = Left;
+	rw1.bearing = TrueBearing(Left, Right);
 	rw1.set = true;
-
+	 
 	RunwayAreaType rw2;
 	rw2.isCustomRunway = true;
 	rw2.CustomDefinition = definition;
-	rw2.threshold = Right;
+	rw2.threshold = Left;
+	rw2.threshold2 = Right;
+	rw2.bearing = TrueBearing(Right, Left);
 	rw2.set = true;
 
 	RunwayAreas[runway_name1] = rw1;
@@ -205,12 +209,16 @@ CRimcas::RunwayAreaType CRimcas::GetRunwayArea(CRadarScreen *instance, CPosition
 	toRender.topRight = TopRight;
 	toRender.bottomLeft = BottomLeft;
 	toRender.bottomRight = BottomRight;
-	toRender.bearing = bearing;
+	
 	if (threshold == 1) {
 		toRender.threshold = Left;
+		toRender.threshold2 = Right;
+		toRender.bearing = TrueBearing(Right, Left);
 	}
 	else {
 		toRender.threshold = Right;
+		toRender.threshold = Left;
+		toRender.bearing = TrueBearing(Left, Right);
 	}
 
 	toRender.set = true;

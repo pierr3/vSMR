@@ -24,7 +24,7 @@ public:
 	const string string_false = "!NO";
 
 	struct RunwayAreaType {
-		CPosition topLeft, topRight, bottomLeft, bottomRight, threshold;
+		CPosition topLeft, topRight, bottomLeft, bottomRight, threshold, threshold2;
 		bool isCustomRunway = false;
 		vector<CPosition> CustomDefinition;
 		double bearing;

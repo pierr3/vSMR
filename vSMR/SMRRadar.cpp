@@ -2157,6 +2157,27 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 			}
 		}
 
+		// We need to see wether the rotation will be clockwise or anti-clockwise
+
+		bool isAntiClockwise = false;
+
+		for (const auto area2 : tagAreas)
+		{
+			if (areas.first == area2.first)
+				continue;
+
+			CRect h;
+
+			if (h.IntersectRect(tagAreas[areas.first], area2.second))
+			{
+				if (areas.second.left <= area2.second.left)
+				{
+					isAntiClockwise = true;
+				}
+				
+				break;
+			}
+		}
 
 		// We then rotate the tags until we did a 360 or there is no more conflicts
 
@@ -2166,7 +2187,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 		int width = areas.second.Width();
 		int height = areas.second.Height();
 
-		for (float rotated = 0.0f; rotated <= 360.0f;)
+		for (float rotated = 0.0f; abs(rotated) <= 360.0f;)
 		{
 			// We first rotate the tag
 			float newangle = fmod(TagAngles[areas.first] + rotated, 360.0f);
@@ -2204,7 +2225,10 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 				break;
 			}
 
-			rotated += 22.5f;
+			if (isAntiClockwise)
+				rotated -= 22.5f;
+			else
+				rotated += 22.5f;
 		}
 	}
 
@@ -2234,8 +2258,8 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 		for (std::map<string, CRimcas::RunwayAreaType>::iterator it = RimcasInstance->RunwayAreas.begin(); it != RimcasInstance->RunwayAreas.end(); ++it)
 		{
 			CPosition pt1, pt2;
-			pt1 = Haversine(it->second.topLeft, RadToDeg(float(TrueBearing(it->second.topLeft, it->second.bottomLeft))), float((it->second.topLeft.DistanceTo(it->second.bottomLeft) / 2) / 0.00053996));
-			pt2 = Haversine(it->second.topRight, RadToDeg(float(TrueBearing(it->second.topRight, it->second.bottomRight))), float((it->second.topRight.DistanceTo(it->second.bottomRight) / 2) / 0.00053996));
+			pt1 = it->second.threshold;
+			pt2 = it->second.threshold2;
 			double dist, dir;
 
 			POINT t1s, t2s;
@@ -2260,7 +2284,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 				dc.LineTo(toDraw2);
 			}
 
-			// Extended centerlines
+			/*// Extended centerlines
 			if (RimcasInstance->MonitoredRunwayArr[it->first]) {
 				dist = AirportPositions[getActiveAirport()].DistanceTo(it->second.threshold);
 				dir = TrueBearing(AirportPositions[getActiveAirport()], it->second.threshold);
@@ -2311,7 +2335,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 
 				}
 
-			}
+			} */
 
 		}
 
