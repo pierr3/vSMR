@@ -6,7 +6,13 @@ RECT TimePopupArea = { 300, 300, 430, 363 };
 ULONG_PTR m_gdiplusToken;
 int currentFontSize = 1;
 map<int, Gdiplus::Font *> customFonts;
+CPoint mouseLocation(0, 0);
 
+bool mouseWithin(CRect rect) {
+	if (mouseLocation.x >= rect.left + 1 && mouseLocation.x <= rect.right - 1 && mouseLocation.y >= rect.top + 1 && mouseLocation.y <= rect.bottom - 1)
+		return true;
+	return false;
+}
 inline std::vector<std::string> &split(const std::string &s, char delim, std::vector<std::string> &elems) {
 	std::stringstream ss(s);
 	std::string item;
@@ -76,21 +82,19 @@ void CSMRRadar::LoadCustomFont() {
 	// Loading the custom font if there is one in use
 	customFonts.clear();
 	RimcasInstance->toggleShortTimer(CurrentConfig->getActiveProfile()["rimcas"]["short_timer"].GetBool());
-	if (CurrentConfig->getActiveProfile()["font"]["use_custom_font"].GetBool()) {
-		const Value& FSizes = CurrentConfig->getActiveProfile()["font"]["sizes"];
-		string font_name = CurrentConfig->getActiveProfile()["font"]["font_name"].GetString();
-		wstring buffer = wstring(font_name.begin(), font_name.end());
-		Gdiplus::FontStyle fontStyle = Gdiplus::FontStyleRegular;
-		if (strcmp(CurrentConfig->getActiveProfile()["font"]["weight"].GetString(), "Bold") == 0)
-			fontStyle = Gdiplus::FontStyleBold;
-		if (strcmp(CurrentConfig->getActiveProfile()["font"]["weight"].GetString(), "Italic") == 0)
-			fontStyle = Gdiplus::FontStyleItalic;
+	const Value& FSizes = CurrentConfig->getActiveProfile()["font"]["sizes"];
+	string font_name = CurrentConfig->getActiveProfile()["font"]["font_name"].GetString();
+	wstring buffer = wstring(font_name.begin(), font_name.end());
+	Gdiplus::FontStyle fontStyle = Gdiplus::FontStyleRegular;
+	if (strcmp(CurrentConfig->getActiveProfile()["font"]["weight"].GetString(), "Bold") == 0)
+		fontStyle = Gdiplus::FontStyleBold;
+	if (strcmp(CurrentConfig->getActiveProfile()["font"]["weight"].GetString(), "Italic") == 0)
+		fontStyle = Gdiplus::FontStyleItalic;
 
-		customFonts[1] = new Gdiplus::Font(buffer.c_str(), Gdiplus::REAL(FSizes["one"].GetInt()), fontStyle, Gdiplus::UnitPixel);
-		customFonts[2] = new Gdiplus::Font(buffer.c_str(), Gdiplus::REAL(FSizes["two"].GetInt()), fontStyle, Gdiplus::UnitPixel);
-		customFonts[3] = new Gdiplus::Font(buffer.c_str(), Gdiplus::REAL(FSizes["three"].GetInt()), fontStyle, Gdiplus::UnitPixel);
-		customFonts[4] = new Gdiplus::Font(buffer.c_str(), Gdiplus::REAL(FSizes["four"].GetInt()), fontStyle, Gdiplus::UnitPixel);
-	}
+	customFonts[1] = new Gdiplus::Font(buffer.c_str(), Gdiplus::REAL(FSizes["one"].GetInt()), fontStyle, Gdiplus::UnitPixel);
+	customFonts[2] = new Gdiplus::Font(buffer.c_str(), Gdiplus::REAL(FSizes["two"].GetInt()), fontStyle, Gdiplus::UnitPixel);
+	customFonts[3] = new Gdiplus::Font(buffer.c_str(), Gdiplus::REAL(FSizes["three"].GetInt()), fontStyle, Gdiplus::UnitPixel);
+	customFonts[4] = new Gdiplus::Font(buffer.c_str(), Gdiplus::REAL(FSizes["four"].GetInt()), fontStyle, Gdiplus::UnitPixel);
 }
 
 void CSMRRadar::OnAsrContentLoaded(bool Loaded)
@@ -268,6 +272,14 @@ void CSMRRadar::OnMoveScreenObject(int ObjectType, const char * sObjectId, POINT
 	if (ObjectType == DRAWING_TAG || ObjectType == TAG_CITEM_CALLSIGN || ObjectType == TAG_CITEM_FPBOX || ObjectType == TAG_CITEM_RWY || ObjectType == TAG_CITEM_GATE) {
 		CRadarTarget rt = GetPlugIn()->RadarTargetSelect(sObjectId);
 
+		if (!Released)
+		{
+			AfxGetApp()->DoWaitCursor(1);
+		} else
+		{
+			AfxGetApp()->DoWaitCursor(-1);
+		}
+
 		if (rt.IsValid()) {
 			CRect Temp = Area;
 			POINT TagCenterPix = Temp.CenterPoint();
@@ -286,10 +298,14 @@ void CSMRRadar::OnMoveScreenObject(int ObjectType, const char * sObjectId, POINT
 		RequestRefresh();
 	}
 
+	mouseLocation = Pt;
+	RequestRefresh();
+
 }
 
 void CSMRRadar::OnOverScreenObject(int ObjectType, const char * sObjectId, POINT Pt, RECT Area)
 {
+	/*
 	if (ObjectType == DRAWING_AC_SYMBOL)
 	{
 		CRadarTarget rt = GetPlugIn()->RadarTargetSelect(sObjectId);
@@ -299,11 +315,15 @@ void CSMRRadar::OnOverScreenObject(int ObjectType, const char * sObjectId, POINT
 			OverAcSymbol[sObjectId] = clock();
 			RequestRefresh();
 		}
-	}
+	}*/
+
+	mouseLocation = Pt;
+	RequestRefresh();
 }
 
 void CSMRRadar::OnClickScreenObject(int ObjectType, const char * sObjectId, POINT Pt, RECT Area, int Button)
 {
+	mouseLocation = Pt;
 
 	if (ObjectType == APPWINDOW_ONE || APPWINDOW_TWO) {
 		int appWindowId = ObjectType - APPWINDOW_BASE;
@@ -501,7 +521,7 @@ void CSMRRadar::OnClickScreenObject(int ObjectType, const char * sObjectId, POIN
 };
 
 void CSMRRadar::OnFunctionCall(int FunctionId, const char * sItemString, POINT Pt, RECT Area) {
-
+	mouseLocation = Pt;
 	if (FunctionId == APPWINDOW_ONE || APPWINDOW_TWO) {
 		int id = FunctionId - APPWINDOW_BASE;
 		appWindowDisplays[id] = !appWindowDisplays[id];
@@ -937,15 +957,6 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 			Graphics graphics(hDC);
 			graphics.SetPageUnit(Gdiplus::UnitPixel);
 
-			// Get Device DPI Resolutions //
-			int nLogPx = ::GetDeviceCaps(hDC, LOGPIXELSX);
-			// Get GDI+ resolution
-			int nGdiPlusLogPx = (int)graphics.GetDpiX();
-			// set to pixels
-			graphics.SetPageUnit(UnitPixel);
-			// Adjust to match
-			graphics.SetPageScale(((REAL)nGdiPlusLogPx / (REAL)nLogPx));
-
 			graphics.SetSmoothingMode(SmoothingModeAntiAlias);
 
 			SolidBrush AlphaBrush(Color(CurrentConfig->getActiveProfile()["filters"]["night_alpha_setting"].GetInt(), 0, 0, 0));
@@ -968,6 +979,13 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 			return Area;
 		}
 	};
+
+
+	POINT p;
+	if (GetCursorPos(&p))
+	{
+		mouseLocation = p;
+	}
 
 	// Timer each seconds
 	clock_final = clock() - clock_init;
@@ -1283,7 +1301,6 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 		CPen qTrailPen(PS_SOLID, 1, RGB(255, 255, 255));
 		CPen* pqOrigPen = dc.SelectObject(&qTrailPen);
 
-
 		if (RtPos.GetTransponderC()) {
 			dc.MoveTo(acPosPix.x, acPosPix.y - 6);
 			dc.LineTo(acPosPix.x - 6, acPosPix.y);
@@ -1298,13 +1315,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 			th.DrawEllipse(dc, acPosPix.x - 4, acPosPix.y - 4, acPosPix.x + 4, acPosPix.y + 4, RGB(255, 255, 255));
 		}
 
-		if (OverAcSymbol.find(rt.GetCallsign()) != OverAcSymbol.end()) {
-			double t = double(clock() - OverAcSymbol[rt.GetCallsign()]) / ((double)CLOCKS_PER_SEC);
-			if (t > 0.1)
-			{
-				OverAcSymbol.erase(rt.GetCallsign());
-			}
-
+		if (mouseWithin({ acPosPix.x - 5, acPosPix.y - 5, acPosPix.x + 5, acPosPix.y + 5 })) {
 			dc.MoveTo(acPosPix.x, acPosPix.y - 8);
 			dc.LineTo(acPosPix.x - 6, acPosPix.y - 12);
 			dc.MoveTo(acPosPix.x, acPosPix.y - 8);
@@ -1558,6 +1569,13 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 			wake += fp.GetFlightPlanData().GetAircraftWtc();
 		}
 
+		// ----- SSR -------
+		string tssr = "";
+		if (rt.IsValid())
+		{
+			tssr = rt.GetPosition().GetSquawk();
+		}
+
 		// ----- Generating the replacing map -----
 		map<string, string> TagReplacingMap;
 		TagReplacingMap["callsign"] = callsign;
@@ -1572,6 +1590,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 		TagReplacingMap["gs"] = speed;
 		TagReplacingMap["tendency"] = tendency;
 		TagReplacingMap["wake"] = wake;
+		TagReplacingMap["ssr"] = tssr;
 
 		// System ID for uncorrelated
 		TagReplacingMap["systemid"] = "T:";
@@ -1591,7 +1610,8 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 		TagClickableMap[flightlevel] = TAG_CITEM_NO;
 		TagClickableMap[speed] = TAG_CITEM_NO;
 		TagClickableMap[tendency] = TAG_CITEM_NO;
-		TagClickableMap[wake] = TAG_CITEM_FPBOX;
+		TagClickableMap[wake] = TAG_CITEM_FPBOX; 
+		TagClickableMap[tssr] = TAG_CITEM_NO;
 
 		//
 		// ----- Now the hard part, drawing (using gdi+) -------
@@ -1642,26 +1662,15 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 			}
 		}
 
-		if (CurrentConfig->getActiveProfile()["font"]["use_custom_font"].GetBool()) {
-			wstring line1_sizew = wstring(line1_size.begin(), line1_size.end());
-			wstring line2_sizew = wstring(line2_size.begin(), line2_size.end());
+		wstring line1_sizew = wstring(line1_size.begin(), line1_size.end());
+		wstring line2_sizew = wstring(line2_size.begin(), line2_size.end());
 
-			RectF line1Box, line2Box;
+		RectF line1Box, line2Box;
 			
-			graphics.MeasureString(line1_sizew.c_str(), wcslen(line1_sizew.c_str()), customFonts[currentFontSize], PointF(0, 0), &Gdiplus::StringFormat(), &line1Box);
-			graphics.MeasureString(line2_sizew.c_str(), wcslen(line2_sizew.c_str()), customFonts[currentFontSize], PointF(0, 0), &Gdiplus::StringFormat(), &line2Box);
-			TagWidth = int(max(line1Box.GetRight(), line2Box.GetRight()));
-			TagHeight = int((line1Box.GetBottom() + line2Box.GetBottom())-2);
-		}
-		else {
-			CRect line1Size(0, 0, 0, 0);
-			dc.DrawText(line1_size.c_str(), &line1Size, DT_CALCRECT);
-			CRect line2Size(0, 0, 0, 0);
-			dc.DrawText(line2_size.c_str(), &line2Size, DT_CALCRECT);
-
-			TagWidth = int(max(line1Size.right, line2Size.right));
-			TagHeight = int(line1Size.bottom+line2Size.bottom);
-		}
+		graphics.MeasureString(line1_sizew.c_str(), wcslen(line1_sizew.c_str()), customFonts[currentFontSize], PointF(0, 0), &Gdiplus::StringFormat(), &line1Box);
+		graphics.MeasureString(line2_sizew.c_str(), wcslen(line2_sizew.c_str()), customFonts[currentFontSize], PointF(0, 0), &Gdiplus::StringFormat(), &line2Box);
+		TagWidth = int(max(line1Box.GetRight(), line2Box.GetRight()));
+		TagHeight = int((line1Box.GetBottom() + line2Box.GetBottom())-2);
 
 		// Pfiou, done with that, now we can draw the actual rectangle.
 
@@ -1682,26 +1691,19 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 		CRect TagBackgroundRect(TagCenter.x - (TagWidth / 2), TagCenter.y - (TagHeight / 2), TagCenter.x + (TagWidth / 2), TagCenter.y + (TagHeight / 2));
 		SolidBrush TagBackgroundBrush(TagBackgroundColor);
 		graphics.FillRectangle(&TagBackgroundBrush, CopyRect(TagBackgroundRect));
-
-		if (CurrentConfig->getActiveProfile()["font"]["use_custom_font"].GetBool()) {
-			SolidBrush FontColor(CurrentConfig->getConfigColor(LabelsSettings[Utils2::getEnumString(TagType).c_str()]["text_color"]));
-			wstring line1w = wstring(line1_size.begin(), line1_size.end());
-			graphics.DrawString(line1w.c_str(), wcslen(line1w.c_str()), customFonts[currentFontSize], PointF(Gdiplus::REAL(TagBackgroundRect.left), Gdiplus::REAL(TagBackgroundRect.top)), &Gdiplus::StringFormat(), &FontColor);
-			
-			if (LabelsSettings[Utils2::getEnumString(TagType).c_str()]["two_lines_tag"].GetBool()) {
-				wstring line2w = wstring(line2_size.begin(), line2_size.end());
-				graphics.DrawString(line2w.c_str(), wcslen(line2w.c_str()), customFonts[currentFontSize], PointF(Gdiplus::REAL(TagBackgroundRect.left), Gdiplus::REAL(TagBackgroundRect.top + (TagHeight / 2))), &Gdiplus::StringFormat(), &FontColor);
-			}
+		if (mouseWithin(TagBackgroundRect))
+		{
+			Pen pw(Color::White);
+			graphics.DrawRectangle(&pw, CopyRect(TagBackgroundRect));
 		}
-		else {
-			COLORREF oldColor = dc.SetTextColor(CurrentConfig->getConfigColorRef(LabelsSettings[Utils2::getEnumString(TagType).c_str()]["text_color"]));
 
-			dc.TextOutA(TagBackgroundRect.left, TagBackgroundRect.top, line1_size.c_str());
-			if (LabelsSettings[Utils2::getEnumString(TagType).c_str()]["two_lines_tag"].GetBool()) {
-				dc.TextOutA(TagBackgroundRect.left, TagBackgroundRect.top + (TagHeight / 2), line2_size.c_str());
-			}
-
-			dc.SetTextColor(oldColor);
+		SolidBrush FontColor(CurrentConfig->getConfigColor(LabelsSettings[Utils2::getEnumString(TagType).c_str()]["text_color"]));
+		wstring line1w = wstring(line1_size.begin(), line1_size.end());
+		graphics.DrawString(line1w.c_str(), wcslen(line1w.c_str()), customFonts[currentFontSize], PointF(Gdiplus::REAL(TagBackgroundRect.left), Gdiplus::REAL(TagBackgroundRect.top)), &Gdiplus::StringFormat(), &FontColor);
+			
+		if (LabelsSettings[Utils2::getEnumString(TagType).c_str()]["two_lines_tag"].GetBool()) {
+			wstring line2w = wstring(line2_size.begin(), line2_size.end());
+			graphics.DrawString(line2w.c_str(), wcslen(line2w.c_str()), customFonts[currentFontSize], PointF(Gdiplus::REAL(TagBackgroundRect.left), Gdiplus::REAL(TagBackgroundRect.top + (TagHeight / 2))), &Gdiplus::StringFormat(), &FontColor);
 		}
 		
 		// Drawing the leader line
@@ -1721,20 +1723,12 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 			if (RimcasLabelColor.ToCOLORREF() != Color(Color::AliceBlue).ToCOLORREF()) {
 				int rimcas_height = 0;
 
-				if (CurrentConfig->getActiveProfile()["font"]["use_custom_font"].GetBool()) {
-					wstring wrimcas_height = wstring(L"ALERT");
+				wstring wrimcas_height = wstring(L"ALERT");
 
-					RectF RectRimcas_height;
+				RectF RectRimcas_height;
 
-					graphics.MeasureString(wrimcas_height.c_str(), wcslen(wrimcas_height.c_str()), customFonts[currentFontSize], PointF(0, 0), &Gdiplus::StringFormat(), &RectRimcas_height);
-					rimcas_height = int(RectRimcas_height.GetBottom());
-				}
-				else {
-					CRect RectRimcas_height(0, 0, 0, 0);
-					dc.DrawText("ALERT", &RectRimcas_height, DT_CALCRECT);
-
-					rimcas_height = RectRimcas_height.bottom;
-				}
+				graphics.MeasureString(wrimcas_height.c_str(), wcslen(wrimcas_height.c_str()), customFonts[currentFontSize], PointF(0, 0), &Gdiplus::StringFormat(), &RectRimcas_height);
+				rimcas_height = int(RectRimcas_height.GetBottom());
 
 				// Drawing the rectangle
 
@@ -1744,20 +1738,11 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 
 				// Drawing the text
 				
-				if (CurrentConfig->getActiveProfile()["font"]["use_custom_font"].GetBool()) {
-					SolidBrush FontColor(Color::White);
-					wstring rimcasw = wstring(L"ALERT");
-					StringFormat stformat = new StringFormat();
-					stformat.SetAlignment(StringAlignment::StringAlignmentCenter);
-					graphics.DrawString(rimcasw.c_str(), wcslen(rimcasw.c_str()), customFonts[currentFontSize], PointF(Gdiplus::REAL((TagBackgroundRect.left + TagBackgroundRect.right) / 2), Gdiplus::REAL(TagBackgroundRect.top)), &stformat, &FontColor);
-				}
-				else {
-					COLORREF oldColor = dc.SetTextColor(RGB(255, 255, 255));
-					int oldAlign = dc.SetTextAlign(TA_CENTER);
-					dc.TextOutA((TagBackgroundRect.left + TagBackgroundRect.right) / 2, TagBackgroundRect.top, "ALERT");
-					dc.SetTextAlign(oldAlign);
-					dc.SetTextColor(oldColor);
-				}
+				SolidBrush FontColor(Color::White);
+				wstring rimcasw = wstring(L"ALERT");
+				StringFormat stformat = new StringFormat();
+				stformat.SetAlignment(StringAlignment::StringAlignmentCenter);
+				graphics.DrawString(rimcasw.c_str(), wcslen(rimcasw.c_str()), customFonts[currentFontSize], PointF(Gdiplus::REAL((TagBackgroundRect.left + TagBackgroundRect.right) / 2), Gdiplus::REAL(TagBackgroundRect.top)), &stformat, &FontColor);
 
 			}
 		}
@@ -1787,22 +1772,13 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 					continue;
 
 				int ItemWidth, ItemHeight;
-				if (CurrentConfig->getActiveProfile()["font"]["use_custom_font"].GetBool()) {
-					wstring item_sizew = wstring(item.begin(), item.end());
+				wstring item_sizew = wstring(item.begin(), item.end());
 
-					RectF itemBox;
+				RectF itemBox;
 
-					graphics.MeasureString(item_sizew.c_str(), wcslen(item_sizew.c_str()), customFonts[currentFontSize], PointF(0, 0), &Gdiplus::StringFormat(), &itemBox);
-					ItemWidth = int(itemBox.GetRight());
-					ItemHeight = int(itemBox.GetBottom() - 2);
-				}
-				else {
-					CRect itemSize(0, 0, 0, 0);
-					dc.DrawText(item.c_str(), &itemSize, DT_CALCRECT);
-
-					ItemWidth = int(itemSize.right);
-					ItemHeight = int(itemSize.bottom);
-				}
+				graphics.MeasureString(item_sizew.c_str(), wcslen(item_sizew.c_str()), customFonts[currentFontSize], PointF(0, 0), &Gdiplus::StringFormat(), &itemBox);
+				ItemWidth = int(itemBox.GetRight());
+				ItemHeight = int(itemBox.GetBottom() - 2);
 
 				// We then calculate the rectangle
 				CRect ItemRect(TagBackgroundRect.left + offset, 
@@ -1813,19 +1789,9 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 				// If there is a squawk error and the item is a squawk error, we re-draw it with the color
 
 				if (has_squawk_error && strcmp(item.c_str(), sqerror.c_str()) == 0) {
-					if (CurrentConfig->getActiveProfile()["font"]["use_custom_font"].GetBool()) {
-						SolidBrush FontColor(CurrentConfig->getConfigColor(LabelsSettings["squawk_error_color"]));
-						wstring sqw = wstring(sqerror.begin(), sqerror.end());
-						graphics.DrawString(sqw.c_str(), wcslen(sqw.c_str()), customFonts[currentFontSize], PointF(Gdiplus::REAL(ItemRect.left), Gdiplus::REAL(ItemRect.top)), &Gdiplus::StringFormat(), &FontColor);
-
-					}
-					else {
-						COLORREF oldColor = dc.SetTextColor(CurrentConfig->getConfigColorRef(LabelsSettings["squawk_error_color"]));
-
-						dc.TextOutA(ItemRect.left, ItemRect.top, sqerror.c_str());
-
-						dc.SetTextColor(oldColor);
-					}
+					SolidBrush FontColor(CurrentConfig->getConfigColor(LabelsSettings["squawk_error_color"]));
+					wstring sqw = wstring(sqerror.begin(), sqerror.end());
+					graphics.DrawString(sqw.c_str(), wcslen(sqw.c_str()), customFonts[currentFontSize], PointF(Gdiplus::REAL(ItemRect.left), Gdiplus::REAL(ItemRect.top)), &Gdiplus::StringFormat(), &FontColor);
 				}
 
 				// We then add the screen object
@@ -1850,22 +1816,13 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 						continue;
 
 					int ItemWidth, ItemHeight;
-					if (CurrentConfig->getActiveProfile()["font"]["use_custom_font"].GetBool()) {
-						wstring item_sizew = wstring(item.begin(), item.end());
+					wstring item_sizew = wstring(item.begin(), item.end());
 
-						RectF itemBox;
+					RectF itemBox;
 
-						graphics.MeasureString(item_sizew.c_str(), wcslen(item_sizew.c_str()), customFonts[currentFontSize], PointF(0, 0), &Gdiplus::StringFormat(), &itemBox);
-						ItemWidth = int(itemBox.GetRight());
-						ItemHeight = int(itemBox.GetBottom() - 2);
-					}
-					else {
-						CRect itemSize(0, 0, 0, 0);
-						dc.DrawText(item.c_str(), &itemSize, DT_CALCRECT);
-
-						ItemWidth = itemSize.right;
-						ItemHeight = itemSize.bottom;
-					}
+					graphics.MeasureString(item_sizew.c_str(), wcslen(item_sizew.c_str()), customFonts[currentFontSize], PointF(0, 0), &Gdiplus::StringFormat(), &itemBox);
+					ItemWidth = int(itemBox.GetRight());
+					ItemHeight = int(itemBox.GetBottom() - 2);
 
 					// We then calculate the rectangle
 					CRect ItemRect(TagBackgroundRect.left + offset,
@@ -1876,18 +1833,9 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 					// If there is a squawk error and the item is a squawk error, we re-draw it with the color
 
 					if (has_squawk_error && strcmp(item.c_str(), sqerror.c_str()) == 0) {
-						if (CurrentConfig->getActiveProfile()["font"]["use_custom_font"].GetBool()) {
 							SolidBrush FontColor(CurrentConfig->getConfigColor(LabelsSettings["squawk_error_color"]));
 							wstring sqw = wstring(sqerror.begin(), sqerror.end());
 							graphics.DrawString(sqw.c_str(), wcslen(sqw.c_str()), customFonts[currentFontSize], PointF(Gdiplus::REAL(ItemRect.left), Gdiplus::REAL(ItemRect.top)), &Gdiplus::StringFormat(), &FontColor);
-						}
-						else {
-							COLORREF oldColor = dc.SetTextColor(CurrentConfig->getConfigColorRef(LabelsSettings["squawk_error_color"]));
-
-							dc.TextOutA(ItemRect.left, ItemRect.top, sqerror.c_str());
-
-							dc.SetTextColor(oldColor);
-						}
 					}
 
 					// We then add the screen object
@@ -2057,9 +2005,11 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 		CPen *oldPen = dc.SelectObject(&Pen);
 
 		POINT AirportPos = ConvertCoordFromPositionToPixel(AirportPositions[getActiveAirport()]);
+		CPosition AirportCPos = AirportPositions[getActiveAirport()];
 		if (QDMSelectEnabled)
 		{
 			AirportPos = QDMSelectPt;
+			AirportCPos = ConvertCoordFromPixelToPosition(QDMSelectPt);
 		}
 		dc.MoveTo(AirportPos);
 		POINT p;
@@ -2068,8 +2018,8 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 			dc.LineTo(p);
 
 			CPosition CursorPos = ConvertCoordFromPixelToPosition(p);
-			double Distance = AirportPositions[getActiveAirport()].DistanceTo(CursorPos);
-			double Bearing = AirportPositions[getActiveAirport()].DirectionTo(CursorPos);
+			double Distance = AirportCPos.DistanceTo(CursorPos);
+			double Bearing = AirportCPos.DirectionTo(CursorPos);
 
 			TGraphics th;
 			th.DrawEllipse(dc, p.x - 5, p.y - 5, p.x + 5, p.y + 5, RGB(255, 255, 255));
@@ -2549,6 +2499,13 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 				wake += fp.GetFlightPlanData().GetAircraftWtc();
 			}
 
+			// ----- SSR -------
+			string tssr = "";
+			if (rt.IsValid())
+			{
+				tssr = rt.GetPosition().GetSquawk();
+			}
+
 			// ----- Generating the replacing map -----
 			map<string, string> TagReplacingMap;
 			TagReplacingMap["callsign"] = callsign;
@@ -2563,6 +2520,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 			TagReplacingMap["gs"] = speed;
 			TagReplacingMap["tendency"] = tendency;
 			TagReplacingMap["wake"] = wake;
+			TagReplacingMap["srr"] = tssr;
 
 			// ----- Generating the clickable map -----
 			map<string, int> TagClickableMap;
@@ -2578,6 +2536,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 			TagClickableMap[speed] = TAG_CITEM_NO;
 			TagClickableMap[tendency] = TAG_CITEM_NO;
 			TagClickableMap[wake] = TAG_CITEM_FPBOX;
+			TagClickableMap[tssr] = TAG_CITEM_NO;
 
 			//
 			// ----- Now the hard part, drawing (using gdi+) -------
@@ -2616,26 +2575,15 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 				}
 			}
 
-			if (CurrentConfig->getActiveProfile()["font"]["use_custom_font"].GetBool()) {
-				wstring line1_sizew = wstring(line1_size.begin(), line1_size.end());
-				wstring line2_sizew = wstring(line2_size.begin(), line2_size.end());
+			wstring line1_sizew = wstring(line1_size.begin(), line1_size.end());
+			wstring line2_sizew = wstring(line2_size.begin(), line2_size.end());
 
-				RectF line1Box, line2Box;
+			RectF line1Box, line2Box;
 
-				graphics.MeasureString(line1_sizew.c_str(), wcslen(line1_sizew.c_str()), customFonts[currentFontSize], PointF(0, 0), &Gdiplus::StringFormat(), &line1Box);
-				graphics.MeasureString(line2_sizew.c_str(), wcslen(line2_sizew.c_str()), customFonts[currentFontSize], PointF(0, 0), &Gdiplus::StringFormat(), &line2Box);
-				TagWidth = int(max(line1Box.GetRight(), line2Box.GetRight()));
-				TagHeight = int((line1Box.GetBottom() + line2Box.GetBottom()) - 2);
-			}
-			else {
-				CRect line1Size(0, 0, 0, 0);
-				dc.DrawText(line1_size.c_str(), &line1Size, DT_CALCRECT);
-				CRect line2Size(0, 0, 0, 0);
-				dc.DrawText(line2_size.c_str(), &line2Size, DT_CALCRECT);
-
-				TagWidth = int(max(line1Size.right, line2Size.right));
-				TagHeight = int(line1Size.bottom + line2Size.bottom);
-			}
+			graphics.MeasureString(line1_sizew.c_str(), wcslen(line1_sizew.c_str()), customFonts[currentFontSize], PointF(0, 0), &Gdiplus::StringFormat(), &line1Box);
+			graphics.MeasureString(line2_sizew.c_str(), wcslen(line2_sizew.c_str()), customFonts[currentFontSize], PointF(0, 0), &Gdiplus::StringFormat(), &line2Box);
+			TagWidth = int(max(line1Box.GetRight(), line2Box.GetRight()));
+			TagHeight = int((line1Box.GetBottom() + line2Box.GetBottom()) - 2);
 
 			// Pfiou, done with that, now we can draw the actual rectangle.
 
@@ -2662,25 +2610,13 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 				SolidBrush TagBackgroundBrush(TagBackgroundColor);
 				graphics.FillRectangle(&TagBackgroundBrush, CopyRect(TagBackgroundRect));
 
-				if (CurrentConfig->getActiveProfile()["font"]["use_custom_font"].GetBool()) {
-					SolidBrush FontColor(CurrentConfig->getConfigColor(LabelsSettings["airborne"]["text_color"]));
-					wstring line1w = wstring(line1_size.begin(), line1_size.end());
-					graphics.DrawString(line1w.c_str(), wcslen(line1w.c_str()), customFonts[currentFontSize], PointF(Gdiplus::REAL(TagBackgroundRect.left), Gdiplus::REAL(TagBackgroundRect.top)), &Gdiplus::StringFormat(), &FontColor);
+				SolidBrush FontColor(CurrentConfig->getConfigColor(LabelsSettings["airborne"]["text_color"]));
+				wstring line1w = wstring(line1_size.begin(), line1_size.end());
+				graphics.DrawString(line1w.c_str(), wcslen(line1w.c_str()), customFonts[currentFontSize], PointF(Gdiplus::REAL(TagBackgroundRect.left), Gdiplus::REAL(TagBackgroundRect.top)), &Gdiplus::StringFormat(), &FontColor);
 
-					if (LabelsSettings["airborne"]["two_lines_tag"].GetBool()) {
-						wstring line2w = wstring(line2_size.begin(), line2_size.end());
-						graphics.DrawString(line2w.c_str(), wcslen(line2w.c_str()), customFonts[currentFontSize], PointF(Gdiplus::REAL(TagBackgroundRect.left), Gdiplus::REAL(TagBackgroundRect.top + (TagHeight / 2))), &Gdiplus::StringFormat(), &FontColor);
-					}
-				}
-				else {
-					COLORREF oldColor = dc.SetTextColor(CurrentConfig->getConfigColorRef(LabelsSettings["airborne"]["text_color"]));
-
-					dc.TextOutA(TagBackgroundRect.left, TagBackgroundRect.top, line1_size.c_str());
-					if (LabelsSettings["airborne"]["two_lines_tag"].GetBool()) {
-						dc.TextOutA(TagBackgroundRect.left, TagBackgroundRect.top + (TagHeight / 2), line2_size.c_str());
-					}
-
-					dc.SetTextColor(oldColor);
+				if (LabelsSettings["airborne"]["two_lines_tag"].GetBool()) {
+					wstring line2w = wstring(line2_size.begin(), line2_size.end());
+					graphics.DrawString(line2w.c_str(), wcslen(line2w.c_str()), customFonts[currentFontSize], PointF(Gdiplus::REAL(TagBackgroundRect.left), Gdiplus::REAL(TagBackgroundRect.top + (TagHeight / 2))), &Gdiplus::StringFormat(), &FontColor);
 				}
 
 				// Drawing the leader line
@@ -2700,20 +2636,12 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 					if (RimcasLabelColor.ToCOLORREF() != Color(Color::AliceBlue).ToCOLORREF()) {
 						int rimcas_height = 0;
 
-						if (CurrentConfig->getActiveProfile()["font"]["use_custom_font"].GetBool()) {
-							wstring wrimcas_height = wstring(L"ALERT");
+						wstring wrimcas_height = wstring(L"ALERT");
 
-							RectF RectRimcas_height;
+						RectF RectRimcas_height;
 
-							graphics.MeasureString(wrimcas_height.c_str(), wcslen(wrimcas_height.c_str()), customFonts[currentFontSize], PointF(0, 0), &Gdiplus::StringFormat(), &RectRimcas_height);
-							rimcas_height = int(RectRimcas_height.GetBottom());
-						}
-						else {
-							CRect RectRimcas_height(0, 0, 0, 0);
-							dc.DrawText("ALERT", &RectRimcas_height, DT_CALCRECT);
-
-							rimcas_height = RectRimcas_height.bottom;
-						}
+						graphics.MeasureString(wrimcas_height.c_str(), wcslen(wrimcas_height.c_str()), customFonts[currentFontSize], PointF(0, 0), &Gdiplus::StringFormat(), &RectRimcas_height);
+						rimcas_height = int(RectRimcas_height.GetBottom());
 
 						// Drawing the rectangle
 
@@ -2723,20 +2651,11 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 
 						// Drawing the text
 
-						if (CurrentConfig->getActiveProfile()["font"]["use_custom_font"].GetBool()) {
-							SolidBrush FontColor(Color::White);
-							wstring rimcasw = wstring(L"ALERT");
-							StringFormat stformat = new StringFormat();
-							stformat.SetAlignment(StringAlignment::StringAlignmentCenter);
-							graphics.DrawString(rimcasw.c_str(), wcslen(rimcasw.c_str()), customFonts[currentFontSize], PointF(Gdiplus::REAL((TagBackgroundRect.left + TagBackgroundRect.right) / 2), Gdiplus::REAL(TagBackgroundRect.top)), &stformat, &FontColor);
-						}
-						else {
-							COLORREF oldColor = dc.SetTextColor(RGB(255, 255, 255));
-							int oldAlign = dc.SetTextAlign(TA_CENTER);
-							dc.TextOutA((TagBackgroundRect.left + TagBackgroundRect.right) / 2, TagBackgroundRect.top, "ALERT");
-							dc.SetTextAlign(oldAlign);
-							dc.SetTextColor(oldColor);
-						}
+						SolidBrush FontColor(Color::White);
+						wstring rimcasw = wstring(L"ALERT");
+						StringFormat stformat = new StringFormat();
+						stformat.SetAlignment(StringAlignment::StringAlignmentCenter);
+						graphics.DrawString(rimcasw.c_str(), wcslen(rimcasw.c_str()), customFonts[currentFontSize], PointF(Gdiplus::REAL((TagBackgroundRect.left + TagBackgroundRect.right) / 2), Gdiplus::REAL(TagBackgroundRect.top)), &stformat, &FontColor);
 
 					}
 				}
@@ -2766,22 +2685,13 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 							continue;
 
 						int ItemWidth, ItemHeight;
-						if (CurrentConfig->getActiveProfile()["font"]["use_custom_font"].GetBool()) {
-							wstring item_sizew = wstring(item.begin(), item.end());
+						wstring item_sizew = wstring(item.begin(), item.end());
 
-							RectF itemBox;
+						RectF itemBox;
 
-							graphics.MeasureString(item_sizew.c_str(), wcslen(item_sizew.c_str()), customFonts[currentFontSize], PointF(0, 0), &Gdiplus::StringFormat(), &itemBox);
-							ItemWidth = int(itemBox.GetRight());
-							ItemHeight = int(itemBox.GetBottom() - 2);
-						}
-						else {
-							CRect itemSize(0, 0, 0, 0);
-							dc.DrawText(item.c_str(), &itemSize, DT_CALCRECT);
-
-							ItemWidth = int(itemSize.right);
-							ItemHeight = int(itemSize.bottom);
-						}
+						graphics.MeasureString(item_sizew.c_str(), wcslen(item_sizew.c_str()), customFonts[currentFontSize], PointF(0, 0), &Gdiplus::StringFormat(), &itemBox);
+						ItemWidth = int(itemBox.GetRight());
+						ItemHeight = int(itemBox.GetBottom() - 2);
 
 						// We then calculate the rectangle
 						CRect ItemRect(TagBackgroundRect.left + offset,
@@ -2792,19 +2702,9 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 						// If there is a squawk error and the item is a squawk error, we re-draw it with the color
 
 						if (has_squawk_error && strcmp(item.c_str(), sqerror.c_str()) == 0) {
-							if (CurrentConfig->getActiveProfile()["font"]["use_custom_font"].GetBool()) {
-								SolidBrush FontColor(CurrentConfig->getConfigColor(LabelsSettings["squawk_error_color"]));
-								wstring sqw = wstring(sqerror.begin(), sqerror.end());
-								graphics.DrawString(sqw.c_str(), wcslen(sqw.c_str()), customFonts[currentFontSize], PointF(Gdiplus::REAL(ItemRect.left), Gdiplus::REAL(ItemRect.top)), &Gdiplus::StringFormat(), &FontColor);
-
-							}
-							else {
-								COLORREF oldColor = dc.SetTextColor(CurrentConfig->getConfigColorRef(LabelsSettings["squawk_error_color"]));
-
-								dc.TextOutA(ItemRect.left, ItemRect.top, sqerror.c_str());
-
-								dc.SetTextColor(oldColor);
-							}
+							SolidBrush FontColor(CurrentConfig->getConfigColor(LabelsSettings["squawk_error_color"]));
+							wstring sqw = wstring(sqerror.begin(), sqerror.end());
+							graphics.DrawString(sqw.c_str(), wcslen(sqw.c_str()), customFonts[currentFontSize], PointF(Gdiplus::REAL(ItemRect.left), Gdiplus::REAL(ItemRect.top)), &Gdiplus::StringFormat(), &FontColor);
 						}
 
 						// We then add the screen object
@@ -2829,22 +2729,13 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 								continue;
 
 							int ItemWidth, ItemHeight;
-							if (CurrentConfig->getActiveProfile()["font"]["use_custom_font"].GetBool()) {
-								wstring item_sizew = wstring(item.begin(), item.end());
+							wstring item_sizew = wstring(item.begin(), item.end());
 
-								RectF itemBox;
+							RectF itemBox;
 
-								graphics.MeasureString(item_sizew.c_str(), wcslen(item_sizew.c_str()), customFonts[currentFontSize], PointF(0, 0), &Gdiplus::StringFormat(), &itemBox);
-								ItemWidth = int(itemBox.GetRight());
-								ItemHeight = int(itemBox.GetBottom() - 2);
-							}
-							else {
-								CRect itemSize(0, 0, 0, 0);
-								dc.DrawText(item.c_str(), &itemSize, DT_CALCRECT);
-
-								ItemWidth = itemSize.right;
-								ItemHeight = itemSize.bottom;
-							}
+							graphics.MeasureString(item_sizew.c_str(), wcslen(item_sizew.c_str()), customFonts[currentFontSize], PointF(0, 0), &Gdiplus::StringFormat(), &itemBox);
+							ItemWidth = int(itemBox.GetRight());
+							ItemHeight = int(itemBox.GetBottom() - 2);
 
 							// We then calculate the rectangle
 							CRect ItemRect(TagBackgroundRect.left + offset,
@@ -2855,18 +2746,9 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 							// If there is a squawk error and the item is a squawk error, we re-draw it with the color
 
 							if (has_squawk_error && strcmp(item.c_str(), sqerror.c_str()) == 0) {
-								if (CurrentConfig->getActiveProfile()["font"]["use_custom_font"].GetBool()) {
-									SolidBrush FontColor(CurrentConfig->getConfigColor(LabelsSettings["squawk_error_color"]));
-									wstring sqw = wstring(sqerror.begin(), sqerror.end());
-									graphics.DrawString(sqw.c_str(), wcslen(sqw.c_str()), customFonts[currentFontSize], PointF(Gdiplus::REAL(ItemRect.left), Gdiplus::REAL(ItemRect.top)), &Gdiplus::StringFormat(), &FontColor);
-								}
-								else {
-									COLORREF oldColor = dc.SetTextColor(CurrentConfig->getConfigColorRef(LabelsSettings["squawk_error_color"]));
-
-									dc.TextOutA(ItemRect.left, ItemRect.top, sqerror.c_str());
-
-									dc.SetTextColor(oldColor);
-								}
+								SolidBrush FontColor(CurrentConfig->getConfigColor(LabelsSettings["squawk_error_color"]));
+								wstring sqw = wstring(sqerror.begin(), sqerror.end());
+								graphics.DrawString(sqw.c_str(), wcslen(sqw.c_str()), customFonts[currentFontSize], PointF(Gdiplus::REAL(ItemRect.left), Gdiplus::REAL(ItemRect.top)), &Gdiplus::StringFormat(), &FontColor);
 							}
 
 							// We then add the screen object

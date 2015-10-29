@@ -79,8 +79,6 @@ public:
 	map<int, int> appWindowFilters;
 
 	map<string, CRect> tagAreas;
-
-	map<string, clock_t> OverAcSymbol;
 	map<string, float> TagAngles;
 
 	bool QDMenabled = false;
