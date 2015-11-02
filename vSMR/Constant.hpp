@@ -75,6 +75,11 @@ inline bool RectIntersect(RECT RectA, RECT RectB)
 	return false;
 }
 
+inline double DistancePts(POINT p0, POINT p1)
+{
+	return sqrt((p1.x - p0.x)*(p1.x - p0.x) + (p1.y - p0.y)*(p1.y - p0.y));
+}
+
 //---Radians-----------------------------------------
 
 inline float DegToRad(float x)

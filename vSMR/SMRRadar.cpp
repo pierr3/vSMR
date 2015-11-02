@@ -7,6 +7,8 @@ ULONG_PTR m_gdiplusToken;
 int currentFontSize = 1;
 map<int, Gdiplus::Font *> customFonts;
 CPoint mouseLocation(0, 0);
+string TagBeingDragged;
+int LeaderLineDefaultlenght = 50;
 
 bool mouseWithin(CRect rect) {
 	if (mouseLocation.x >= rect.left + 1 && mouseLocation.x <= rect.right - 1 && mouseLocation.y >= rect.top + 1 && mouseLocation.y <= rect.bottom - 1)
@@ -26,6 +28,16 @@ inline std::vector<std::string> split(const std::string &s, char delim) {
 	split(s, delim, elems);
 	return elems;
 };
+inline float closest(std::vector<float> const& vec, float value) {
+	auto const it = std::lower_bound(vec.begin(), vec.end(), value);
+	if (it == vec.end()) { return -1; }
+
+	return *it;
+};
+inline bool IsTagBeingDragged(string c)
+{
+	return TagBeingDragged == c;
+}
 
 CSMRRadar::CSMRRadar()
 {
@@ -285,9 +297,25 @@ void CSMRRadar::OnMoveScreenObject(int ObjectType, const char * sObjectId, POINT
 			POINT TagCenterPix = Temp.CenterPoint();
 			POINT AcPosPix = ConvertCoordFromPositionToPixel(GetPlugIn()->RadarTargetSelect(sObjectId).GetPosition().GetPosition());
 			POINT CustomTag = { TagCenterPix.x - AcPosPix.x, TagCenterPix.y - AcPosPix.y };
-			TagsOffsets[sObjectId] = CustomTag;
+			//TagsOffsets[sObjectId] = CustomTag;
+			float angle = RadToDeg(atan2(CustomTag.y, CustomTag.x));
+			angle = fmod(angle + 360, 360);
+			vector<float> angles;
+			for (float k = 0.0f; k <= 360.0f; k += 22.5f)
+				angles.push_back(k);
+
+			TagAngles[sObjectId] = closest(angles, angle);
+			TagLeaderLineLength[sObjectId] = max(LeaderLineDefaultlenght, min(DistancePts(AcPosPix, TagCenterPix), LeaderLineDefaultlenght*2));
 
 			GetPlugIn()->SetASELAircraft(GetPlugIn()->FlightPlanSelect(sObjectId));
+
+			if (Released)
+			{
+				TagBeingDragged = "";
+			} else
+			{
+				TagBeingDragged = sObjectId;
+			}
 
 			RequestRefresh();
 		}
@@ -562,6 +590,7 @@ void CSMRRadar::OnFunctionCall(int FunctionId, const char * sItemString, POINT P
 
 	if (FunctionId == RIMCAS_UPDATE_PROFILE) {
 		CurrentConfig->setActiveProfile(sItemString);
+		LoadCustomFont();
 		SaveDataToAsr("Profile", "vSMR active profile", sItemString);
 
 		ShowLists["Profiles"] = true;
@@ -1408,7 +1437,9 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 			if (TagAngles.find(rt.GetCallsign()) == TagAngles.end())
 				TagAngles[rt.GetCallsign()] = 270.0f;
 
-			int lenght = 50;
+			int lenght = LeaderLineDefaultlenght;
+			if (TagLeaderLineLength.find(rt.GetCallsign()) != TagLeaderLineLength.end())
+				lenght = TagLeaderLineLength[rt.GetCallsign()];
 
 			TagCenter.x = long(acPosPix.x + float(lenght * cos(DegToRad(TagAngles[rt.GetCallsign()]))));
 			TagCenter.y = long(acPosPix.y + float(lenght * sin(DegToRad(TagAngles[rt.GetCallsign()]))));
@@ -1443,6 +1474,9 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 		// gs: Ground speed of the ac *
 		// tendency: Climbing or descending symbol *
 		// wake: Wake turbulance cat *
+		// ssr: the current squawk of the ac
+		// dep: the assigned SID
+		// sdep: a short version of the SID
 		// ----
 
 		// ----- Callsign -------
@@ -1576,6 +1610,21 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 			tssr = rt.GetPosition().GetSquawk();
 		}
 
+		// ----- DEP -------
+		string dep = "";
+		if (fp.IsValid())
+		{
+			dep = fp.GetFlightPlanData().GetSidName();
+		}
+
+		// ----- Short DEP -------
+		string sdep = dep;
+		if (fp.IsValid() && sdep.size() > 5)
+		{
+			sdep = dep.substr(0, 3);
+			sdep += dep.substr(dep.size() - 2, dep.size());
+		}
+
 		// ----- Generating the replacing map -----
 		map<string, string> TagReplacingMap;
 		TagReplacingMap["callsign"] = callsign;
@@ -1591,6 +1640,8 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 		TagReplacingMap["tendency"] = tendency;
 		TagReplacingMap["wake"] = wake;
 		TagReplacingMap["ssr"] = tssr;
+		TagReplacingMap["adep"] = dep;
+		TagReplacingMap["sdep"] = sdep;
 
 		// System ID for uncorrelated
 		TagReplacingMap["systemid"] = "T:";
@@ -1612,6 +1663,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 		TagClickableMap[tendency] = TAG_CITEM_NO;
 		TagClickableMap[wake] = TAG_CITEM_FPBOX; 
 		TagClickableMap[tssr] = TAG_CITEM_NO;
+		TagClickableMap[dep] = TagClickableMap[sdep] = TAG_CITEM_NO;
 
 		//
 		// ----- Now the hard part, drawing (using gdi+) -------
@@ -1691,7 +1743,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 		CRect TagBackgroundRect(TagCenter.x - (TagWidth / 2), TagCenter.y - (TagHeight / 2), TagCenter.x + (TagWidth / 2), TagCenter.y + (TagHeight / 2));
 		SolidBrush TagBackgroundBrush(TagBackgroundColor);
 		graphics.FillRectangle(&TagBackgroundBrush, CopyRect(TagBackgroundRect));
-		if (mouseWithin(TagBackgroundRect))
+		if (mouseWithin(TagBackgroundRect) || IsTagBeingDragged(rt.GetCallsign()))
 		{
 			Pen pw(Color::White);
 			graphics.DrawRectangle(&pw, CopyRect(TagBackgroundRect));
@@ -2096,6 +2148,9 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 		if (TagsOffsets.find(areas.first) != TagsOffsets.end())
 			continue;
 
+		if (IsTagBeingDragged(areas.first))
+			continue;
+
 		if (RecentlyAutoMovedTags.find(areas.first) != RecentlyAutoMovedTags.end())
 		{
 			double delta_t = (double)clock() - RecentlyAutoMovedTags[areas.first] / ((double)CLOCKS_PER_SEC);
@@ -2132,7 +2187,9 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 		// We then rotate the tags until we did a 360 or there is no more conflicts
 
 		POINT acPosPix = ConvertCoordFromPositionToPixel(GetPlugIn()->RadarTargetSelect(areas.first.c_str()).GetPosition().GetPosition());
-		int lenght = 50;
+		int lenght = LeaderLineDefaultlenght;
+		if (TagLeaderLineLength.find(areas.first) != TagLeaderLineLength.end())
+			lenght = TagLeaderLineLength[areas.first];
 
 		int width = areas.second.Width();
 		int height = areas.second.Height();
@@ -2359,22 +2416,6 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 
 			// Drawing the tags, what a fucking mess
 
-			// ----
-			// Tag items available
-			// callsign: Callsign with freq state and comm *
-			// actype: Aircraft type *
-			// sctype: Aircraft type that changes for squawk error *
-			// sqerror: Squawk error if there is one, or empty *
-			// deprwy: Departure runway *
-			// seprwy: Departure runway that changes to speed if speed > 25kts *
-			// gate: Gate, from speed or scratchpad *
-			// sate: Gate, from speed or scratchpad that changes to speed if speed > 25kts *
-			// flightlevel: Flightlevel/Pressure altitude of the ac *
-			// gs: Ground speed of the ac *
-			// tendency: Climbing or descending symbol *
-			// wake: Wake turbulance cat *
-			// ----
-
 			// ----- Callsign -------
 			string callsign = rt.GetCallsign();
 			if (fp.IsValid()) {
@@ -2506,6 +2547,21 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 				tssr = rt.GetPosition().GetSquawk();
 			}
 
+			// ----- DEP -------
+			string dep = "";
+			if (fp.IsValid())
+			{
+				dep = fp.GetFlightPlanData().GetSidName();
+			}
+
+			// ----- Short DEP -------
+			string sdep = dep;
+			if (fp.IsValid() && sdep.size() > 5)
+			{
+				sdep = dep.substr(0, 3);
+				sdep += dep.substr(dep.size() - 2, dep.size());
+			}
+
 			// ----- Generating the replacing map -----
 			map<string, string> TagReplacingMap;
 			TagReplacingMap["callsign"] = callsign;
@@ -2521,6 +2577,8 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 			TagReplacingMap["tendency"] = tendency;
 			TagReplacingMap["wake"] = wake;
 			TagReplacingMap["srr"] = tssr;
+			TagReplacingMap["adep"] = dep;
+			TagReplacingMap["sdep"] = sdep;
 
 			// ----- Generating the clickable map -----
 			map<string, int> TagClickableMap;

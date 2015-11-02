@@ -80,6 +80,7 @@ public:
 
 	map<string, CRect> tagAreas;
 	map<string, float> TagAngles;
+	map<string, int> TagLeaderLineLength;
 
 	bool QDMenabled = false;
 	bool QDMSelectEnabled = false;
