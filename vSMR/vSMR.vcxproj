@@ -165,6 +165,8 @@
     <ClInclude Include="vSMR.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="arrow.cur" />
+    <None Include="cursor1.cur" />
     <None Include="res\vSMR.rc2" />
     <None Include="vSMR.def" />
   </ItemGroup>

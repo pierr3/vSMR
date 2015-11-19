@@ -104,6 +104,8 @@ public:
 	map<string, string> ManuallyCorrelated;
 	map<string, clock_t> RecentlyAutoMovedTags;
 
+	map<string, string> CustomCallsign;
+
 	CRimcas * RimcasInstance = NULL;
 	CConfig * CurrentConfig = NULL;
 

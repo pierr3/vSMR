@@ -127,6 +127,12 @@
     <None Include="res\vSMR.rc2">
       <Filter>Resource Files</Filter>
     </None>
+    <None Include="arrow.cur">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="cursor1.cur">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="vSMR.rc">

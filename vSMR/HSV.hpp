@@ -62,6 +62,14 @@ hsv rgb2hsv(rgb in)
 	return out;
 }
 
+Gdiplus::Color ChangeBrightNess(Gdiplus::Color inColor, int percentage)
+{
+	rgb cStruct = { inColor.GetRed(), inColor.GetGreen(), inColor.GetBlue() };
+	hsv c = rgb2hsv(cStruct);
+
+	int currentBrightnessP = c.v;
+
+}
 
 rgb hsv2rgb(hsv in)
 {

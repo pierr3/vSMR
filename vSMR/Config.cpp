@@ -18,8 +18,13 @@ void CConfig::loadConfig() {
 	ifs.close();
 
 	if (document.Parse<0>(ss.str().c_str()).HasParseError())
-		throw std::invalid_argument("json parse error");
+	{
+		AfxMessageBox("An error parsing vSMR configuration occured. EuroScope will now close.", MB_OK);
 
+		ASSERT(AfxGetMainWnd() != NULL);
+		AfxGetMainWnd()->SendMessage(WM_CLOSE);
+	}
+		
 	profiles.clear();
 
 	assert(document.IsArray());

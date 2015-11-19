@@ -101,6 +101,9 @@ const int TAG_CITEM_CALLSIGN = 1911;
 const int TAG_CITEM_FPBOX = 1912;
 const int TAG_CITEM_RWY = 1913;
 const int TAG_CITEM_GATE = 1914;
+const int TAG_CITEM_MANUALCORRELATE = 1915;
+
+const int FUNC_MANUAL_CALLSIGN = 2000;
 
 // RIMCAS Menus & shit
 const int RIMCAS_CLOSE = EuroScopePlugIn::TAG_ITEM_FUNCTION_NO;

@@ -46,11 +46,3 @@ void __declspec (dllexport) EuroScopePlugInInit(EuroScopePlugIn::CPlugIn ** ppPl
 		// create the instance
 		* ppPlugInInstance = theApp.gpMyPlugin = new CSMRPlugin();
 }
-
-//---EuroScopePlugInExit-----------------------------------------------
-
-void __declspec (dllexport) EuroScopePlugInExit(void)
-{
-	AFX_MANAGE_STATE(AfxGetStaticModuleState())
-		delete theApp.gpMyPlugin;
-}
