@@ -180,7 +180,6 @@ string CRimcas::GetAcInRunwayAreaSoon(CRadarTarget Ac, CRadarScreen *instance, b
 }
 
 CRimcas::RunwayAreaType CRimcas::GetRunwayArea(CRadarScreen *instance, CPosition Left, CPosition Right, int threshold, double bearing, float hwidth, float hlenght) {
-
 	float heading = float(Left.DirectionTo(Right));
 	float rheading = float(fmod(heading + 180, 360));
 

@@ -130,6 +130,7 @@
     <ClCompile Include="CPDLCSettingsDialog.cpp" />
     <ClCompile Include="DataLinkDialog.cpp" />
     <ClCompile Include="HttpHelper.cpp" />
+    <ClCompile Include="InsetWindow.cpp" />
     <ClCompile Include="Rimcas.cpp" />
     <ClCompile Include="SMRPlugin.cpp" />
     <ClCompile Include="SMRRadar.cpp" />
@@ -148,6 +149,7 @@
     <ClInclude Include="DataLinkDialog.hpp" />
     <ClInclude Include="HSV.hpp" />
     <ClInclude Include="HttpHelper.hpp" />
+    <ClInclude Include="InsetWindow.h" />
     <ClInclude Include="rapidjson\document.h" />
     <ClInclude Include="rapidjson\filestream.h" />
     <ClInclude Include="rapidjson\prettywriter.h" />

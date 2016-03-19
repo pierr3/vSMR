@@ -1,12 +1,16 @@
 #pragma once
 #include <EuroScopePlugIn.h>
 #include <iostream>
+// ReSharper disable once CppUnusedIncludeDirective
 #include <sstream>
+// ReSharper disable once CppUnusedIncludeDirective
 #include <string>
 #include <vector>
 #include <map>
+// ReSharper disable once CppUnusedIncludeDirective
 #include <algorithm>
 #include <time.h>
+// ReSharper disable once CppUnusedIncludeDirective
 #include <sstream>
 #include <GdiPlus.h>
 #define _USE_MATH_DEFINES
@@ -14,12 +18,25 @@
 #include "Constant.hpp"
 #include "CallsignLookup.hpp"
 #include "Config.hpp"
+// ReSharper disable once CppUnusedIncludeDirective
 #include "TGraphics.h"
 #include "Rimcas.hpp"
+#include "InsetWindow.h"
+#include <memory>
 
 using namespace std;
 using namespace Gdiplus;
 using namespace EuroScopePlugIn;
+
+
+namespace SMRSharedData
+{
+	// Static stuff
+	static HCURSOR smrCursor;
+	static bool standardCursor;
+};
+
+using namespace SMRSharedData;
 
 class CSMRRadar :
 	public EuroScopePlugIn::CRadarScreen
@@ -41,8 +58,6 @@ public:
 	COLORREF SMR_H2_COLOR = RGB(0, 219, 219);
 	COLORREF SMR_H3_COLOR = RGB(0, 183, 183);
 
-	COLORREF TAG_COLOR_DEP = RGB(40, 50, 200);
-
 	typedef struct tagPOINT2 {
 		double x;
 		double y;
@@ -57,8 +72,6 @@ public:
 
 	map<const char *, Patatoide_Points> Patatoides;
 
-	map<string, CPosition> AirportPositions;
-
 	map<string, bool> ClosedRunway;
 
 	char DllPathFile[_MAX_PATH];
@@ -68,15 +81,7 @@ public:
 	map<string, bool> ShowLists;
 	map<string, RECT> ListAreas;
 
-	map<int, int> appWindowIds;
 	map<int, bool> appWindowDisplays;
-	map<int, RECT> appWindowAreas;
-	map<int, POINT> appWindowOffsets;
-	map<int, POINT> appWindowOffsetsInit;
-	map<int, POINT> appWindowOffsetsDrag;
-	map<int, bool> appWindowOffsetsGrip;
-	map<int, int> appWindowScales;
-	map<int, int> appWindowFilters;
 
 	map<string, CRect> tagAreas;
 	map<string, float> TagAngles;
@@ -106,8 +111,13 @@ public:
 
 	map<string, string> CustomCallsign;
 
-	CRimcas * RimcasInstance = NULL;
-	CConfig * CurrentConfig = NULL;
+	CRimcas * RimcasInstance = nullptr;
+	CConfig * CurrentConfig = nullptr;
+
+	map<int, Gdiplus::Font *> customFonts;
+	int currentFontSize = 1;
+
+	map<string, CPosition> AirportPositions;
 
 	//----
 	// Tag types
@@ -115,17 +125,20 @@ public:
 
 	enum TagTypes { Departure, Arrival, Airborne, Uncorrelated };
 
-	//---ActiveAirport--------------------------------------------
 
 	string ActiveAirport = "LFPG";
 
 	inline string getActiveAirport() {
-		return this->ActiveAirport;
+		return ActiveAirport;
 	}
 
 	inline string setActiveAirport(string value) {
-		return this->ActiveAirport = value;
+		return ActiveAirport = value;
 	}
+
+	//---GenerateTagData--------------------------------------------
+
+	static map<string, string> GenerateTagData(CRadarTarget Rt, CFlightPlan fp, int TransitionAltitude, bool useSpeedForGates);
 
 	//---IsCorrelatedFuncs---------------------------------------------
 
@@ -173,6 +186,10 @@ public:
 	//---LoadCustomFont--------------------------------------------
 
 	virtual void LoadCustomFont();
+
+	//---LoadProfile--------------------------------------------
+
+	virtual void LoadProfile(string profileName);
 
 	//---OnAsrContentLoaded--------------------------------------------
 
@@ -242,7 +259,7 @@ public:
 
 	//---LineIntersect---------------------------------------------
 
-	inline virtual POINT getIntersectionPoint(POINT lineA, POINT lineB, POINT lineC, POINT lineD) {
+	/*inline virtual POINT getIntersectionPoint(POINT lineA, POINT lineB, POINT lineC, POINT lineD) {
 
 		double x1 = lineA.x;
 		double y1 = lineA.y;
@@ -265,15 +282,7 @@ public:
 
 		}
 		return p;
-	}
-
-	//---startsWith-----------------------------------------
-
-	inline virtual bool startsWith(const char *pre, const char *str)
-	{
-		size_t lenpre = strlen(pre), lenstr = strlen(str);
-		return lenstr < lenpre ? false : strncmp(pre, str, lenpre) == 0;
-	};
+	}*/
 
 	//---OnFunctionCall-------------------------------------------------
 
