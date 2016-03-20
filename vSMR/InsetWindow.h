@@ -18,12 +18,12 @@ public:
 	bool m_Grip = false;
 	double m_Rotation = 0;
 
-	bool test = true;
+	map<string, double> m_TagAngles;
 
 	virtual void render(HDC Hdc, CSMRRadar * radar_screen, Graphics* gdi, POINT mouseLocation);
 	virtual void setAirport(string icao);
 	virtual POINT projectPoint(CPosition pos);
-	virtual void OnClickScreenObject(POINT Pt);
+	virtual void OnClickScreenObject(const char * sItemString, POINT Pt, int Button);
 	virtual bool OnMoveScreenObject(const char * sObjectId, POINT Pt, RECT Area, bool released);
 	
 private:

@@ -268,6 +268,9 @@ inline static string padWithZeros(int padding, int s)
 const int DRAWING_TAG = 1211;
 const int DRAWING_AC_SYMBOL = 1212;
 const int DRAWING_BACKGROUND_CLICK = 1213;
+const int DRAWING_AC_SYMBOL_APPWINDOW_BASE = 1251;
+const int DRAWING_AC_SYMBOL_APPWINDOW1 = 1252;
+const int DRAWING_AC_SYMBOL_APPWINDOW2 = 1253;
 
 const int TAG_CITEM_NO = 1910;
 const int TAG_CITEM_CALLSIGN = 1911;

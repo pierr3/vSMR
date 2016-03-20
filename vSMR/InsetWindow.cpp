@@ -16,9 +16,30 @@ void CInsetWindow::setAirport(string icao)
 	this->icao = icao;
 }
 
-void CInsetWindow::OnClickScreenObject(POINT Pt)
+void CInsetWindow::OnClickScreenObject(const char * sItemString, POINT Pt, int Button)
 {
-	
+	if (Button == EuroScopePlugIn::BUTTON_LEFT)
+	{
+		if (m_TagAngles.find(sItemString) != m_TagAngles.end())
+		{
+			m_TagAngles[sItemString] = fmod(m_TagAngles[sItemString]-45.0, 360.0);
+		} else
+		{
+			m_TagAngles[sItemString] = 45.0;
+		}
+	}
+
+	if (Button == EuroScopePlugIn::BUTTON_RIGHT)
+	{
+		if (m_TagAngles.find(sItemString) != m_TagAngles.end())
+		{
+			m_TagAngles[sItemString] = fmod(m_TagAngles[sItemString] + 45.0, 360.0);
+		}
+		else
+		{
+			m_TagAngles[sItemString] = 45.0;
+		}
+	}
 }
 
 bool CInsetWindow::OnMoveScreenObject(const char * sObjectId, POINT Pt, RECT Area, bool Released)
@@ -289,14 +310,18 @@ void CInsetWindow::render(HDC hDC, CSMRRadar * radar_screen, Graphics* gdi, POIN
 				dc.MoveTo(RtPoint.x, RtPoint.y);
 				dc.LineTo(RtPoint.x + 4, RtPoint.y + 4);
 			}
+
+			CRect TargetArea(RtPoint.x - 4, RtPoint.y - 4, RtPoint.x + 4, RtPoint.y + 4);
+			TargetArea.NormalizeRect();
+			radar_screen->AddScreenObject(DRAWING_AC_SYMBOL_APPWINDOW_BASE + (m_Id - APPWINDOW_BASE), rt.GetCallsign(), TargetArea, false, radar_screen->GetBottomLine(rt.GetCallsign()).c_str());
 		}
 
 		// Predicted Track Line
 		// It starts 20 seconds away from the ac
-		double d = double(rt.GetPosition().GetReportedGS()*0.514444)*20;
+		double d = double(rt.GetPosition().GetReportedGS()*0.514444)*10;
 		CPosition AwayBase = BetterHarversine(rt.GetPosition().GetPosition(), rt.GetTrackHeading(), d);
 
-		d = double(rt.GetPosition().GetReportedGS()*0.514444) * (radar_screen->PredictedLenght * 60)-20;
+		d = double(rt.GetPosition().GetReportedGS()*0.514444) * (radar_screen->PredictedLenght * 60)-10;
 		CPosition PredictedEnd = BetterHarversine(AwayBase, rt.GetTrackHeading(), d);
 
 		POINT liangOne, liangTwo;
@@ -332,17 +357,17 @@ void CInsetWindow::render(HDC hDC, CSMRRadar * radar_screen, Graphics* gdi, POIN
 		int lenght = 35;
 
 		POINT TagCenter;
-		TagCenter.x = long(RtPoint.x + float(lenght * cos(DegToRad(45))));
-		TagCenter.y = long(RtPoint.y + float(lenght * sin(DegToRad(45))));
+		if (m_TagAngles.find(rt.GetCallsign()) == m_TagAngles.end())
+		{
+			m_TagAngles[rt.GetCallsign()] = 45.0;
+		}
 
+		TagCenter.x = long(RtPoint.x + float(lenght * cos(DegToRad(m_TagAngles[rt.GetCallsign()]))));
+		TagCenter.y = long(RtPoint.y + float(lenght * sin(DegToRad(m_TagAngles[rt.GetCallsign()]))));
 		// Drawing the tags, what a mess
 
 		// ----- Generating the replacing map -----
-		map<string, string> TagReplacingMap = CSMRRadar::GenerateTagData(rt, 
-			radar_screen->GetPlugIn()->FlightPlanSelect(rt.GetCallsign()), 
-			radar_screen->GetPlugIn()->GetTransitionAltitude(), 
-			radar_screen->CurrentConfig->getActiveProfile()["labels"]["use_aspeed_for_gate"].GetBool());
-		
+		map<string, string> TagReplacingMap = CSMRRadar::GenerateTagData(rt, fp, radar_screen->IsCorrelated(fp, rt), radar_screen->CurrentConfig->getActiveProfile()["filters"]["pro_mode"]["enable"].GetBool(), radar_screen->GetPlugIn()->GetTransitionAltitude(), radar_screen->CurrentConfig->getActiveProfile()["labels"]["use_aspeed_for_gate"].GetBool());
 
 		// ----- Generating the clickable map -----
 		map<string, int> TagClickableMap;
@@ -380,11 +405,6 @@ void CInsetWindow::render(HDC hDC, CSMRRadar * radar_screen, Graphics* gdi, POIN
 		};
 
 		TagType = CSMRRadar::TagTypes::Airborne;
-
-		if (!radar_screen->IsCorrelated(fp, rt))
-		{
-			TagType = CSMRRadar::TagTypes::Uncorrelated;
-		}
 
 		// First we need to figure out the tag size
 

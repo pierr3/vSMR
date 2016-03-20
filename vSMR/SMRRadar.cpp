@@ -133,6 +133,18 @@ void CSMRRadar::OnAsrContentLoaded(bool Loaded)
 	if ((p_value = GetDataFromAsr("FontSize")) != NULL)
 		currentFontSize = atoi(p_value);
 
+	if ((p_value = GetDataFromAsr("Afterglow")) != NULL)
+		Afterglow = bool(atoi(p_value));
+
+	if ((p_value = GetDataFromAsr("AppTrailsDots")) != NULL)
+		Trail_App = atoi(p_value);
+
+	if ((p_value = GetDataFromAsr("GndTrailsDots")) != NULL)
+		Trail_Gnd = atoi(p_value);
+
+	if ((p_value = GetDataFromAsr("PredictedLine")) != NULL)
+		PredictedLenght = atoi(p_value);
+
 	string temp;
 
 	for (int i = 1; i < 3; i++)
@@ -197,7 +209,14 @@ void CSMRRadar::OnAsrContentToBeSaved(void)
 
 	SaveDataToAsr("FontSize", "vSMR font size", std::to_string(currentFontSize).c_str());
 
-	
+	SaveDataToAsr("Afterglow", "vSMR Afterglow enabled", std::to_string(int(Afterglow)).c_str());
+
+	SaveDataToAsr("AppTrailsDots", "vSMR APPR Trail Dots", std::to_string(Trail_App).c_str());
+
+	SaveDataToAsr("GndTrailsDots", "vSMR GRND Trail Dots", std::to_string(Trail_Gnd).c_str());
+
+	SaveDataToAsr("PredictedLine", "vSMR Predicted Track Lines", std::to_string(PredictedLenght).c_str());
+
 	string temp;
 	
 	for (int i = 1; i < 3; i++)
@@ -522,6 +541,8 @@ void CSMRRadar::OnClickScreenObject(int ObjectType, const char * sObjectId, POIN
 					SMRSharedData::standardCursor = true;
 				}
 			}
+
+			return;
 		}
 
 		if (ObjectType == DRAWING_AC_SYMBOL)
@@ -564,6 +585,15 @@ void CSMRRadar::OnClickScreenObject(int ObjectType, const char * sObjectId, POIN
 				RequestRefresh();
 			}
 		}
+	}
+
+	if (ObjectType == DRAWING_AC_SYMBOL_APPWINDOW1 || ObjectType == DRAWING_AC_SYMBOL_APPWINDOW2)
+	{
+		if (ObjectType == DRAWING_AC_SYMBOL_APPWINDOW1)
+			appWindows[1]->OnClickScreenObject(sObjectId, Pt, Button);
+
+		if (ObjectType == DRAWING_AC_SYMBOL_APPWINDOW2)
+			appWindows[2]->OnClickScreenObject(sObjectId, Pt, Button);
 	}
 
 	if (ObjectType == TAG_CITEM_CALLSIGN) {
@@ -1037,7 +1067,7 @@ bool CSMRRadar::OnCompileCommand(const char * sCommandLine)
 	return false;
 }
 
-map<string, string> CSMRRadar::GenerateTagData(CRadarTarget rt, CFlightPlan fp, int TransitionAltitude, bool useSpeedForGates)
+map<string, string> CSMRRadar::GenerateTagData(CRadarTarget rt, CFlightPlan fp, bool isAcCorrelated, bool isProMode, int TransitionAltitude, bool useSpeedForGates)
 {
 	// ----
 	// Tag items available
@@ -1057,6 +1087,9 @@ map<string, string> CSMRRadar::GenerateTagData(CRadarTarget rt, CFlightPlan fp, 
 	// dep: the assigned SID
 	// sdep: a short version of the SID
 	// ----
+
+	bool IsPrimary = !rt.GetPosition().GetTransponderC();
+	bool isAirborne = rt.GetPosition().GetReportedGS() > 50;
 
 	// ----- Callsign -------
 	string callsign = rt.GetCallsign();
@@ -1110,7 +1143,7 @@ map<string, string> CSMRRadar::GenerateTagData(CRadarTarget rt, CFlightPlan fp, 
 	// ----- Aircraft type -------
 
 	string actype = "NoFPL";
-	if (fp.IsValid())
+	if (fp.IsValid() && fp.GetFlightPlanData().IsReceived())
 		actype = fp.GetFlightPlanData().GetAircraftFPType();
 	if (actype.size() > 4 && actype != "NoFPL")
 		actype = actype.substr(0, 4);
@@ -1142,7 +1175,7 @@ map<string, string> CSMRRadar::GenerateTagData(CRadarTarget rt, CFlightPlan fp, 
 
 	gate = gate.substr(0, 4);
 
-	if (gate.size() == 0 || gate == "0")
+	if (gate.size() == 0 || gate == "0" || !isAcCorrelated)
 		gate = "NoGATE";
 
 	// ----- Gate that changes to speed -------
@@ -1163,7 +1196,7 @@ map<string, string> CSMRRadar::GenerateTagData(CRadarTarget rt, CFlightPlan fp, 
 
 	// ----- Tendency -------
 	string tendency = "-";
-	int delta_fl = rt.GetPosition().GetFlightLevel() - rt.GetPreviousPosition(rt.GetPosition()).GetPressureAltitude();
+	int delta_fl = rt.GetPosition().GetFlightLevel() - rt.GetPreviousPosition(rt.GetPosition()).GetFlightLevel();
 	if (abs(delta_fl) >= 50) {
 		if (delta_fl < 0) {
 			tendency = "|";
@@ -1175,7 +1208,7 @@ map<string, string> CSMRRadar::GenerateTagData(CRadarTarget rt, CFlightPlan fp, 
 
 	// ----- Wake cat -------
 	string wake = "?";
-	if (fp.IsValid()) {
+	if (fp.IsValid() && isAcCorrelated) {
 		wake = "";
 		wake += fp.GetFlightPlanData().GetAircraftWtc();
 	}
@@ -1189,14 +1222,14 @@ map<string, string> CSMRRadar::GenerateTagData(CRadarTarget rt, CFlightPlan fp, 
 
 	// ----- DEP -------
 	string dep = "SID";
-	if (fp.IsValid())
+	if (fp.IsValid() && isAcCorrelated)
 	{
 		dep = fp.GetFlightPlanData().GetSidName();
 	}
 
 	// ----- Short DEP -------
 	string sdep = dep;
-	if (fp.IsValid() && sdep.size() > 5)
+	if (fp.IsValid() && sdep.size() > 5 && isAcCorrelated)
 	{
 		sdep = dep.substr(0, 3);
 		sdep += dep.substr(dep.size() - 2, dep.size());
@@ -1204,6 +1237,41 @@ map<string, string> CSMRRadar::GenerateTagData(CRadarTarget rt, CFlightPlan fp, 
 
 	// ----- Generating the replacing map -----
 	map<string, string> TagReplacingMap;
+
+	// System ID for uncorrelated
+	TagReplacingMap["systemid"] = "T:";
+	string tpss = rt.GetSystemID();
+	TagReplacingMap["systemid"].append(tpss.substr(1, 6));
+	
+	// Pro mode data here
+	if (isProMode)
+	{
+
+		if (isAirborne && !isAcCorrelated)
+		{
+			callsign = tssr;
+		}
+
+		if (!isAcCorrelated)
+		{
+			actype = "NoFPL";
+		}
+
+		// Is a primary target
+
+		if (isAirborne && !isAcCorrelated && IsPrimary)
+		{
+			flightlevel = "NoALT";
+			tendency = "?";
+			speed = std::to_string(rt.GetGS());
+		}
+
+		if (isAirborne && !isAcCorrelated && IsPrimary)
+		{
+			callsign = TagReplacingMap["systemid"];
+		}
+	}
+
 	TagReplacingMap["callsign"] = callsign;
 	TagReplacingMap["actype"] = actype;
 	TagReplacingMap["sctype"] = sctype;
@@ -1219,11 +1287,6 @@ map<string, string> CSMRRadar::GenerateTagData(CRadarTarget rt, CFlightPlan fp, 
 	TagReplacingMap["ssr"] = tssr;
 	TagReplacingMap["asid"] = dep;
 	TagReplacingMap["ssid"] = sdep;
-
-	// System ID for uncorrelated
-	TagReplacingMap["systemid"] = "T:";
-	string tpss = rt.GetSystemID();
-	TagReplacingMap["systemid"].append(tpss.substr(1, 6));
 	
 	return TagReplacingMap;
 }
@@ -1574,7 +1637,9 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 			for (int j = 1; j <= TrailNumber; j++) {
 				POINT pCoord = ConvertCoordFromPositionToPixel(previousPos.GetPosition());
 
-				dc.Rectangle(pCoord.x - 1, pCoord.y - 1, pCoord.x + 1, pCoord.y + 1);
+				graphics.FillRectangle(&SolidBrush(Color::White), pCoord.x - 1, pCoord.y - 1, 2, 2);
+
+				//dc.Rectangle(, pCoord.x + 1, pCoord.y + 1);
 
 				previousPos = rt.GetPreviousPosition(previousPos);
 			}
@@ -1631,10 +1696,10 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 		// It starts 20 seconds away from the ac
 		if (reportedGs > 50)
 		{
-			double d = double(rt.GetPosition().GetReportedGS()*0.514444) * 20;
+			double d = double(rt.GetPosition().GetReportedGS()*0.514444) * 10;
 			CPosition AwayBase = BetterHarversine(rt.GetPosition().GetPosition(), rt.GetTrackHeading(), d);
 
-			d = double(rt.GetPosition().GetReportedGS()*0.514444) * (PredictedLenght * 60) - 20;
+			d = double(rt.GetPosition().GetReportedGS()*0.514444) * (PredictedLenght * 60) - 10;
 			CPosition PredictedEnd = BetterHarversine(AwayBase, rt.GetTrackHeading(), d);
 
 			dc.MoveTo(ConvertCoordFromPositionToPixel(AwayBase));
@@ -1760,7 +1825,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 			TagType = TagTypes::Uncorrelated;
 		}
 
-		map<string, string> TagReplacingMap = GenerateTagData(rt, fp, GetPlugIn()->GetTransitionAltitude(), CurrentConfig->getActiveProfile()["labels"]["use_aspeed_for_gate"].GetBool());
+		map<string, string> TagReplacingMap = GenerateTagData(rt, fp, IsCorrelated(fp, rt), CurrentConfig->getActiveProfile()["filters"]["pro_mode"]["enable"].GetBool(), GetPlugIn()->GetTransitionAltitude(), CurrentConfig->getActiveProfile()["labels"]["use_aspeed_for_gate"].GetBool());
 
 		// ----- Generating the clickable map -----
 		map<string, int> TagClickableMap;
