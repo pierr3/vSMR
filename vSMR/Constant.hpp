@@ -7,7 +7,10 @@
 #include <math.h>
 #include <vector>
 #include <sstream>
+#include <iomanip>
 #include "stdafx.h"
+
+#define VSTRIPS_PORT "53487"
 
 using namespace std;
 using namespace EuroScopePlugIn;
@@ -255,6 +258,13 @@ inline static CPosition BetterHarversine(CPosition init, double angle, double me
 	return newPos;
 }
 
+inline static string padWithZeros(int padding, int s)
+{
+	stringstream ss;
+	ss << setfill('0') << setw(padding) << s;
+	return ss.str();
+}
+
 const int DRAWING_TAG = 1211;
 const int DRAWING_AC_SYMBOL = 1212;
 const int DRAWING_BACKGROUND_CLICK = 1213;
@@ -276,14 +286,20 @@ const int RIMCAS_MENU = 8000;
 const int RIMCAS_QDM_TOGGLE = 8006;
 const int RIMCAS_QDM_SELECT_TOGGLE = 8007;
 const int RIMCAS_OPEN_LIST = 9873;
-const int RIMCAS_CA_MONITOR_FUNC = 8022;
-const int RIMCAS_CA_ARRIVAL_FUNC = 8020;
-const int RIMCAS_CLOSED_RUNWAYS_FUNC = 8021;
 const int RIMCAS_TIMER = 8015;
 const int RIMCAS_UPDATE_PROFILE = 8016;
 const int RIMCAS_UPDATE_BRIGHNESS = 8017;
 const int RIMCAS_UPDATE_FONTS = 8018;
 const int RIMCAS_UPDATE_LVP = 8019;
+const int RIMCAS_CA_MONITOR_FUNC = 8022;
+const int RIMCAS_CA_ARRIVAL_FUNC = 8020;
+const int RIMCAS_CLOSED_RUNWAYS_FUNC = 8021;
+const int RIMCAS_UPDATE_AFTERGLOW = 8030;
+const int RIMCAS_UPDATE_GND_TRAIL = 8031;
+const int RIMCAS_UPDATE_APP_TRAIL = 8032;
+const int RIMCAS_UPDATE_PTL = 8033;
+const int RIMCAS_UPDATE_RELEASE = 8034;
+const int RIMCAS_UPDATE_ACQUIRE = 8035;
 
 const int RIMCAS_UPDATERANGE = 6005;
 const int RIMCAS_UPDATEFILTER = 6015;

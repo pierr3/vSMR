@@ -7,7 +7,6 @@ CInsetWindow::CInsetWindow(int Id)
 	m_Id = Id;
 }
 
-
 CInsetWindow::~CInsetWindow()
 {
 }
@@ -22,7 +21,7 @@ void CInsetWindow::OnClickScreenObject(POINT Pt)
 	
 }
 
-void CInsetWindow::OnMoveScreenObject(const char * sObjectId, POINT Pt, RECT Area, bool Released)
+bool CInsetWindow::OnMoveScreenObject(const char * sObjectId, POINT Pt, RECT Area, bool Released)
 {
 	if (strcmp(sObjectId, "window") == 0) {
 		if (!this->m_Grip)
@@ -59,22 +58,10 @@ void CInsetWindow::OnMoveScreenObject(const char * sObjectId, POINT Pt, RECT Are
 		}
 
 		m_Area = newSize;
+
+		return Released;
 	}
 	if (strcmp(sObjectId, "topbar") == 0) {
-		if (!Released)
-		{
-			if (SMRSharedData::standardCursor)
-			{
-				SMRSharedData::standardCursor = false;
-			}
-		}
-		else
-		{
-			if (!SMRSharedData::standardCursor)
-			{
-				SMRSharedData::standardCursor = true;
-			}
-		}
 
 		CRect appWindowRect(m_Area);
 		appWindowRect.NormalizeRect();
@@ -85,7 +72,11 @@ void CInsetWindow::OnMoveScreenObject(const char * sObjectId, POINT Pt, RECT Are
 		newPos.NormalizeRect();
 
 		m_Area = newPos;
+
+		return Released;
 	}
+
+	return true;
 }
 
 POINT CInsetWindow::projectPoint(CPosition pos)
@@ -265,7 +256,7 @@ void CInsetWindow::render(HDC hDC, CSMRRadar * radar_screen, Graphics* gdi, POIN
 		RtPoint = projectPoint(RtPos2);
 
 		CRadarTargetPositionData hPos = rt.GetPreviousPosition(rt.GetPosition());
-		for (int i = 1; i < 4; i++) {
+		for (int i = 1; i < radar_screen->Trail_App; i++) {
 			if (!hPos.IsValid())
 				continue;
 
@@ -280,11 +271,62 @@ void CInsetWindow::render(HDC hDC, CSMRRadar * radar_screen, Graphics* gdi, POIN
 
 		if (Is_Inside(RtPoint, appAreaVect)) {
 			dc.SelectObject(&WhitePen);
-			dc.MoveTo({ RtPoint.x, RtPoint.y - 4 });
-			dc.LineTo({ RtPoint.x - 4, RtPoint.y });
-			dc.LineTo({ RtPoint.x, RtPoint.y + 4 });
-			dc.LineTo({ RtPoint.x + 4, RtPoint.y });
-			dc.LineTo({ RtPoint.x, RtPoint.y - 4 });
+
+			if (RtPos.GetTransponderC()) {
+				dc.MoveTo({ RtPoint.x, RtPoint.y - 4 });
+				dc.LineTo({ RtPoint.x - 4, RtPoint.y });
+				dc.LineTo({ RtPoint.x, RtPoint.y + 4 });
+				dc.LineTo({ RtPoint.x + 4, RtPoint.y });
+				dc.LineTo({ RtPoint.x, RtPoint.y - 4 });
+			}
+			else {
+				dc.MoveTo(RtPoint.x, RtPoint.y);
+				dc.LineTo(RtPoint.x - 4, RtPoint.y - 4);
+				dc.MoveTo(RtPoint.x, RtPoint.y);
+				dc.LineTo(RtPoint.x + 4, RtPoint.y - 4);
+				dc.MoveTo(RtPoint.x, RtPoint.y);
+				dc.LineTo(RtPoint.x - 4, RtPoint.y + 4);
+				dc.MoveTo(RtPoint.x, RtPoint.y);
+				dc.LineTo(RtPoint.x + 4, RtPoint.y + 4);
+			}
+		}
+
+		// Predicted Track Line
+		// It starts 20 seconds away from the ac
+		double d = double(rt.GetPosition().GetReportedGS()*0.514444)*20;
+		CPosition AwayBase = BetterHarversine(rt.GetPosition().GetPosition(), rt.GetTrackHeading(), d);
+
+		d = double(rt.GetPosition().GetReportedGS()*0.514444) * (radar_screen->PredictedLenght * 60)-20;
+		CPosition PredictedEnd = BetterHarversine(AwayBase, rt.GetTrackHeading(), d);
+
+		POINT liangOne, liangTwo;
+
+		if (LiangBarsky(m_Area, projectPoint(AwayBase), projectPoint(PredictedEnd), liangOne, liangTwo))
+		{
+			dc.MoveTo(liangOne);
+			dc.LineTo(liangTwo);
+		}
+
+		if (mouseWithin(mouseLocation, { RtPoint.x - 4, RtPoint.y - 4, RtPoint.x + 4, RtPoint.y + 4 })) {
+			dc.MoveTo(RtPoint.x, RtPoint.y - 6);
+			dc.LineTo(RtPoint.x - 4, RtPoint.y - 10);
+			dc.MoveTo(RtPoint.x, RtPoint.y - 6);
+			dc.LineTo(RtPoint.x + 4, RtPoint.y - 10);
+
+			dc.MoveTo(RtPoint.x, RtPoint.y + 6);
+			dc.LineTo(RtPoint.x - 4, RtPoint.y + 10);
+			dc.MoveTo(RtPoint.x, RtPoint.y + 6);
+			dc.LineTo(RtPoint.x + 4, RtPoint.y + 10);
+
+			dc.MoveTo(RtPoint.x - 6, RtPoint.y);
+			dc.LineTo(RtPoint.x - 10, RtPoint.y - 4);
+			dc.MoveTo(RtPoint.x - 6, RtPoint.y);
+			dc.LineTo(RtPoint.x - 10, RtPoint.y + 4);
+
+			dc.MoveTo(RtPoint.x + 6, RtPoint.y);
+			dc.LineTo(RtPoint.x + 10, RtPoint.y - 4);
+			dc.MoveTo(RtPoint.x + 6, RtPoint.y);
+			dc.LineTo(RtPoint.x + 10, RtPoint.y + 4);
 		}
 
 		int lenght = 35;
@@ -293,9 +335,7 @@ void CInsetWindow::render(HDC hDC, CSMRRadar * radar_screen, Graphics* gdi, POIN
 		TagCenter.x = long(RtPoint.x + float(lenght * cos(DegToRad(45))));
 		TagCenter.y = long(RtPoint.y + float(lenght * sin(DegToRad(45))));
 
-		// Drawing the tags, what a fucking mess
-
-		
+		// Drawing the tags, what a mess
 
 		// ----- Generating the replacing map -----
 		map<string, string> TagReplacingMap = CSMRRadar::GenerateTagData(rt, 
@@ -326,6 +366,26 @@ void CInsetWindow::render(HDC hDC, CSMRRadar * radar_screen, Graphics* gdi, POIN
 		// ----- Now the hard part, drawing (using gdi+) -------
 		//	
 
+		CSMRRadar::TagTypes TagType;
+		struct Utils2 {
+			static string getEnumString(CSMRRadar::TagTypes type) {
+				if (type == CSMRRadar::TagTypes::Departure)
+					return "departure";
+				if (type == CSMRRadar::TagTypes::Arrival)
+					return "arrival";
+				if (type == CSMRRadar::TagTypes::Uncorrelated)
+					return "uncorrelated";
+				return "airborne";
+			}
+		};
+
+		TagType = CSMRRadar::TagTypes::Airborne;
+
+		if (!radar_screen->IsCorrelated(fp, rt))
+		{
+			TagType = CSMRRadar::TagTypes::Uncorrelated;
+		}
+
 		// First we need to figure out the tag size
 
 		int TagWidth, TagHeight;
@@ -333,19 +393,19 @@ void CInsetWindow::render(HDC hDC, CSMRRadar * radar_screen, Graphics* gdi, POIN
 
 		string line1_size = "";
 		string line2_size = "";
-		for (SizeType i = 0; i < LabelsSettings["airborne"]["line1"].Size(); i++) {
-			const Value& item = LabelsSettings["airborne"]["line1"][i];
+		for (SizeType i = 0; i < LabelsSettings[Utils2::getEnumString(TagType).c_str()]["line1"].Size(); i++) {
+			const Value& item = LabelsSettings[Utils2::getEnumString(TagType).c_str()]["line1"][i];
 			line1_size.append(item.GetString());
-			if (i != LabelsSettings["airborne"]["line1"].Size() - 1)
+			if (i != LabelsSettings[Utils2::getEnumString(TagType).c_str()]["line1"].Size() - 1)
 				line1_size.append(" ");
 		}
 
 		// If there is a second line, then we determine its size.
-		if (LabelsSettings["airborne"]["two_lines_tag"].GetBool()) {
-			for (SizeType i = 0; i < LabelsSettings["airborne"]["line2"].Size(); i++) {
-				const Value& item = LabelsSettings["airborne"]["line2"][i];
+		if (LabelsSettings[Utils2::getEnumString(TagType).c_str()]["two_lines_tag"].GetBool()) {
+			for (SizeType i = 0; i < LabelsSettings[Utils2::getEnumString(TagType).c_str()]["line2"].Size(); i++) {
+				const Value& item = LabelsSettings[Utils2::getEnumString(TagType).c_str()]["line2"][i];
 				line2_size.append(item.GetString());
-				if (i != LabelsSettings["airborne"]["line2"].Size() - 1)
+				if (i != LabelsSettings[Utils2::getEnumString(TagType).c_str()]["line2"].Size() - 1)
 					line2_size.append(" ");
 			}
 		}
@@ -354,7 +414,7 @@ void CInsetWindow::render(HDC hDC, CSMRRadar * radar_screen, Graphics* gdi, POIN
 		{
 			replaceAll(line1_size, iterator->first, iterator->second);
 
-			if (LabelsSettings["airborne"]["two_lines_tag"].GetBool()) {
+			if (LabelsSettings[Utils2::getEnumString(TagType).c_str()]["two_lines_tag"].GetBool()) {
 				replaceAll(line2_size, iterator->first, iterator->second);
 			}
 		}
@@ -375,15 +435,15 @@ void CInsetWindow::render(HDC hDC, CSMRRadar * radar_screen, Graphics* gdi, POIN
 		bool rimcasLabelOnly = radar_screen->CurrentConfig->getActiveProfile()["rimcas"]["rimcas_label_only"].GetBool();
 
 		Color TagBackgroundColor = radar_screen->RimcasInstance->GetAircraftColor(rt.GetCallsign(),
-			radar_screen->CurrentConfig->getConfigColor(LabelsSettings["airborne"]["background_color"]),
-			radar_screen->CurrentConfig->getConfigColor(LabelsSettings["airborne"]["background_color_on_runway"]),
+			radar_screen->CurrentConfig->getConfigColor(LabelsSettings[Utils2::getEnumString(TagType).c_str()]["background_color"]),
+			radar_screen->CurrentConfig->getConfigColor(LabelsSettings[Utils2::getEnumString(TagType).c_str()]["background_color_on_runway"]),
 			radar_screen->CurrentConfig->getConfigColor(radar_screen->CurrentConfig->getActiveProfile()["rimcas"]["background_color_stage_one"]),
 			radar_screen->CurrentConfig->getConfigColor(radar_screen->CurrentConfig->getActiveProfile()["rimcas"]["background_color_stage_two"]));
 
 		if (rimcasLabelOnly)
 			TagBackgroundColor = radar_screen->RimcasInstance->GetAircraftColor(rt.GetCallsign(),
-				radar_screen->CurrentConfig->getConfigColor(LabelsSettings["airborne"]["background_color"]),
-				radar_screen->CurrentConfig->getConfigColor(LabelsSettings["airborne"]["background_color_on_runway"]));
+				radar_screen->CurrentConfig->getConfigColor(LabelsSettings[Utils2::getEnumString(TagType).c_str()]["background_color"]),
+				radar_screen->CurrentConfig->getConfigColor(LabelsSettings[Utils2::getEnumString(TagType).c_str()]["background_color_on_runway"]));
 
 		CRect TagBackgroundRect(TagCenter.x - (TagWidth / 2), TagCenter.y - (TagHeight / 2), TagCenter.x + (TagWidth / 2), TagCenter.y + (TagHeight / 2));
 
@@ -394,11 +454,11 @@ void CInsetWindow::render(HDC hDC, CSMRRadar * radar_screen, Graphics* gdi, POIN
 			SolidBrush TagBackgroundBrush(TagBackgroundColor);
 			gdi->FillRectangle(&TagBackgroundBrush, CopyRect(TagBackgroundRect));
 
-			SolidBrush FontColor(radar_screen->CurrentConfig->getConfigColor(LabelsSettings["airborne"]["text_color"]));
+			SolidBrush FontColor(radar_screen->CurrentConfig->getConfigColor(LabelsSettings[Utils2::getEnumString(TagType).c_str()]["text_color"]));
 			wstring line1w = wstring(line1_size.begin(), line1_size.end());
 			gdi->DrawString(line1w.c_str(), wcslen(line1w.c_str()), radar_screen->customFonts[radar_screen->currentFontSize], PointF(Gdiplus::REAL(TagBackgroundRect.left), Gdiplus::REAL(TagBackgroundRect.top)), &Gdiplus::StringFormat(), &FontColor);
 
-			if (LabelsSettings["airborne"]["two_lines_tag"].GetBool()) {
+			if (LabelsSettings[Utils2::getEnumString(TagType).c_str()]["two_lines_tag"].GetBool()) {
 				wstring line2w = wstring(line2_size.begin(), line2_size.end());
 				gdi->DrawString(line2w.c_str(), wcslen(line2w.c_str()), radar_screen->customFonts[radar_screen->currentFontSize], PointF(Gdiplus::REAL(TagBackgroundRect.left), Gdiplus::REAL(TagBackgroundRect.top + (TagHeight / 2))), &Gdiplus::StringFormat(), &FontColor);
 			}
@@ -501,7 +561,7 @@ void CInsetWindow::render(HDC hDC, CSMRRadar * radar_screen, Graphics* gdi, POIN
 			}
 
 			// If there is a line 2, then we do it all over again :p
-			if (LabelsSettings["airborne"]["two_lines_tag"].GetBool()) {
+			if (LabelsSettings[Utils2::getEnumString(TagType).c_str()]["two_lines_tag"].GetBool()) {
 				vector<string> line2_items = split(line2_size, ' ');
 				offset1 = 0;
 				for (auto &item : line2_items)

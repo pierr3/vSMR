@@ -85,7 +85,6 @@ CSMRRadar::~CSMRRadar()
 	GdiplusShutdown(m_gdiplusToken);
 }
 
-// TODO: Move leader line reloading
 void CSMRRadar::LoadCustomFont() {
 	// Loading the custom font if there is one in use
 	customFonts.clear();
@@ -103,6 +102,7 @@ void CSMRRadar::LoadCustomFont() {
 	customFonts[2] = new Gdiplus::Font(buffer.c_str(), Gdiplus::REAL(FSizes["two"].GetInt()), fontStyle, Gdiplus::UnitPixel);
 	customFonts[3] = new Gdiplus::Font(buffer.c_str(), Gdiplus::REAL(FSizes["three"].GetInt()), fontStyle, Gdiplus::UnitPixel);
 	customFonts[4] = new Gdiplus::Font(buffer.c_str(), Gdiplus::REAL(FSizes["four"].GetInt()), fontStyle, Gdiplus::UnitPixel);
+	customFonts[5] = new Gdiplus::Font(buffer.c_str(), Gdiplus::REAL(FSizes["five"].GetInt()), fontStyle, Gdiplus::UnitPixel);
 }
 
 void CSMRRadar::LoadProfile(string profileName) {
@@ -116,6 +116,8 @@ void CSMRRadar::LoadProfile(string profileName) {
 	// Reloading the fonts
 	this->LoadCustomFont();
 }
+
+// TODO: Save the trails data, afterglow, predicted line
 
 void CSMRRadar::OnAsrContentLoaded(bool Loaded)
 {
@@ -236,22 +238,29 @@ void CSMRRadar::OnMoveScreenObject(int ObjectType, const char * sObjectId, POINT
 	if (ObjectType == APPWINDOW_ONE || ObjectType == APPWINDOW_TWO) {
 		int appWindowId = ObjectType - APPWINDOW_BASE;
 
-		appWindows[appWindowId]->OnMoveScreenObject(sObjectId, Pt, Area, Released);
+		bool toggleCursor = appWindows[appWindowId]->OnMoveScreenObject(sObjectId, Pt, Area, Released);
 		
-		if (SMRSharedData::standardCursor)
+		if (!toggleCursor)
 		{
-			SMRSharedData::smrCursor = CopyCursor((HCURSOR)::LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDC_SMRMOVE), IMAGE_CURSOR, 0, 0, LR_SHARED));
-			AfxGetMainWnd()->SendMessage(WM_SETCURSOR);
-			SMRSharedData::standardCursor = false;
-		}
+			if (SMRSharedData::standardCursor)
+			{
+				if (strcmp(sObjectId, "topbar") == 0)
+					SMRSharedData::smrCursor = CopyCursor((HCURSOR)::LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDC_SMRMOVEWINDOW), IMAGE_CURSOR, 0, 0, LR_SHARED));
+				else if (strcmp(sObjectId, "resize") == 0)
+					SMRSharedData::smrCursor = CopyCursor((HCURSOR)::LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDC_SMRRESIZE), IMAGE_CURSOR, 0, 0, LR_SHARED));
 
-		if (!SMRSharedData::standardCursor)
+				AfxGetMainWnd()->SendMessage(WM_SETCURSOR);
+				SMRSharedData::standardCursor = false;
+			}
+		} else
 		{
-			SMRSharedData::smrCursor = CopyCursor((HCURSOR)::LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDC_SMRCURSOR), IMAGE_CURSOR, 0, 0, LR_SHARED));
-			AfxGetMainWnd()->SendMessage(WM_SETCURSOR);
-			SMRSharedData::standardCursor = true;
+			if (!SMRSharedData::standardCursor)
+			{
+				SMRSharedData::smrCursor = CopyCursor((HCURSOR)::LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDC_SMRCURSOR), IMAGE_CURSOR, 0, 0, LR_SHARED));
+				AfxGetMainWnd()->SendMessage(WM_SETCURSOR);
+				SMRSharedData::standardCursor = true;
+			}
 		}
-
 	}
 
 	if (ObjectType == DRAWING_TAG || ObjectType == TAG_CITEM_MANUALCORRELATE ||ObjectType == TAG_CITEM_CALLSIGN || ObjectType == TAG_CITEM_FPBOX || ObjectType == TAG_CITEM_RWY || ObjectType == TAG_CITEM_GATE) {
@@ -261,7 +270,7 @@ void CSMRRadar::OnMoveScreenObject(int ObjectType, const char * sObjectId, POINT
 		{
 			if(SMRSharedData::standardCursor)
 			{
-				SMRSharedData::smrCursor = CopyCursor((HCURSOR)::LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDC_SMRMOVE), IMAGE_CURSOR, 0, 0, LR_SHARED));
+				SMRSharedData::smrCursor = CopyCursor((HCURSOR)::LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDC_SMRMOVETAG), IMAGE_CURSOR, 0, 0, LR_SHARED));
 				AfxGetMainWnd()->SendMessage(WM_SETCURSOR);
 				SMRSharedData::standardCursor = false;
 			}
@@ -323,18 +332,6 @@ void CSMRRadar::OnMoveScreenObject(int ObjectType, const char * sObjectId, POINT
 
 void CSMRRadar::OnOverScreenObject(int ObjectType, const char * sObjectId, POINT Pt, RECT Area)
 {
-	/*
-	if (ObjectType == DRAWING_AC_SYMBOL)
-	{
-		CRadarTarget rt = GetPlugIn()->RadarTargetSelect(sObjectId);
-
-		if (rt.IsValid())
-		{
-			OverAcSymbol[sObjectId] = clock();
-			RequestRefresh();
-		}
-	}*/
-
 	mouseLocation = Pt;
 	RequestRefresh();
 }
@@ -419,8 +416,22 @@ void CSMRRadar::OnClickScreenObject(int ObjectType, const char * sObjectId, POIN
 			GetPlugIn()->AddPopupListElement("QDR Select Reference", "", RIMCAS_QDM_SELECT_TOGGLE);
 			GetPlugIn()->AddPopupListElement("SRW 1", "", APPWINDOW_ONE, false, int(appWindowDisplays[1]));
 			GetPlugIn()->AddPopupListElement("SRW 2", "", APPWINDOW_TWO, false, int(appWindowDisplays[2]));
-			GetPlugIn()->AddPopupListElement("Font size", "", RIMCAS_OPEN_LIST);
 			GetPlugIn()->AddPopupListElement("Profiles", "", RIMCAS_OPEN_LIST);
+			GetPlugIn()->AddPopupListElement("Close", "", RIMCAS_CLOSE, false, 2, false, true);
+		}
+
+		if (strcmp(sObjectId, "TargetMenu") == 0) {
+			Area.top = Area.top + 30;
+			Area.bottom = Area.bottom + 30;
+
+			GetPlugIn()->OpenPopupList(Area, "Target", 1);
+			GetPlugIn()->AddPopupListElement("Label Font Size", "", RIMCAS_OPEN_LIST);
+			GetPlugIn()->AddPopupListElement("Afterglow", "", RIMCAS_UPDATE_AFTERGLOW, false, int(Afterglow));
+			GetPlugIn()->AddPopupListElement("GRND Trail Dots", "", RIMCAS_OPEN_LIST);
+			GetPlugIn()->AddPopupListElement("APPR Trail Dots", "", RIMCAS_OPEN_LIST);
+			GetPlugIn()->AddPopupListElement("Predicted Track Line", "", RIMCAS_OPEN_LIST);
+			GetPlugIn()->AddPopupListElement("Acquire", "", RIMCAS_UPDATE_ACQUIRE);
+			GetPlugIn()->AddPopupListElement("Release", "", RIMCAS_UPDATE_RELEASE);
 			GetPlugIn()->AddPopupListElement("Close", "", RIMCAS_CLOSE, false, 2, false, true);
 		}
 
@@ -466,6 +477,51 @@ void CSMRRadar::OnClickScreenObject(int ObjectType, const char * sObjectId, POIN
 		}
 		else {
 			GetPlugIn()->SetASELAircraft(Fp);
+		}
+
+		// Release & correlate actions
+
+		if (ReleaseInProgress || AcquireInProgress)
+		{
+			if (ReleaseInProgress)
+			{
+				ReleaseInProgress = NeedCorrelateCursor = false;
+
+				ReleasedTracks.push_back(rt.GetSystemID());
+
+				if (std::find(ManuallyCorrelated.begin(), ManuallyCorrelated.end(), rt.GetSystemID()) != ManuallyCorrelated.end())
+					ManuallyCorrelated.erase(std::find(ManuallyCorrelated.begin(), ManuallyCorrelated.end(), rt.GetSystemID()));
+			}
+
+			if (AcquireInProgress)
+			{
+				AcquireInProgress = NeedCorrelateCursor = false;
+
+				ManuallyCorrelated.push_back(rt.GetSystemID());
+
+				if (std::find(ReleasedTracks.begin(), ReleasedTracks.end(), rt.GetSystemID()) != ReleasedTracks.end())
+					ReleasedTracks.erase(std::find(ReleasedTracks.begin(), ReleasedTracks.end(), rt.GetSystemID()));
+			}
+
+
+			if (NeedCorrelateCursor)
+			{
+				if (SMRSharedData::standardCursor)
+				{
+					SMRSharedData::smrCursor = CopyCursor((HCURSOR)::LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDC_SMRCORRELATE), IMAGE_CURSOR, 0, 0, LR_SHARED));
+					AfxGetMainWnd()->SendMessage(WM_SETCURSOR);
+					SMRSharedData::standardCursor = false;
+				}
+			}
+			else
+			{
+				if (!SMRSharedData::standardCursor)
+				{
+					SMRSharedData::smrCursor = CopyCursor((HCURSOR)::LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDC_SMRCURSOR), IMAGE_CURSOR, 0, 0, LR_SHARED));
+					AfxGetMainWnd()->SendMessage(WM_SETCURSOR);
+					SMRSharedData::standardCursor = true;
+				}
+			}
 		}
 
 		if (ObjectType == DRAWING_AC_SYMBOL)
@@ -565,24 +621,6 @@ void CSMRRadar::OnClickScreenObject(int ObjectType, const char * sObjectId, POIN
 		StartTagFunction(rt.GetCallsign(), NULL, TAG_CITEM_GATE, rt.GetCallsign(), NULL, EuroScopePlugIn::TAG_ITEM_FUNCTION_EDIT_SCRATCH_PAD, Pt, Area);
 	}
 
-	if (ObjectType == TAG_CITEM_MANUALCORRELATE)
-	{
-		string s = "";
-		if (CustomCallsign.find(sObjectId) != CustomCallsign.end())
-			s = CustomCallsign[sObjectId];
-
-		CFlightPlan Fp = GetPlugIn()->FlightPlanSelect(sObjectId);
-		CRadarTarget rt = GetPlugIn()->RadarTargetSelect(sObjectId);
-		if (rt.GetCorrelatedFlightPlan().IsValid()) {
-			StartTagFunction(rt.GetCallsign(), NULL, EuroScopePlugIn::TAG_ITEM_TYPE_CALLSIGN, rt.GetCallsign(), NULL, EuroScopePlugIn::TAG_ITEM_FUNCTION_NO, Pt, Area);
-		}
-		else {
-			GetPlugIn()->SetASELAircraft(Fp);
-		}
-
-		GetPlugIn()->OpenPopupEdit(Area, FUNC_MANUAL_CALLSIGN, s.c_str());
-	}
-
 	RequestRefresh();
 };
 
@@ -598,22 +636,6 @@ void CSMRRadar::OnFunctionCall(int FunctionId, const char * sItemString, POINT P
 		SaveDataToAsr("Airport", "Active airport", getActiveAirport().c_str());
 	}
 
-	if (FunctionId == FUNC_MANUAL_CALLSIGN)
-	{
-		CFlightPlan fp = GetPlugIn()->FlightPlanSelectASEL();
-
-		if (CustomCallsign.find(fp.GetCallsign()) != CustomCallsign.end())
-		{
-			if (strlen(sItemString) == 0)
-				CustomCallsign.erase(fp.GetCallsign());
-			else
-				CustomCallsign[fp.GetCallsign()] = sItemString;
-		} else
-		{
-				CustomCallsign[fp.GetCallsign()] = sItemString;
-		}
-	}
-
 	if (FunctionId == RIMCAS_UPDATE_FONTS) {
 		if (strcmp(sItemString, "Size 1") == 0)
 			currentFontSize = 1;
@@ -626,7 +648,7 @@ void CSMRRadar::OnFunctionCall(int FunctionId, const char * sItemString, POINT P
 		if (strcmp(sItemString, "Size 5") == 0)
 			currentFontSize = 5;
 
-		ShowLists["Font size"] = true;
+		ShowLists["Label Font Size"] = true;
 	}
 
 	if (FunctionId == RIMCAS_QDM_TOGGLE) {
@@ -721,6 +743,86 @@ void CSMRRadar::OnFunctionCall(int FunctionId, const char * sItemString, POINT P
 		ShowLists["Visibility"] = true;
 
 		RequestRefresh();
+	}
+
+	if (FunctionId == RIMCAS_UPDATE_AFTERGLOW)
+	{
+		Afterglow = !Afterglow;
+	}
+
+	if (FunctionId == RIMCAS_UPDATE_GND_TRAIL)
+	{
+		Trail_Gnd = atoi(sItemString);
+
+		ShowLists["GRND Trail Dots"] = true;
+	}
+
+	if (FunctionId == RIMCAS_UPDATE_APP_TRAIL)
+	{
+		Trail_App = atoi(sItemString);
+
+		ShowLists["APPR Trail Dots"] = true;
+	}
+
+	if (FunctionId == RIMCAS_UPDATE_PTL)
+	{
+		PredictedLenght = atoi(sItemString);
+
+		ShowLists["Predicted Track Line"] = true;
+	}
+
+	if (FunctionId == RIMCAS_UPDATE_RELEASE)
+	{
+		ReleaseInProgress = !ReleaseInProgress;
+		if (ReleaseInProgress)
+			AcquireInProgress = false;
+		NeedCorrelateCursor = ReleaseInProgress;
+
+		if (NeedCorrelateCursor)
+		{
+			if (SMRSharedData::standardCursor)
+			{
+				SMRSharedData::smrCursor = CopyCursor((HCURSOR)::LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDC_SMRCORRELATE), IMAGE_CURSOR, 0, 0, LR_SHARED));
+				AfxGetMainWnd()->SendMessage(WM_SETCURSOR);
+				SMRSharedData::standardCursor = false;
+			}
+		}
+		else
+		{
+			if (!SMRSharedData::standardCursor)
+			{
+				SMRSharedData::smrCursor = CopyCursor((HCURSOR)::LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDC_SMRCURSOR), IMAGE_CURSOR, 0, 0, LR_SHARED));
+				AfxGetMainWnd()->SendMessage(WM_SETCURSOR);
+				SMRSharedData::standardCursor = true;
+			}
+		}
+	}
+
+	if (FunctionId == RIMCAS_UPDATE_ACQUIRE)
+	{
+		AcquireInProgress = !AcquireInProgress;
+		if (AcquireInProgress)
+			ReleaseInProgress = false;
+		NeedCorrelateCursor = AcquireInProgress;
+
+		if (NeedCorrelateCursor)
+		{
+			if (SMRSharedData::standardCursor)
+			{
+				SMRSharedData::smrCursor = CopyCursor((HCURSOR)::LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDC_SMRCORRELATE), IMAGE_CURSOR, 0, 0, LR_SHARED));
+				AfxGetMainWnd()->SendMessage(WM_SETCURSOR);
+				SMRSharedData::standardCursor = false;
+			}
+		}
+		else
+		{
+			if (!SMRSharedData::standardCursor)
+			{
+				SMRSharedData::smrCursor = CopyCursor((HCURSOR)::LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDC_SMRCURSOR), IMAGE_CURSOR, 0, 0, LR_SHARED));
+				AfxGetMainWnd()->SendMessage(WM_SETCURSOR);
+				SMRSharedData::standardCursor = true;
+			}
+		}
 	}
 }
 
@@ -928,7 +1030,7 @@ bool CSMRRadar::OnCompileCommand(const char * sCommandLine)
 {
 	if (strcmp(sCommandLine, ".smr reload") == 0) {
 		CurrentConfig = new CConfig(DllPath + "\\vSMR_Profiles.json");
-		LoadCustomFont();
+		LoadProfile(CurrentConfig->getActiveProfileName());
 		return true;
 	}
 
@@ -1006,8 +1108,11 @@ map<string, string> CSMRRadar::GenerateTagData(CRadarTarget rt, CFlightPlan fp, 
 	}
 
 	// ----- Aircraft type -------
-	string actype = fp.GetFlightPlanData().GetAircraftFPType();
-	if (actype.size() > 4)
+
+	string actype = "NoFPL";
+	if (fp.IsValid())
+		actype = fp.GetFlightPlanData().GetAircraftFPType();
+	if (actype.size() > 4 && actype != "NoFPL")
 		actype = actype.substr(0, 4);
 
 	// ----- Aircraft type that changes to squawk error -------
@@ -1017,9 +1122,6 @@ map<string, string> CSMRRadar::GenerateTagData(CRadarTarget rt, CFlightPlan fp, 
 
 	// ----- Groundspeed -------
 	string speed = std::to_string(rt.GetPosition().GetReportedGS());
-	for (size_t i = 0; i < 3 - speed.length(); i++)
-		speed = "0" + speed;
-	speed = speed.substr(0, 3);
 
 	// ----- Departure runway -------
 	string deprwy = fp.GetFlightPlanData().GetDepartureRwy();
@@ -1027,7 +1129,7 @@ map<string, string> CSMRRadar::GenerateTagData(CRadarTarget rt, CFlightPlan fp, 
 		deprwy = "RWY";
 
 	// ----- Departure runway that changes for overspeed -------
-	string seprwy = fp.GetFlightPlanData().GetDepartureRwy();
+	string seprwy = deprwy;
 	if (rt.GetPosition().GetReportedGS() > 25)
 		seprwy = std::to_string(rt.GetPosition().GetReportedGS());
 
@@ -1041,7 +1143,7 @@ map<string, string> CSMRRadar::GenerateTagData(CRadarTarget rt, CFlightPlan fp, 
 	gate = gate.substr(0, 4);
 
 	if (gate.size() == 0 || gate == "0")
-		gate = "NOGT";
+		gate = "NoGATE";
 
 	// ----- Gate that changes to speed -------
 	string sate = gate;
@@ -1049,22 +1151,20 @@ map<string, string> CSMRRadar::GenerateTagData(CRadarTarget rt, CFlightPlan fp, 
 		sate = speed;
 
 	// ----- Flightlevel -------
-	string flightlevel = "F";
-	int FL = rt.GetPosition().GetFlightLevel();
-	if (rt.GetPosition().GetPressureAltitude() < TransitionAltitude) {
-		flightlevel = "A";
-		FL = rt.GetPosition().GetPressureAltitude();
+	int fl = rt.GetPosition().GetFlightLevel();
+	int padding = 5;
+	string pfls = "";
+	if (fl <= TransitionAltitude) {
+		fl = rt.GetPosition().GetPressureAltitude();
+		pfls = "A";
+		padding = 4;
 	}
-	string str = std::to_string(FL);
-	for (size_t i = 0; i < 6 - str.length(); i++)
-		str = "0" + str;
-	str.erase(str.begin() + 3, str.end());
-	flightlevel += str;
+	string flightlevel = (pfls + padWithZeros(padding, fl)).substr(0, 3);
 
 	// ----- Tendency -------
 	string tendency = "-";
-	int delta_fl = FL - rt.GetPreviousPosition(rt.GetPosition()).GetPressureAltitude();
-	if (abs(delta_fl) >= 20) {
+	int delta_fl = rt.GetPosition().GetFlightLevel() - rt.GetPreviousPosition(rt.GetPosition()).GetPressureAltitude();
+	if (abs(delta_fl) >= 50) {
 		if (delta_fl < 0) {
 			tendency = "|";
 		}
@@ -1088,7 +1188,7 @@ map<string, string> CSMRRadar::GenerateTagData(CRadarTarget rt, CFlightPlan fp, 
 	}
 
 	// ----- DEP -------
-	string dep = "";
+	string dep = "SID";
 	if (fp.IsValid())
 	{
 		dep = fp.GetFlightPlanData().GetSidName();
@@ -1123,7 +1223,7 @@ map<string, string> CSMRRadar::GenerateTagData(CRadarTarget rt, CFlightPlan fp, 
 	// System ID for uncorrelated
 	TagReplacingMap["systemid"] = "T:";
 	string tpss = rt.GetSystemID();
-	TagReplacingMap["systemid"].append(tpss.substr(2, 6));
+	TagReplacingMap["systemid"].append(tpss.substr(1, 6));
 	
 	return TagReplacingMap;
 }
@@ -1184,7 +1284,6 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 			return Area;
 		}
 	};
-
 
 	POINT p;
 	if (GetCursorPos(&p))
@@ -1416,11 +1515,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 				pAcPos = rt.GetPreviousPosition(pAcPos);
 				acPosPix = ConvertCoordFromPositionToPixel(pAcPos.GetPosition());
 
-				int middlex = (oldacPosPix.x);
-				int middley = (oldacPosPix.y);
-				POINT middlePos; middlePos.x = middlex; middlePos.y = middley;
-
-				if (i == 1 && !Patatoides[rt.GetCallsign()].History_one_points.empty() && CurrentConfig->getActiveProfile()["targets"]["show_primary_target"].GetBool()) {
+				if (i == 1 && !Patatoides[rt.GetCallsign()].History_one_points.empty() && Afterglow && CurrentConfig->getActiveProfile()["targets"]["show_primary_target"].GetBool()) {
 					SolidBrush H_Brush(CurrentConfig->getConfigColor(CurrentConfig->getActiveProfile()["targets"]["history_one_color"]));
 					
 					PointF lpPoints[100];
@@ -1436,7 +1531,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 				}
 
 				if (i != 2) {
-					if (!Patatoides[rt.GetCallsign()].History_two_points.empty() && CurrentConfig->getActiveProfile()["targets"]["show_primary_target"].GetBool()) {
+					if (!Patatoides[rt.GetCallsign()].History_two_points.empty() && Afterglow && CurrentConfig->getActiveProfile()["targets"]["show_primary_target"].GetBool()) {
 						SolidBrush H_Brush(CurrentConfig->getConfigColor(CurrentConfig->getActiveProfile()["targets"]["history_two_color"]));
 
 						PointF lpPoints[100];
@@ -1452,7 +1547,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 					}
 				}
 
-				if (i == 2 && !Patatoides[rt.GetCallsign()].History_three_points.empty() && CurrentConfig->getActiveProfile()["targets"]["show_primary_target"].GetBool()) {
+				if (i == 2 && !Patatoides[rt.GetCallsign()].History_three_points.empty() && Afterglow && CurrentConfig->getActiveProfile()["targets"]["show_primary_target"].GetBool()) {
 					SolidBrush H_Brush(CurrentConfig->getConfigColor(CurrentConfig->getActiveProfile()["targets"]["history_three_color"]));
 
 					PointF lpPoints[100];
@@ -1466,19 +1561,27 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 					}
 					graphics.FillPolygon(&H_Brush, lpPoints, Patatoides[rt.GetCallsign()].History_three_points.size());
 				}
-
-				CPen qTrailPen(PS_SOLID, 1, RGB(255, 255, 255));
-				CPen* pqOrigPen = dc.SelectObject(&qTrailPen);
-
-				dc.Rectangle(middlePos.x - 1, middlePos.y - 1, middlePos.x + 1, middlePos.y + 1);
-
-				if (i != 2) {
-					dc.Rectangle(acPosPix.x - 1, acPosPix.y - 1, acPosPix.x + 1, acPosPix.y + 1);
-				}
-				dc.SelectObject(pqOrigPen);
 			}
 
+			CPen qTrailDotsPen(PS_SOLID, 1, RGB(255, 255, 255));
+			CPen* pqOrigDotsPen = dc.SelectObject(&qTrailDotsPen);
+
+			int TrailNumber = Trail_Gnd;
+			if (reportedGs > 50)
+				TrailNumber = Trail_App;
+
+			CRadarTargetPositionData previousPos = rt.GetPreviousPosition(rt.GetPosition());
+			for (int j = 1; j <= TrailNumber; j++) {
+				POINT pCoord = ConvertCoordFromPositionToPixel(previousPos.GetPosition());
+
+				dc.Rectangle(pCoord.x - 1, pCoord.y - 1, pCoord.x + 1, pCoord.y + 1);
+
+				previousPos = rt.GetPreviousPosition(previousPos);
+			}
+
+			dc.SelectObject(pqOrigDotsPen);
 		}
+
 
 		if (CurrentConfig->getActiveProfile()["targets"]["show_primary_target"].GetBool()) {
 
@@ -1500,24 +1603,42 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 
 		bool AcisCorrelated = IsCorrelated(GetPlugIn()->FlightPlanSelect(rt.GetCallsign()), rt);
 
-		if (!AcisCorrelated && reportedGs < 3)
+		if (!AcisCorrelated && reportedGs < 1 && !ReleaseInProgress && !AcquireInProgress)
 			continue;
 
 		CPen qTrailPen(PS_SOLID, 1, RGB(255, 255, 255));
 		CPen* pqOrigPen = dc.SelectObject(&qTrailPen);
 
 		if (RtPos.GetTransponderC()) {
-			dc.MoveTo(acPosPix.x, acPosPix.y - 6);
-			dc.LineTo(acPosPix.x - 6, acPosPix.y);
-			dc.MoveTo(acPosPix.x - 6, acPosPix.y);
-			dc.LineTo(acPosPix.x, acPosPix.y + 6);
-			dc.MoveTo(acPosPix.x, acPosPix.y + 6);
-			dc.LineTo(acPosPix.x + 6, acPosPix.y);
-			dc.MoveTo(acPosPix.x + 6, acPosPix.y);
-			dc.LineTo(acPosPix.x, acPosPix.y - 6);
+			dc.MoveTo({ acPosPix.x, acPosPix.y - 6 });
+			dc.LineTo({ acPosPix.x - 6, acPosPix.y });
+			dc.LineTo({ acPosPix.x, acPosPix.y + 6 });
+			dc.LineTo({ acPosPix.x + 6, acPosPix.y });
+			dc.LineTo({ acPosPix.x, acPosPix.y - 6 });
 		}
 		else {
-			th.DrawEllipse(dc, acPosPix.x - 4, acPosPix.y - 4, acPosPix.x + 4, acPosPix.y + 4, RGB(255, 255, 255));
+			dc.MoveTo(acPosPix.x, acPosPix.y);
+			dc.LineTo(acPosPix.x - 4, acPosPix.y - 4);
+			dc.MoveTo(acPosPix.x, acPosPix.y);
+			dc.LineTo(acPosPix.x + 4, acPosPix.y - 4);
+			dc.MoveTo(acPosPix.x, acPosPix.y);
+			dc.LineTo(acPosPix.x - 4, acPosPix.y + 4);
+			dc.MoveTo(acPosPix.x, acPosPix.y);
+			dc.LineTo(acPosPix.x + 4, acPosPix.y + 4);
+		}
+
+		// Predicted Track Line
+		// It starts 20 seconds away from the ac
+		if (reportedGs > 50)
+		{
+			double d = double(rt.GetPosition().GetReportedGS()*0.514444) * 20;
+			CPosition AwayBase = BetterHarversine(rt.GetPosition().GetPosition(), rt.GetTrackHeading(), d);
+
+			d = double(rt.GetPosition().GetReportedGS()*0.514444) * (PredictedLenght * 60) - 20;
+			CPosition PredictedEnd = BetterHarversine(AwayBase, rt.GetTrackHeading(), d);
+
+			dc.MoveTo(ConvertCoordFromPositionToPixel(AwayBase));
+			dc.LineTo(ConvertCoordFromPositionToPixel(PredictedEnd));
 		}
 
 		if (mouseWithin({ acPosPix.x - 5, acPosPix.y - 5, acPosPix.x + 5, acPosPix.y + 5 })) {
@@ -1597,6 +1718,9 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 		if (!AcisCorrelated && reportedGs < 3)
 			isAcDisplayed = false;
 
+		if (std::find(ReleasedTracks.begin(), ReleasedTracks.end(), rt.GetSystemID()) != ReleasedTracks.end())
+			isAcDisplayed = false;
+
 		if (!isAcDisplayed)
 			continue;
 
@@ -1654,7 +1778,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 		TagClickableMap[TagReplacingMap["wake"]] = TAG_CITEM_FPBOX;
 		TagClickableMap[TagReplacingMap["tssr"]] = TAG_CITEM_NO;
 		TagClickableMap[TagReplacingMap["asid"]] = TagClickableMap[TagReplacingMap["ssid"]] = TAG_CITEM_NO;
-		TagClickableMap[TagReplacingMap["systemid"]] = TAG_CITEM_MANUALCORRELATE;
+		TagClickableMap[TagReplacingMap["systemid"]] = TAG_CITEM_NO;
 
 		//
 		// ----- Now the hard part, drawing (using gdi+) -------
@@ -1786,7 +1910,6 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 				StringFormat stformat = new StringFormat();
 				stformat.SetAlignment(StringAlignment::StringAlignmentCenter);
 				graphics.DrawString(rimcasw.c_str(), wcslen(rimcasw.c_str()), customFonts[currentFontSize], PointF(Gdiplus::REAL((TagBackgroundRect.left + TagBackgroundRect.right) / 2), Gdiplus::REAL(TagBackgroundRect.top)), &stformat, &WhiteBrush);
-
 			}
 		}
 
@@ -2026,17 +2149,50 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 		ShowLists["Colour Settings"] = false;
 	}
 
-	if (ShowLists["Font size"]) {
-		GetPlugIn()->OpenPopupList(ListAreas["Font size"], "Font size", 1);
+	if (ShowLists["Label Font Size"]) {
+		GetPlugIn()->OpenPopupList(ListAreas["Label Font Size"], "Label Font Size", 1);
 		GetPlugIn()->AddPopupListElement("Size 1", "", RIMCAS_UPDATE_FONTS, false, int(bool(currentFontSize == 1)));
 		GetPlugIn()->AddPopupListElement("Size 2", "", RIMCAS_UPDATE_FONTS, false, int(bool(currentFontSize == 2)));
 		GetPlugIn()->AddPopupListElement("Size 3", "", RIMCAS_UPDATE_FONTS, false, int(bool(currentFontSize == 3)));
 		GetPlugIn()->AddPopupListElement("Size 4", "", RIMCAS_UPDATE_FONTS, false, int(bool(currentFontSize == 4)));
+		GetPlugIn()->AddPopupListElement("Size 5", "", RIMCAS_UPDATE_FONTS, false, int(bool(currentFontSize == 5)));
 		GetPlugIn()->AddPopupListElement("Close", "", RIMCAS_CLOSE, false, 2, false, true);
-		ShowLists["Font size"] = false;
+		ShowLists["Label Font Size"] = false;
+	}
+
+	if (ShowLists["GRND Trail Dots"]) {
+		GetPlugIn()->OpenPopupList(ListAreas["GRND Trail Dots"], "GRND Trail Dots", 1);
+		GetPlugIn()->AddPopupListElement("0", "", RIMCAS_UPDATE_GND_TRAIL, false, int(bool(Trail_Gnd == 0)));
+		GetPlugIn()->AddPopupListElement("2", "", RIMCAS_UPDATE_GND_TRAIL, false, int(bool(Trail_Gnd == 2)));
+		GetPlugIn()->AddPopupListElement("4", "", RIMCAS_UPDATE_GND_TRAIL, false, int(bool(Trail_Gnd == 4)));
+		GetPlugIn()->AddPopupListElement("8", "", RIMCAS_UPDATE_GND_TRAIL, false, int(bool(Trail_Gnd == 8)));
+		GetPlugIn()->AddPopupListElement("Close", "", RIMCAS_CLOSE, false, 2, false, true);
+		ShowLists["GRND Trail Dots"] = false;
+	}
+
+	if (ShowLists["APPR Trail Dots"]) {
+		GetPlugIn()->OpenPopupList(ListAreas["APPR Trail Dots"], "APPR Trail Dots", 1);
+		GetPlugIn()->AddPopupListElement("0", "", RIMCAS_UPDATE_APP_TRAIL, false, int(bool(Trail_App == 0)));
+		GetPlugIn()->AddPopupListElement("4", "", RIMCAS_UPDATE_APP_TRAIL, false, int(bool(Trail_App == 4)));
+		GetPlugIn()->AddPopupListElement("8", "", RIMCAS_UPDATE_APP_TRAIL, false, int(bool(Trail_App == 8)));
+		GetPlugIn()->AddPopupListElement("12", "", RIMCAS_UPDATE_APP_TRAIL, false, int(bool(Trail_App == 12)));
+		GetPlugIn()->AddPopupListElement("16", "", RIMCAS_UPDATE_APP_TRAIL, false, int(bool(Trail_App == 16)));
+		GetPlugIn()->AddPopupListElement("Close", "", RIMCAS_CLOSE, false, 2, false, true);
+		ShowLists["APPR Trail Dots"] = false;
+	}
+
+	if (ShowLists["Predicted Track Line"]) {
+		GetPlugIn()->OpenPopupList(ListAreas["Predicted Track Line"], "Predicted Track Line", 1);
+		GetPlugIn()->AddPopupListElement("0", "", RIMCAS_UPDATE_PTL, false, int(bool(PredictedLenght == 0)));
+		GetPlugIn()->AddPopupListElement("1", "", RIMCAS_UPDATE_PTL, false, int(bool(PredictedLenght == 1)));
+		GetPlugIn()->AddPopupListElement("2", "", RIMCAS_UPDATE_PTL, false, int(bool(PredictedLenght == 2)));
+		GetPlugIn()->AddPopupListElement("3", "", RIMCAS_UPDATE_PTL, false, int(bool(PredictedLenght == 3)));
+		GetPlugIn()->AddPopupListElement("4", "", RIMCAS_UPDATE_PTL, false, int(bool(PredictedLenght == 4)));
+		GetPlugIn()->AddPopupListElement("5", "", RIMCAS_UPDATE_PTL, false, int(bool(PredictedLenght == 5)));
+		GetPlugIn()->AddPopupListElement("Close", "", RIMCAS_CLOSE, false, 2, false, true);
+		ShowLists["Predicted Track Line"] = false;
 	}
 	
-
 	//---------------------------------
 	// QRD
 	//---------------------------------
@@ -2115,10 +2271,10 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 	AddScreenObject(RIMCAS_MENU, "DisplayMenu", { ToolBarAreaTop.left + offset, ToolBarAreaTop.top + 4, ToolBarAreaTop.left + offset + dc.GetTextExtent("Display").cx, ToolBarAreaTop.top + 4 + dc.GetTextExtent("Display").cy }, false, "Display menu");
 
 	offset += dc.GetTextExtent("Display").cx + 10;
-	dc.TextOutA(ToolBarAreaTop.left + offset, ToolBarAreaTop.top + 4, "Map");
-	AddScreenObject(RIMCAS_MENU, "MapMenu", { ToolBarAreaTop.left + offset, ToolBarAreaTop.top + 4, ToolBarAreaTop.left + offset + dc.GetTextExtent("Map").cx, ToolBarAreaTop.top + 4 + dc.GetTextExtent("Map").cy }, false, "Map menu");
+	dc.TextOutA(ToolBarAreaTop.left + offset, ToolBarAreaTop.top + 4, "Target");
+	AddScreenObject(RIMCAS_MENU, "TargetMenu", { ToolBarAreaTop.left + offset, ToolBarAreaTop.top + 4, ToolBarAreaTop.left + offset + dc.GetTextExtent("Target").cx, ToolBarAreaTop.top + 4 + dc.GetTextExtent("Target").cy }, false, "Target menu");
 
-	offset += dc.GetTextExtent("Map").cx + 10;
+	offset += dc.GetTextExtent("Target").cx + 10;
 	dc.TextOutA(ToolBarAreaTop.left + offset, ToolBarAreaTop.top + 4, "Colours");
 	AddScreenObject(RIMCAS_MENU, "ColourMenu", { ToolBarAreaTop.left + offset, ToolBarAreaTop.top + 4, ToolBarAreaTop.left + offset + dc.GetTextExtent("Colour").cx, ToolBarAreaTop.top + 4 + dc.GetTextExtent("Colour").cy }, false, "Colour menu");
 
@@ -2248,7 +2404,6 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 
 		int appWindowId = it->first;
 		appWindows[appWindowId]->render(hDC, this, &graphics, mouseLocation);
-		
 	}
 
 	dc.Detach();
@@ -2268,4 +2423,5 @@ void __declspec (dllexport) EuroScopePlugInExit(void)
 			SetWindowLong(pluginWindow, GWL_WNDPROC, (LONG)gSourceProc);
 		}
 
+	stopVStripsConnection = true;
 }

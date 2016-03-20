@@ -51,7 +51,11 @@ int messageId = 0;
 
 clock_t timer;
 
+bool isVStripsConnected = false;
+
 string myfrequency;
+
+map<string, string> vStrips_Stands;
 
 void datalinkLogin(void * arg) {
 	string raw;
@@ -225,6 +229,117 @@ void sendDatalinkClearance(void * arg) {
 	}
 };
 
+//
+// vStrips connection thread in here
+//
+
+void vStripsThread(void * arg)
+{
+#define DEFAULT_BUFLEN 512
+
+	WSADATA wsaData;
+	SOCKET ConnectSocket = INVALID_SOCKET;
+	struct addrinfo *result = NULL, *ptr = NULL, hints;
+	char recvbuf[DEFAULT_BUFLEN];
+	int iResult;
+	int recvbuflen = DEFAULT_BUFLEN;
+
+	do {
+
+	mainVstrips:
+		if (stopVStripsConnection)
+		{
+			_endthread();
+		}
+
+		iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
+		if (iResult != 0) {
+			printf("WSAStartup failed with error: %d\n", iResult);
+			return;
+		}
+
+		ZeroMemory(&hints, sizeof(hints));
+		hints.ai_family = AF_UNSPEC;
+		hints.ai_socktype = SOCK_DGRAM;
+		hints.ai_protocol = IPPROTO_UDP;
+
+		iResult = getaddrinfo("0.0.0.0", VSTRIPS_PORT, &hints, &result);
+		if (iResult != 0) {
+			printf("getaddrinfo failed with error: %d\n", iResult);
+			WSACleanup();
+			return;
+		}
+
+		for (ptr = result; ptr != NULL; ptr = ptr->ai_next) {
+
+			if (stopVStripsConnection)
+			{
+				_endthread();
+			}
+
+			// Create a SOCKET for connecting to server
+			ConnectSocket = socket(ptr->ai_family, ptr->ai_socktype,
+				ptr->ai_protocol);
+			if (ConnectSocket == INVALID_SOCKET) {
+				printf("socket failed with error: %ld\n", WSAGetLastError());
+				WSACleanup();
+				return;
+			}
+
+			// Connect to server.
+			iResult = connect(ConnectSocket, ptr->ai_addr, (int)ptr->ai_addrlen);
+			if (iResult == SOCKET_ERROR) {
+				closesocket(ConnectSocket);
+				ConnectSocket = INVALID_SOCKET;
+				continue;
+			}
+			break;
+		}
+
+		freeaddrinfo(result);
+
+		if (ConnectSocket == INVALID_SOCKET) {
+			// If we can't connect to vStrips, we wait 5 seconds then try again
+			WSACleanup();
+			std::this_thread::sleep_for(std::chrono::seconds(5));
+			goto mainVstrips;
+		}
+
+		isVStripsConnected = true;
+
+		// Receive until the peer closes the connection
+		do {
+
+			iResult = recv(ConnectSocket, recvbuf, recvbuflen, 0);
+			if (iResult > 0)
+			{
+				// Here we treat the data
+				string data = recvbuf;
+				AfxMessageBox(data.c_str());
+			}
+			else if (iResult == 0)
+				printf("Connection closed\n");
+			else
+				printf("recv failed with error: %d\n", WSAGetLastError());
+
+		} while (iResult > 0 && !stopVStripsConnection);
+
+		closesocket(ConnectSocket);
+		WSACleanup();
+		// If vStrips closes the connection, then we go back to waiting to connect
+		isVStripsConnected = false;
+		if (!stopVStripsConnection)
+			goto mainVstrips;
+
+		_endthread();
+
+	} while (!stopVStripsConnection);
+
+
+	WSACleanup();
+	_endthread();
+}
+
 CSMRPlugin::CSMRPlugin(void):CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_PLUGIN_VERSION, MY_PLUGIN_DEVELOPER, MY_PLUGIN_COPYRIGHT)
 {
 	//
@@ -250,10 +365,14 @@ CSMRPlugin::CSMRPlugin(void):CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLU
 		logonCode = p_value;
 	if ((p_value = GetDataFromSettings("cpdlc_sound")) != NULL)
 		PlaySoundClr = bool(!!atoi(p_value));
+
+	// Starting the vStrips thread
+	//_beginthread(vStripsThread, 0, NULL);
 }
 
 CSMRPlugin::~CSMRPlugin()
 {
+	stopVStripsConnection = true;
 	SaveDataToSettings("cpdlc_logon", "The CPDLC logon callsign", logonCallsign.c_str());
 	SaveDataToSettings("cpdlc_password", "The CPDLC logon password", logonCode.c_str());
 	int temp = 0;
@@ -490,10 +609,21 @@ void CSMRPlugin::OnFunctionCall(int FunctionId, const char * sItemString, POINT 
 }
 
 void CSMRPlugin::OnControllerDisconnect(CController Controller) {
-	if (Controller.GetFullName() == ControllerMyself().GetFullName()) {
+	if (Controller.GetFullName() == ControllerMyself().GetFullName() && HoppieConnected == true) {
 		HoppieConnected = false;
 		DisplayUserMessage("CPDLC", "Server", "Logged off!", true, true, false, true, false);
 	}
+}
+
+void CSMRPlugin::OnFlightPlanDisconnect(CFlightPlan FlightPlan)
+{
+	CRadarTarget rt = RadarTargetSelect(FlightPlan.GetCallsign());
+
+	if (std::find(ReleasedTracks.begin(), ReleasedTracks.end(), rt.GetSystemID()) != ReleasedTracks.end())
+		ReleasedTracks.erase(std::find(ReleasedTracks.begin(), ReleasedTracks.end(), rt.GetSystemID()));
+
+	if (std::find(ManuallyCorrelated.begin(), ManuallyCorrelated.end(), rt.GetSystemID()) != ManuallyCorrelated.end())
+		ManuallyCorrelated.erase(std::find(ManuallyCorrelated.begin(), ManuallyCorrelated.end(), rt.GetSystemID()));
 }
 
 void CSMRPlugin::OnTimer(int Counter)

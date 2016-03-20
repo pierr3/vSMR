@@ -24,7 +24,7 @@ public:
 	virtual void setAirport(string icao);
 	virtual POINT projectPoint(CPosition pos);
 	virtual void OnClickScreenObject(POINT Pt);
-	virtual void OnMoveScreenObject(const char * sObjectId, POINT Pt, RECT Area, bool released);
+	virtual bool OnMoveScreenObject(const char * sObjectId, POINT Pt, RECT Area, bool released);
 	
 private:
 	string icao;

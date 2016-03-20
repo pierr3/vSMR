@@ -34,6 +34,12 @@ namespace SMRSharedData
 	// Static stuff
 	static HCURSOR smrCursor;
 	static bool standardCursor;
+	static bool appInsetReleased = true;
+
+	static bool stopVStripsConnection = false;
+
+	static vector<string> ReleasedTracks;
+	static vector<string> ManuallyCorrelated;
 };
 
 using namespace SMRSharedData;
@@ -106,10 +112,7 @@ public:
 	map<string, RECT> MenuPositions;
 	map<string, bool> DisplayMenu;
 
-	map<string, string> ManuallyCorrelated;
 	map<string, clock_t> RecentlyAutoMovedTags;
-
-	map<string, string> CustomCallsign;
 
 	CRimcas * RimcasInstance = nullptr;
 	CConfig * CurrentConfig = nullptr;
@@ -118,6 +121,16 @@ public:
 	int currentFontSize = 1;
 
 	map<string, CPosition> AirportPositions;
+
+	bool Afterglow = true;
+
+	int Trail_Gnd = 4;
+	int Trail_App = 4;
+	int PredictedLenght = 0;
+
+	bool NeedCorrelateCursor = false;
+	bool ReleaseInProgress = false;
+	bool AcquireInProgress = false;
 
 	//----
 	// Tag types
@@ -170,6 +183,16 @@ public:
 							break;
 						}
 					}
+				}
+
+				if (std::find(ManuallyCorrelated.begin(), ManuallyCorrelated.end(), rt.GetSystemID()) != ManuallyCorrelated.end())
+				{
+					isCorr = true;
+				}
+
+				if (std::find(ReleasedTracks.begin(), ReleasedTracks.end(), rt.GetSystemID()) != ReleasedTracks.end())
+				{
+					isCorr = false;
 				}
 
 				return isCorr;

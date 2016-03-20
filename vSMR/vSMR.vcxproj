@@ -167,8 +167,11 @@
     <ClInclude Include="vSMR.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\ml_blau_link.cur" />
+    <None Include="..\move.cur" />
     <None Include="arrow.cur" />
     <None Include="cursor1.cur" />
+    <None Include="POINTER1.cur" />
     <None Include="res\vSMR.rc2" />
     <None Include="vSMR.def" />
   </ItemGroup>
