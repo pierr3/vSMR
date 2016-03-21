@@ -55,7 +55,12 @@ bool isVStripsConnected = false;
 
 string myfrequency;
 
+bool stopVStripsConnection = false;
+
 map<string, string> vStrips_Stands;
+
+bool startThreadvStrips = true;
+asio::io_service io_service;
 
 void datalinkLogin(void * arg) {
 	string raw;
@@ -229,115 +234,43 @@ void sendDatalinkClearance(void * arg) {
 	}
 };
 
-//
-// vStrips connection thread in here
-//
-
-void vStripsThread(void * arg)
+void vStripsThreadFunction(void * arg)
 {
-#define DEFAULT_BUFLEN 512
+	try
+	{
+		log("Start");
 
-	WSADATA wsaData;
-	SOCKET ConnectSocket = INVALID_SOCKET;
-	struct addrinfo *result = NULL, *ptr = NULL, hints;
-	char recvbuf[DEFAULT_BUFLEN];
-	int iResult;
-	int recvbuflen = DEFAULT_BUFLEN;
-
-	do {
-
-	mainVstrips:
-		if (stopVStripsConnection)
+		asio::ip::udp::endpoint local(asio::ip::address::from_string("127.0.0.1"), VSTRIPS_PORT);
+		log("IP");
+		asio::ip::udp::socket socket(io_service);
+		socket.open(asio::ip::udp::v4());
+		socket.bind(local);
+	
+		log("Receive Loop");
+		for (;;)
 		{
-			_endthread();
-		}
+			char recv_buf[128];
+			asio::ip::udp::endpoint sender_endpoint;
 
-		iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
-		if (iResult != 0) {
-			printf("WSAStartup failed with error: %d\n", iResult);
-			return;
-		}
+			size_t len = socket.receive_from(
+				asio::buffer(recv_buf), sender_endpoint);
 
-		ZeroMemory(&hints, sizeof(hints));
-		hints.ai_family = AF_UNSPEC;
-		hints.ai_socktype = SOCK_DGRAM;
-		hints.ai_protocol = IPPROTO_UDP;
+			string out(recv_buf, len);
+			log(out);
 
-		iResult = getaddrinfo("0.0.0.0", VSTRIPS_PORT, &hints, &result);
-		if (iResult != 0) {
-			printf("getaddrinfo failed with error: %d\n", iResult);
-			WSACleanup();
-			return;
-		}
-
-		for (ptr = result; ptr != NULL; ptr = ptr->ai_next) {
+			log("Data!");
 
 			if (stopVStripsConnection)
-			{
-				_endthread();
-			}
-
-			// Create a SOCKET for connecting to server
-			ConnectSocket = socket(ptr->ai_family, ptr->ai_socktype,
-				ptr->ai_protocol);
-			if (ConnectSocket == INVALID_SOCKET) {
-				printf("socket failed with error: %ld\n", WSAGetLastError());
-				WSACleanup();
-				return;
-			}
-
-			// Connect to server.
-			iResult = connect(ConnectSocket, ptr->ai_addr, (int)ptr->ai_addrlen);
-			if (iResult == SOCKET_ERROR) {
-				closesocket(ConnectSocket);
-				ConnectSocket = INVALID_SOCKET;
-				continue;
-			}
-			break;
+				break;
 		}
-
-		freeaddrinfo(result);
-
-		if (ConnectSocket == INVALID_SOCKET) {
-			// If we can't connect to vStrips, we wait 5 seconds then try again
-			WSACleanup();
-			std::this_thread::sleep_for(std::chrono::seconds(5));
-			goto mainVstrips;
-		}
-
-		isVStripsConnected = true;
-
-		// Receive until the peer closes the connection
-		do {
-
-			iResult = recv(ConnectSocket, recvbuf, recvbuflen, 0);
-			if (iResult > 0)
-			{
-				// Here we treat the data
-				string data = recvbuf;
-				AfxMessageBox(data.c_str());
-			}
-			else if (iResult == 0)
-				printf("Connection closed\n");
-			else
-				printf("recv failed with error: %d\n", WSAGetLastError());
-
-		} while (iResult > 0 && !stopVStripsConnection);
-
-		closesocket(ConnectSocket);
-		WSACleanup();
-		// If vStrips closes the connection, then we go back to waiting to connect
-		isVStripsConnected = false;
-		if (!stopVStripsConnection)
-			goto mainVstrips;
-
-		_endthread();
-
-	} while (!stopVStripsConnection);
-
-
-	WSACleanup();
-	_endthread();
+	
+		log("bye");
+	}
+	catch (std::exception& e)
+	{
+		log(e.what());
+		std::cerr << e.what() << std::endl;
+	}
 }
 
 CSMRPlugin::CSMRPlugin(void):CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_PLUGIN_VERSION, MY_PLUGIN_DEVELOPER, MY_PLUGIN_COPYRIGHT)
@@ -365,9 +298,6 @@ CSMRPlugin::CSMRPlugin(void):CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLU
 		logonCode = p_value;
 	if ((p_value = GetDataFromSettings("cpdlc_sound")) != NULL)
 		PlaySoundClr = bool(!!atoi(p_value));
-
-	// Starting the vStrips thread
-	//_beginthread(vStripsThread, 0, NULL);
 }
 
 CSMRPlugin::~CSMRPlugin()
@@ -379,6 +309,17 @@ CSMRPlugin::~CSMRPlugin()
 	if (PlaySoundClr)
 		temp = 1;
 	SaveDataToSettings("cpdlc_sound", "Play sound on clearance request", std::to_string(temp).c_str());
+	
+	try
+	{
+		stopVStripsConnection = true;
+		io_service.stop();
+	}
+	catch (std::exception& e)
+	{
+		log(e.what());
+		std::cerr << e.what() << std::endl;
+	}
 }
 
 bool CSMRPlugin::OnCompileCommand(const char * sCommandLine) {
@@ -398,7 +339,22 @@ bool CSMRPlugin::OnCompileCommand(const char * sCommandLine) {
 		}
 		
 		return true;
-	} else if (startsWith(".smr poll", sCommandLine))
+	}
+	else if (startsWith(".stopvs", sCommandLine))
+	{
+		try
+		{
+			stopVStripsConnection = true;
+			io_service.stop();
+		}
+		catch (std::exception& e)
+		{
+			log(e.what());
+			std::cerr << e.what() << std::endl;
+		}
+		return true;
+	}
+	else if (startsWith(".smr poll", sCommandLine))
 	{
 		if (HoppieConnected) {
 			_beginthread(pollMessages, 0, NULL);
@@ -633,6 +589,21 @@ void CSMRPlugin::OnTimer(int Counter)
 	if (HoppieConnected && ConnectionMessage) {
 		DisplayUserMessage("CPDLC", "Server", "Logged in!", true, true, false, true, false);
 		ConnectionMessage = false;
+	}
+
+	if (startThreadvStrips)
+	{
+		try
+		{
+			io_service.run();
+			_beginthread(vStripsThreadFunction, 0, NULL);
+			startThreadvStrips = false;
+		}
+		catch (std::exception& e)
+		{
+			log(e.what());
+			std::cerr << e.what() << std::endl;
+		}
 	}
 
 	if (((clock() - timer) / CLOCKS_PER_SEC) > 10 && HoppieConnected) {

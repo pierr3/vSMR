@@ -4,19 +4,13 @@
 #include "CPDLCSettingsDialog.hpp"
 #include "DataLinkDialog.hpp"
 #include <string>
-#include <windows.h>
 #include <algorithm>
 #include "Constant.hpp"
 #include "Mmsystem.h"
-#include <winsock2.h>
-#include <ws2tcpip.h>
 #include <chrono>
 #include <thread>
+#include "asio.hpp"
 #include "SMRRadar.hpp"
-
-#pragma comment (lib, "Ws2_32.lib")
-#pragma comment (lib, "Mswsock.lib")
-#pragma comment (lib, "AdvApi32.lib")
 
 #define MY_PLUGIN_NAME      "vSMR"
 #define MY_PLUGIN_VERSION   "dev-e32"

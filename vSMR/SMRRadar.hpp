@@ -36,10 +36,10 @@ namespace SMRSharedData
 	static bool standardCursor;
 	static bool appInsetReleased = true;
 
-	static bool stopVStripsConnection = false;
-
 	static vector<string> ReleasedTracks;
 	static vector<string> ManuallyCorrelated;
+
+	static map<string, string> vStripsStands;
 };
 
 using namespace SMRSharedData;
@@ -90,7 +90,7 @@ public:
 	map<int, bool> appWindowDisplays;
 
 	map<string, CRect> tagAreas;
-	map<string, float> TagAngles;
+	map<string, double> TagAngles;
 	map<string, int> TagLeaderLineLength;
 
 	bool QDMenabled = false;

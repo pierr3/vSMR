@@ -20,7 +20,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
 map<int, CInsetWindow *> appWindows;
 
-inline float closest(std::vector<float> const& vec, float value) {
+inline double closest(std::vector<double> const& vec, double value) {
 	auto const it = std::lower_bound(vec.begin(), vec.end(), value);
 	if (it == vec.end()) { return -1; }
 
@@ -134,7 +134,7 @@ void CSMRRadar::OnAsrContentLoaded(bool Loaded)
 		currentFontSize = atoi(p_value);
 
 	if ((p_value = GetDataFromAsr("Afterglow")) != NULL)
-		Afterglow = bool(atoi(p_value));
+		Afterglow = atoi(p_value) == 1 ? true : false;
 
 	if ((p_value = GetDataFromAsr("AppTrailsDots")) != NULL)
 		Trail_App = atoi(p_value);
@@ -173,7 +173,7 @@ void CSMRRadar::OnAsrContentLoaded(bool Loaded)
 			appWindows[i]->m_Rotation = atoi(p_value);
 
 		if ((p_value = GetDataFromAsr(string(prefix + "Display").c_str())) != NULL)
-			appWindowDisplays[i] = bool(atoi(p_value));
+			appWindowDisplays[i] = atoi(p_value) == 1 ? true : false;
 	}
 
 	// Auto load the airport config on ASR opened.
@@ -313,12 +313,12 @@ void CSMRRadar::OnMoveScreenObject(int ObjectType, const char * sObjectId, POINT
 			{
 				double angle = RadToDeg(atan2(CustomTag.y, CustomTag.x));
 				angle = fmod(angle + 360, 360);
-				vector<float> angles;
-				for (float k = 0.0f; k <= 360.0f; k += 22.5f)
+				vector<double> angles;
+				for (double k = 0.0; k <= 360.0; k += 22.5)
 					angles.push_back(k);
 
 				TagAngles[sObjectId] = closest(angles, angle);
-				TagLeaderLineLength[sObjectId] = max(LeaderLineDefaultlenght, min(DistancePts(AcPosPix, TagCenterPix), LeaderLineDefaultlenght * 2));
+				TagLeaderLineLength[sObjectId] = max(LeaderLineDefaultlenght, min(int(DistancePts(AcPosPix, TagCenterPix)), LeaderLineDefaultlenght * 2));
 
 			} else
 			{
@@ -566,7 +566,7 @@ void CSMRRadar::OnClickScreenObject(int ObjectType, const char * sObjectId, POIN
 						TagAngles[sObjectId] = 0;
 					} else
 					{
-						TagAngles[sObjectId] = fmod(TagAngles[sObjectId] - 22.5f, 360);
+						TagAngles[sObjectId] = fmod(TagAngles[sObjectId] - 22.5, 360);
 					}
 				}
 
@@ -578,7 +578,7 @@ void CSMRRadar::OnClickScreenObject(int ObjectType, const char * sObjectId, POIN
 					}
 					else
 					{
-						TagAngles[sObjectId] = fmod(TagAngles[sObjectId] + 22.5f, 360);
+						TagAngles[sObjectId] = fmod(TagAngles[sObjectId] + 22.5, 360);
 					}
 				}
 
@@ -2410,10 +2410,10 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 		int width = areas.second.Width();
 		int height = areas.second.Height();
 
-		for (float rotated = 0.0f; abs(rotated) <= 360.0f;)
+		for (double rotated = 0.0; abs(rotated) <= 360.0;)
 		{
 			// We first rotate the tag
-			float newangle = fmod(TagAngles[areas.first] + rotated, 360.0f);
+			double newangle = fmod(TagAngles[areas.first] + rotated, 360.0f);
 
 			POINT TagCenter;
 			TagCenter.x = long(acPosPix.x + float(lenght * cos(DegToRad(newangle))));
@@ -2487,6 +2487,4 @@ void __declspec (dllexport) EuroScopePlugInExit(void)
 		{
 			SetWindowLong(pluginWindow, GWL_WNDPROC, (LONG)gSourceProc);
 		}
-
-	stopVStripsConnection = true;
 }

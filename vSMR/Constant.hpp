@@ -8,9 +8,10 @@
 #include <vector>
 #include <sstream>
 #include <iomanip>
+#include <fstream>
 #include "stdafx.h"
 
-#define VSTRIPS_PORT "53487"
+#define VSTRIPS_PORT 53487
 
 using namespace std;
 using namespace EuroScopePlugIn;
@@ -69,6 +70,14 @@ inline static std::vector<std::string> split(const std::string &s, char delim) {
 	return elems;
 };
 
+static void log(string s)
+{
+	std::ofstream file;
+	file.open("C:/Users/Pierre/Documents/Visual Studio 2015/Projects/vSMR/Release/vsmr.log", std::ofstream::out | std::ofstream::app);
+	file << s << endl;
+	file.close();
+}
+
 inline static double TrueBearing(CPosition pos1, CPosition pos2)
 {
 	const float PI = float(atan2(0, -1));
@@ -83,7 +92,7 @@ inline static double TrueBearing(CPosition pos1, CPosition pos2)
 	return dir / 180 * PI;
 };
 
-inline static POINT rotate_point(POINT p, float angle, POINT c)
+inline static POINT rotate_point(POINT p, double angle, POINT c)
 {
 	double sine = sin(angle * M_PI / 180);
 	double cosi = cos(angle * M_PI / 180);
@@ -93,12 +102,12 @@ inline static POINT rotate_point(POINT p, float angle, POINT c)
 	p.y -= c.y;
 
 	// rotate point
-	float xnew = p.x * cosi - p.y * sine;
-	float ynew = p.x * sine + p.y * cosi;
+	double xnew = p.x * cosi - p.y * sine;
+	double ynew = p.x * sine + p.y * cosi;
 
 	// translate point back:
-	p.x = xnew + c.x;
-	p.y = ynew + c.y;
+	p.x = LONG(xnew + c.x);
+	p.y = LONG(ynew + c.y);
 	return p;
 }
 
