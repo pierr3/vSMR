@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "Resource.h"
 #include "SMRRadar.hpp"
+#include "SMRPlugin.hpp"
 
 RECT TimePopupArea = { 300, 300, 430, 363 };
 
@@ -14,6 +15,8 @@ int LeaderLineDefaultlenght = 50;
 //
 
 bool initCursor = true;
+HCURSOR smrCursor;
+bool standardCursor;
 WNDPROC gSourceProc;
 HWND pluginWindow;
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
@@ -63,7 +66,7 @@ CSMRRadar::CSMRRadar()
 	if (CurrentConfig == nullptr)
 		CurrentConfig = new CConfig(DllPath + "\\vSMR_Profiles.json");
 
-	SMRSharedData::standardCursor = true;
+	standardCursor = true;
 	ActiveAirport = "LFPG";
 
 	// Setting up the data for the 2 approach windows
@@ -81,6 +84,7 @@ CSMRRadar::CSMRRadar()
 
 CSMRRadar::~CSMRRadar()
 {
+	OnAsrContentToBeSaved();
 	// Shutting down GDI+
 	GdiplusShutdown(m_gdiplusToken);
 }
@@ -201,7 +205,7 @@ void CSMRRadar::OnAsrContentLoaded(bool Loaded)
 	// ReSharper restore CppZeroConstantCanBeReplacedWithNullptr
 }
 
-void CSMRRadar::OnAsrContentToBeSaved(void)
+void CSMRRadar::OnAsrContentToBeSaved()
 {
 	SaveDataToAsr("Airport", "Active airport for RIMCAS", getActiveAirport().c_str());
 
@@ -261,23 +265,23 @@ void CSMRRadar::OnMoveScreenObject(int ObjectType, const char * sObjectId, POINT
 		
 		if (!toggleCursor)
 		{
-			if (SMRSharedData::standardCursor)
+			if (standardCursor)
 			{
 				if (strcmp(sObjectId, "topbar") == 0)
-					SMRSharedData::smrCursor = CopyCursor((HCURSOR)::LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDC_SMRMOVEWINDOW), IMAGE_CURSOR, 0, 0, LR_SHARED));
+					smrCursor = CopyCursor((HCURSOR)::LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDC_SMRMOVEWINDOW), IMAGE_CURSOR, 0, 0, LR_SHARED));
 				else if (strcmp(sObjectId, "resize") == 0)
-					SMRSharedData::smrCursor = CopyCursor((HCURSOR)::LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDC_SMRRESIZE), IMAGE_CURSOR, 0, 0, LR_SHARED));
+					smrCursor = CopyCursor((HCURSOR)::LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDC_SMRRESIZE), IMAGE_CURSOR, 0, 0, LR_SHARED));
 
 				AfxGetMainWnd()->SendMessage(WM_SETCURSOR);
-				SMRSharedData::standardCursor = false;
+				standardCursor = false;
 			}
 		} else
 		{
-			if (!SMRSharedData::standardCursor)
+			if (!standardCursor)
 			{
-				SMRSharedData::smrCursor = CopyCursor((HCURSOR)::LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDC_SMRCURSOR), IMAGE_CURSOR, 0, 0, LR_SHARED));
+				smrCursor = CopyCursor((HCURSOR)::LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDC_SMRCURSOR), IMAGE_CURSOR, 0, 0, LR_SHARED));
 				AfxGetMainWnd()->SendMessage(WM_SETCURSOR);
-				SMRSharedData::standardCursor = true;
+				standardCursor = true;
 			}
 		}
 	}
@@ -287,19 +291,19 @@ void CSMRRadar::OnMoveScreenObject(int ObjectType, const char * sObjectId, POINT
 
 		if (!Released)
 		{
-			if(SMRSharedData::standardCursor)
+			if(standardCursor)
 			{
-				SMRSharedData::smrCursor = CopyCursor((HCURSOR)::LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDC_SMRMOVETAG), IMAGE_CURSOR, 0, 0, LR_SHARED));
+				smrCursor = CopyCursor((HCURSOR)::LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDC_SMRMOVETAG), IMAGE_CURSOR, 0, 0, LR_SHARED));
 				AfxGetMainWnd()->SendMessage(WM_SETCURSOR);
-				SMRSharedData::standardCursor = false;
+				standardCursor = false;
 			}
 		} else
 		{
-			if (!SMRSharedData::standardCursor)
+			if (!standardCursor)
 			{
-				SMRSharedData::smrCursor = CopyCursor((HCURSOR)::LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDC_SMRCURSOR), IMAGE_CURSOR, 0, 0, LR_SHARED));
+				smrCursor = CopyCursor((HCURSOR)::LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDC_SMRCURSOR), IMAGE_CURSOR, 0, 0, LR_SHARED));
 				AfxGetMainWnd()->SendMessage(WM_SETCURSOR);
-				SMRSharedData::standardCursor = true;
+				standardCursor = true;
 			}
 		}
 		
@@ -525,20 +529,20 @@ void CSMRRadar::OnClickScreenObject(int ObjectType, const char * sObjectId, POIN
 
 			if (NeedCorrelateCursor)
 			{
-				if (SMRSharedData::standardCursor)
+				if (standardCursor)
 				{
-					SMRSharedData::smrCursor = CopyCursor((HCURSOR)::LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDC_SMRCORRELATE), IMAGE_CURSOR, 0, 0, LR_SHARED));
+					smrCursor = CopyCursor((HCURSOR)::LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDC_SMRCORRELATE), IMAGE_CURSOR, 0, 0, LR_SHARED));
 					AfxGetMainWnd()->SendMessage(WM_SETCURSOR);
-					SMRSharedData::standardCursor = false;
+					standardCursor = false;
 				}
 			}
 			else
 			{
-				if (!SMRSharedData::standardCursor)
+				if (!standardCursor)
 				{
-					SMRSharedData::smrCursor = CopyCursor((HCURSOR)::LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDC_SMRCURSOR), IMAGE_CURSOR, 0, 0, LR_SHARED));
+					smrCursor = CopyCursor((HCURSOR)::LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDC_SMRCURSOR), IMAGE_CURSOR, 0, 0, LR_SHARED));
 					AfxGetMainWnd()->SendMessage(WM_SETCURSOR);
-					SMRSharedData::standardCursor = true;
+					standardCursor = true;
 				}
 			}
 
@@ -810,20 +814,20 @@ void CSMRRadar::OnFunctionCall(int FunctionId, const char * sItemString, POINT P
 
 		if (NeedCorrelateCursor)
 		{
-			if (SMRSharedData::standardCursor)
+			if (standardCursor)
 			{
-				SMRSharedData::smrCursor = CopyCursor((HCURSOR)::LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDC_SMRCORRELATE), IMAGE_CURSOR, 0, 0, LR_SHARED));
+				smrCursor = CopyCursor((HCURSOR)::LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDC_SMRCORRELATE), IMAGE_CURSOR, 0, 0, LR_SHARED));
 				AfxGetMainWnd()->SendMessage(WM_SETCURSOR);
-				SMRSharedData::standardCursor = false;
+				standardCursor = false;
 			}
 		}
 		else
 		{
-			if (!SMRSharedData::standardCursor)
+			if (!standardCursor)
 			{
-				SMRSharedData::smrCursor = CopyCursor((HCURSOR)::LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDC_SMRCURSOR), IMAGE_CURSOR, 0, 0, LR_SHARED));
+				smrCursor = CopyCursor((HCURSOR)::LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDC_SMRCURSOR), IMAGE_CURSOR, 0, 0, LR_SHARED));
 				AfxGetMainWnd()->SendMessage(WM_SETCURSOR);
-				SMRSharedData::standardCursor = true;
+				standardCursor = true;
 			}
 		}
 	}
@@ -837,20 +841,20 @@ void CSMRRadar::OnFunctionCall(int FunctionId, const char * sItemString, POINT P
 
 		if (NeedCorrelateCursor)
 		{
-			if (SMRSharedData::standardCursor)
+			if (standardCursor)
 			{
-				SMRSharedData::smrCursor = CopyCursor((HCURSOR)::LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDC_SMRCORRELATE), IMAGE_CURSOR, 0, 0, LR_SHARED));
+				smrCursor = CopyCursor((HCURSOR)::LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDC_SMRCORRELATE), IMAGE_CURSOR, 0, 0, LR_SHARED));
 				AfxGetMainWnd()->SendMessage(WM_SETCURSOR);
-				SMRSharedData::standardCursor = false;
+				standardCursor = false;
 			}
 		}
 		else
 		{
-			if (!SMRSharedData::standardCursor)
+			if (!standardCursor)
 			{
-				SMRSharedData::smrCursor = CopyCursor((HCURSOR)::LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDC_SMRCURSOR), IMAGE_CURSOR, 0, 0, LR_SHARED));
+				smrCursor = CopyCursor((HCURSOR)::LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDC_SMRCURSOR), IMAGE_CURSOR, 0, 0, LR_SHARED));
 				AfxGetMainWnd()->SendMessage(WM_SETCURSOR);
-				SMRSharedData::standardCursor = true;
+				standardCursor = true;
 			}
 		}
 	}
@@ -1067,7 +1071,7 @@ bool CSMRRadar::OnCompileCommand(const char * sCommandLine)
 	return false;
 }
 
-map<string, string> CSMRRadar::GenerateTagData(CRadarTarget rt, CFlightPlan fp, bool isAcCorrelated, bool isProMode, int TransitionAltitude, bool useSpeedForGates)
+map<string, string> CSMRRadar::GenerateTagData(CRadarTarget rt, CFlightPlan fp, map<string, string> vStripsStands, bool isAcCorrelated, bool isProMode, int TransitionAltitude, bool useSpeedForGates)
 {
 	// ----
 	// Tag items available
@@ -1174,6 +1178,13 @@ map<string, string> CSMRRadar::GenerateTagData(CRadarTarget rt, CFlightPlan fp, 
 		gate = fp.GetControllerAssignedData().GetScratchPadString();
 
 	gate = gate.substr(0, 4);
+
+	// If there is a vStrips gate, we use that
+	if (vStripsStands.find(rt.GetCallsign()) != vStripsStands.end())
+	{
+		gate = vStripsStands[rt.GetCallsign()];
+
+	}
 
 	if (gate.size() == 0 || gate == "0" || !isAcCorrelated)
 		gate = "NoGATE";
@@ -1296,7 +1307,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	switch (uMsg)
 	{
 	case WM_SETCURSOR:
-		SetCursor(SMRSharedData::smrCursor);
+		SetCursor(smrCursor);
 		return true;
 	default:
 		return CallWindowProc(gSourceProc, hwnd, uMsg, wParam, lParam);
@@ -1308,9 +1319,9 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 	// Changing the mouse cursor
 	if (initCursor)
 	{
-		SMRSharedData::smrCursor = CopyCursor((HCURSOR)::LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDC_SMRCURSOR), IMAGE_CURSOR, 0, 0, LR_SHARED));
+		smrCursor = CopyCursor((HCURSOR)::LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDC_SMRCURSOR), IMAGE_CURSOR, 0, 0, LR_SHARED));
 
-		if (SMRSharedData::smrCursor != nullptr)
+		if (smrCursor != nullptr)
 		{
 			pluginWindow = GetActiveWindow();
 			gSourceProc = (WNDPROC)SetWindowLong(pluginWindow, GWL_WNDPROC, (LONG)WindowProc);
@@ -1825,7 +1836,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 			TagType = TagTypes::Uncorrelated;
 		}
 
-		map<string, string> TagReplacingMap = GenerateTagData(rt, fp, IsCorrelated(fp, rt), CurrentConfig->getActiveProfile()["filters"]["pro_mode"]["enable"].GetBool(), GetPlugIn()->GetTransitionAltitude(), CurrentConfig->getActiveProfile()["labels"]["use_aspeed_for_gate"].GetBool());
+		map<string, string> TagReplacingMap = GenerateTagData(rt, fp, vStripsStands, IsCorrelated(fp, rt), CurrentConfig->getActiveProfile()["filters"]["pro_mode"]["enable"].GetBool(), GetPlugIn()->GetTransitionAltitude(), CurrentConfig->getActiveProfile()["labels"]["use_aspeed_for_gate"].GetBool());
 
 		// ----- Generating the clickable map -----
 		map<string, int> TagClickableMap;
@@ -2477,13 +2488,13 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 
 // ReSharper restore CppMsExtAddressOfClassRValue
 
-//---EuroScopePlugInExit-----------------------------------------------
+//---EuroScopePlugInExitCustom-----------------------------------------------
 
-void __declspec (dllexport) EuroScopePlugInExit(void)
+void CSMRRadar::EuroScopePlugInExitCustom()
 {
 	AFX_MANAGE_STATE(AfxGetStaticModuleState())
 
-		if (SMRSharedData::smrCursor != nullptr)
+		if (smrCursor != nullptr)
 		{
 			SetWindowLong(pluginWindow, GWL_WNDPROC, (LONG)gSourceProc);
 		}

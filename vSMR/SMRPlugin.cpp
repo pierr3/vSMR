@@ -51,16 +51,19 @@ int messageId = 0;
 
 clock_t timer;
 
-bool isVStripsConnected = false;
-
 string myfrequency;
-
-bool stopVStripsConnection = false;
 
 map<string, string> vStrips_Stands;
 
 bool startThreadvStrips = true;
-asio::io_service io_service;
+
+using namespace SMRPluginSharedData;
+asio::ip::udp::socket* _socket;
+asio::ip::udp::endpoint receiver_endpoint;
+std::thread vStripsThread;
+char recv_buf[1024];
+
+map<string, string> vStripsStandsToBeSent;
 
 void datalinkLogin(void * arg) {
 	string raw;
@@ -234,44 +237,49 @@ void sendDatalinkClearance(void * arg) {
 	}
 };
 
-void vStripsThreadFunction(void * arg)
+void vStripsReceiveThread(const asio::error_code &error, size_t bytes_transferred)
+{
+	string out(recv_buf, bytes_transferred);
+	
+	// Processing the data
+	vector<string> data = split(out, ':');
+
+	if (data.front() == string("STAND"))
+	{
+		vStripsStandsToBeSent[data.at(1)] = data.back();
+	}
+
+	if (data.front() == string("DELETE"))
+	{
+		if (vStripsStandsToBeSent.find(data.back()) != vStripsStandsToBeSent.end())
+		{
+			vStripsStandsToBeSent.erase(vStripsStandsToBeSent.find(data.back()));
+		}
+	}
+	
+	if (!error)
+	{
+		_socket->async_receive_from(asio::buffer(recv_buf), receiver_endpoint,
+			std::bind(&vStripsReceiveThread, std::placeholders::_1, std::placeholders::_2));
+	}
+}
+
+void vStripsThreadFunction()
 {
 	try
 	{
-		log("Start");
+		_socket = new asio::ip::udp::socket(io_service, asio::ip::udp::endpoint(asio::ip::udp::v4(), VSTRIPS_PORT));
+		_socket->async_receive_from(asio::buffer(recv_buf), receiver_endpoint,
+			std::bind(&vStripsReceiveThread, std::placeholders::_1, std::placeholders::_2));
 
-		asio::ip::udp::endpoint local(asio::ip::address::from_string("127.0.0.1"), VSTRIPS_PORT);
-		log("IP");
-		asio::ip::udp::socket socket(io_service);
-		socket.open(asio::ip::udp::v4());
-		socket.bind(local);
-	
-		log("Receive Loop");
-		for (;;)
-		{
-			char recv_buf[128];
-			asio::ip::udp::endpoint sender_endpoint;
-
-			size_t len = socket.receive_from(
-				asio::buffer(recv_buf), sender_endpoint);
-
-			string out(recv_buf, len);
-			log(out);
-
-			log("Data!");
-
-			if (stopVStripsConnection)
-				break;
-		}
-	
-		log("bye");
+		io_service.run();
 	}
 	catch (std::exception& e)
 	{
-		log(e.what());
 		std::cerr << e.what() << std::endl;
 	}
 }
+
 
 CSMRPlugin::CSMRPlugin(void):CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_PLUGIN_VERSION, MY_PLUGIN_DEVELOPER, MY_PLUGIN_COPYRIGHT)
 {
@@ -298,11 +306,19 @@ CSMRPlugin::CSMRPlugin(void):CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLU
 		logonCode = p_value;
 	if ((p_value = GetDataFromSettings("cpdlc_sound")) != NULL)
 		PlaySoundClr = bool(!!atoi(p_value));
+
+	try
+	{
+		vStripsThread = std::thread(vStripsThreadFunction);
+	}
+	catch (std::exception& e)
+	{
+		std::cerr << e.what() << std::endl;
+	}
 }
 
 CSMRPlugin::~CSMRPlugin()
 {
-	stopVStripsConnection = true;
 	SaveDataToSettings("cpdlc_logon", "The CPDLC logon callsign", logonCallsign.c_str());
 	SaveDataToSettings("cpdlc_password", "The CPDLC logon password", logonCode.c_str());
 	int temp = 0;
@@ -312,12 +328,11 @@ CSMRPlugin::~CSMRPlugin()
 	
 	try
 	{
-		stopVStripsConnection = true;
 		io_service.stop();
+		vStripsThread.join();
 	}
 	catch (std::exception& e)
 	{
-		log(e.what());
 		std::cerr << e.what() << std::endl;
 	}
 }
@@ -338,20 +353,6 @@ bool CSMRPlugin::OnCompileCommand(const char * sCommandLine) {
 			DisplayUserMessage("CPDLC", "Error", "You are not logged in as a controller!", true, true, false, true, false);
 		}
 		
-		return true;
-	}
-	else if (startsWith(".stopvs", sCommandLine))
-	{
-		try
-		{
-			stopVStripsConnection = true;
-			io_service.stop();
-		}
-		catch (std::exception& e)
-		{
-			log(e.what());
-			std::cerr << e.what() << std::endl;
-		}
 		return true;
 	}
 	else if (startsWith(".smr poll", sCommandLine))
@@ -591,24 +592,14 @@ void CSMRPlugin::OnTimer(int Counter)
 		ConnectionMessage = false;
 	}
 
-	if (startThreadvStrips)
-	{
-		try
-		{
-			io_service.run();
-			_beginthread(vStripsThreadFunction, 0, NULL);
-			startThreadvStrips = false;
-		}
-		catch (std::exception& e)
-		{
-			log(e.what());
-			std::cerr << e.what() << std::endl;
-		}
-	}
-
 	if (((clock() - timer) / CLOCKS_PER_SEC) > 10 && HoppieConnected) {
 		_beginthread(pollMessages, 0, NULL);
 		timer = clock();
+	}
+
+	for (auto rd : RadarDisplayOpened) // access by reference to avoid copying
+	{
+		rd->vStripsStands = vStripsStandsToBeSent;
 	}
 
 	for (auto &ac : AircraftWilco) 
@@ -632,4 +623,24 @@ CRadarScreen * CSMRPlugin::OnRadarScreenCreated(const char * sDisplayName, bool 
 	}
 
 	return NULL;
+}
+
+//---EuroScopePlugInExit-----------------------------------------------
+
+void __declspec (dllexport) EuroScopePlugInExit(void)
+{
+	try
+	{
+		io_service.stop();
+		vStripsThread.join();
+	}
+	catch (std::exception& e)
+	{
+		std::cerr << e.what() << std::endl;
+	}
+
+	for (auto &rd : RadarDisplayOpened) // access by reference to avoid copying
+	{
+		rd->EuroScopePlugInExitCustom();
+	}
 }

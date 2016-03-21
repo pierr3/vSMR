@@ -23,6 +23,8 @@
 #include "Rimcas.hpp"
 #include "InsetWindow.h"
 #include <memory>
+#include <asio/io_service.hpp>
+#include <thread>
 
 using namespace std;
 using namespace Gdiplus;
@@ -31,16 +33,15 @@ using namespace EuroScopePlugIn;
 
 namespace SMRSharedData
 {
-	// Static stuff
-	static HCURSOR smrCursor;
-	static bool standardCursor;
-	static bool appInsetReleased = true;
-
 	static vector<string> ReleasedTracks;
 	static vector<string> ManuallyCorrelated;
-
-	static map<string, string> vStripsStands;
 };
+
+
+namespace SMRPluginSharedData
+{
+	static asio::io_service io_service;
+}
 
 using namespace SMRSharedData;
 
@@ -132,6 +133,8 @@ public:
 	bool ReleaseInProgress = false;
 	bool AcquireInProgress = false;
 
+	map<string, string> vStripsStands;
+
 	//----
 	// Tag types
 	//---
@@ -151,7 +154,7 @@ public:
 
 	//---GenerateTagData--------------------------------------------
 
-	static map<string, string> GenerateTagData(CRadarTarget Rt, CFlightPlan fp, bool isAcCorrelated, bool isProMode, int TransitionAltitude, bool useSpeedForGates);
+	static map<string, string> GenerateTagData(CRadarTarget Rt, CFlightPlan fp, map<string, string> vStripsStands, bool isAcCorrelated, bool isProMode, int TransitionAltitude, bool useSpeedForGates);
 
 	//---IsCorrelatedFuncs---------------------------------------------
 
@@ -220,7 +223,7 @@ public:
 
 	//---OnAsrContentToBeSaved------------------------------------------
 
-	virtual void OnAsrContentToBeSaved(void);
+	virtual void OnAsrContentToBeSaved();
 
 	//---OnRefresh------------------------------------------------------
 
@@ -312,6 +315,8 @@ public:
 	virtual void OnFunctionCall(int FunctionId, const char * sItemString, POINT Pt, RECT Area);
 
 	//---OnAsrContentToBeClosed-----------------------------------------
+
+	void CSMRRadar::EuroScopePlugInExitCustom();
 
 	inline virtual void OnAsrContentToBeClosed(void)
 	{
