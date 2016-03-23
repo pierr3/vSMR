@@ -403,7 +403,7 @@ void CSMRRadar::OnClickScreenObject(int ObjectType, const char * sObjectId, POIN
 		}
 		if (strcmp(sObjectId, "rotate") == 0) {
 			GetPlugIn()->OpenPopupList(Area, "SRW Rotate (deg)", 1);
-			for (int k = 0; k <= 360; k = k+2)
+			for (int k = 0; k <= 360; k++)
 			{
 				string tmp = std::to_string(k);
 				GetPlugIn()->AddPopupListElement(tmp.c_str(), "", RIMCAS_UPDATEROTATE + appWindowId, false, int(appWindows[appWindowId]->m_Rotation == k));
