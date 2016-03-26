@@ -24,12 +24,27 @@ public:
 	const string string_false = "!NO";
 
 	struct RunwayAreaType {
-		CPosition topLeft, topRight, bottomLeft, bottomRight, threshold, threshold2;
-		bool isCustomRunway = false;
-		vector<CPosition> CustomDefinition;
-		double bearing;
+		string Name = "";
+		vector<CPosition> Definition;
 		bool set = false;
 	};
+
+	COLORREF WarningColor = RGB(160, 90, 30); //RGB(180, 100, 50)
+	COLORREF AlertColor = RGB(150, 0, 0);
+
+	enum RimcasAlertTypes { NoAlert, StageOne, StageTwo };
+
+	map<string, RunwayAreaType> RunwayAreas;
+	multimap<string, string> AcOnRunway;
+	vector<int> CountdownDefinition;
+	vector<int> CountdownDefinitionLVP;
+	multimap<string, string> ApproachingAircrafts;
+	map<string, map<int, string>> TimeTable;
+	map<string, bool> MonitoredRunwayDep;
+	map<string, bool> MonitoredRunwayArr;
+	map<string, COLORREF> AcColor;
+
+	bool IsLVP = false;
 
 	int Is_Left(const POINT &p0, const POINT &p1, const POINT &point)
 	{
@@ -88,78 +103,49 @@ public:
 		return (winding_number != 0);
 	}
 
-	//---Haversine---------------------------------------------
-	// Heading in deg, distance in m
-	const double PI = (double)M_PI;
-
-	CPosition Haversine(CPosition origin, float heading, float distance) {
-
-		CPosition newPos;
-
-		double d = (distance*0.00053996) / 60 * PI / 180;
-		double trk = DegToRad(heading);
-		double lat0 = DegToRad(origin.m_Latitude);
-		double lon0 = DegToRad(origin.m_Longitude);
-
-		double lat = asin(sin(lat0) * cos(d) + cos(lat0) * sin(d) * cos(trk));
-		double lon = cos(lat) == 0 ? lon0 : fmod(lon0 + asin(sin(trk) * sin(d) / cos(lat)) + PI, 2 * PI) - PI;
-
-		newPos.m_Latitude = RadToDeg(lat);
-		newPos.m_Longitude = RadToDeg(lon);
-
-		return newPos;
-	}
-
 	string GetAcInRunwayArea(CRadarTarget Ac, CRadarScreen *instance);
 	string GetAcInRunwayAreaSoon(CRadarTarget Ac, CRadarScreen *instance, bool isCorrelated);
-	void AddRunwayArea(CRadarScreen *instance, string runway_name1, string runway_name2, CPosition Left, CPosition Right, double bearing1, double bearing2, float hwidth = 92.5f, float hlenght = 250.0f);
+	void AddRunwayArea(CRadarScreen *instance, string runway_name1, string runway_name2, vector<CPosition> Definition);
 	Color GetAircraftColor(string AcCallsign, Color StandardColor, Color OnRunwayColor, Color RimcasStageOne, Color RimcasStageTwo);
 	Color GetAircraftColor(string AcCallsign, Color StandardColor, Color OnRunwayColor);
 
-	void AddCustomRunway(string runway_name1, string runway_name2, CPosition Left, CPosition Right, vector<CPosition> definition);
-
 	bool isAcOnRunway(string callsign);
 
-	RunwayAreaType GetRunwayArea(CRadarScreen *instance, CPosition Left, CPosition Right, int threshold, double bearing, float hwidth = 92.5f, float hlenght = 250.0f);
+	vector<CPosition> GetRunwayArea(CPosition Left, CPosition Right, float hwidth = 92.5f);
 
-	void OnRefreshBegin();
+	void OnRefreshBegin(bool isLVP);
 	void OnRefresh(CRadarTarget Rt, CRadarScreen *instance, bool isCorrelated);
 	void OnRefreshEnd(CRadarScreen *instance, int threshold);
 	void Reset();
 
-	COLORREF WarningColor = RGB(160, 90, 30); //RGB(180, 100, 50)
-	COLORREF AlertColor = RGB(150, 0, 0);
+	bool less_vectors(const int& a, const int& b) {
+		return a < b;
+	}
 
-	enum RimcasAlertTypes { NoAlert, StageOne, StageTwo };
+	void setCountdownDefinition(vector<int> data, vector<int> dataLVP)
+	{
+		CountdownDefinition = data;
+		sort(CountdownDefinition.begin(), CountdownDefinition.end(), less_vectors);
 
-	map<string, RunwayAreaType> RunwayAreas;
-	multimap<string, string> AcOnRunway;
-	map<string, map<int, string>> TimeTable;
-	map<string, bool> MonitoredRunwayDep;
-	map<string, bool> MonitoredRunwayArr;
-	map<string, COLORREF> AcColor;
+		CountdownDefinitionLVP = dataLVP;
+		sort(CountdownDefinitionLVP.begin(), CountdownDefinitionLVP.end(), less_vectors);
+	}
 
-	bool RunwayTimerShort = true;
-
-	inline void toggleClosedRunway(string runway) {
+	void toggleClosedRunway(string runway) {
 		if (ClosedRunway.find(runway) == ClosedRunway.end())
 			ClosedRunway[runway] = true;
 		else
 			ClosedRunway[runway] = !ClosedRunway[runway];
 	}
 
-	inline void toggleShortTimer(bool setting) {
-		RunwayTimerShort = setting;
-	}
-
-	inline void toggleMonitoredRunwayDep(string runway) {
+	void toggleMonitoredRunwayDep(string runway) {
 		if (MonitoredRunwayDep.find(runway) == MonitoredRunwayDep.end())
 			MonitoredRunwayDep[runway] = true;
 		else
 			MonitoredRunwayDep[runway] = !MonitoredRunwayDep[runway];
 	}
 
-	inline void toggleMonitoredRunwayArr(string runway) {
+	void toggleMonitoredRunwayArr(string runway) {
 		if (MonitoredRunwayArr.find(runway) == MonitoredRunwayArr.end())
 			MonitoredRunwayArr[runway] = true;
 		else

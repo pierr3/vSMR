@@ -18,12 +18,15 @@ void CRimcas::Reset() {
 	TimeTable.clear();
 	MonitoredRunwayArr.clear();
 	MonitoredRunwayDep.clear();
+	ApproachingAircrafts.clear();
 }
 
-void CRimcas::OnRefreshBegin() {
+void CRimcas::OnRefreshBegin(bool isLVP) {
 	AcColor.clear();
 	AcOnRunway.clear();
 	TimeTable.clear();
+	ApproachingAircrafts.clear();
+	this->IsLVP = isLVP;
 }
 
 void CRimcas::OnRefresh(CRadarTarget Rt, CRadarScreen *instance, bool isCorrelated) {
@@ -31,33 +34,23 @@ void CRimcas::OnRefresh(CRadarTarget Rt, CRadarScreen *instance, bool isCorrelat
 	GetAcInRunwayAreaSoon(Rt, instance, isCorrelated);
 }
 
-void CRimcas::AddRunwayArea(CRadarScreen *instance, string runway_name1, string runway_name2, CPosition Left, CPosition Right, double bearing1, double bearing2, float hwidth, float hlenght) {
-	RunwayAreas[runway_name1] = GetRunwayArea(instance, Left, Right, 0, bearing1, hwidth, hlenght);
-	RunwayAreas[runway_name2] = GetRunwayArea(instance, Left, Right, 1, bearing2, hwidth, hlenght);
-}
+void CRimcas::AddRunwayArea(CRadarScreen *instance, string runway_name1, string runway_name2, vector<CPosition> Definition) {
+	string Name = runway_name1 + " / " + runway_name2;
+	
+	RunwayAreaType Runway;
+	Runway.Name = Name;
+	Runway.Definition = Definition;
 
-void CRimcas::AddCustomRunway(string runway_name1, string runway_name2, CPosition Left, CPosition Right, vector<CPosition> definition) {
-	RunwayAreaType rw1;
-	rw1.isCustomRunway = true;
-	rw1.CustomDefinition = definition;
-	rw1.threshold = Right;
-	rw1.threshold2 = Left;
-	rw1.bearing = TrueBearing(Left, Right);
-	rw1.set = true;
-	 
-	RunwayAreaType rw2;
-	rw2.isCustomRunway = true;
-	rw2.CustomDefinition = definition;
-	rw2.threshold = Left;
-	rw2.threshold2 = Right;
-	rw2.bearing = TrueBearing(Right, Left);
-	rw2.set = true;
-
-	RunwayAreas[runway_name1] = rw1;
-	RunwayAreas[runway_name2] = rw2;
+	RunwayAreas[Name] = Runway;
 }
 
 string CRimcas::GetAcInRunwayArea(CRadarTarget Ac, CRadarScreen *instance) {
+	int AltitudeDif = Ac.GetPosition().GetFlightLevel() - Ac.GetPreviousPosition(Ac.GetPosition()).GetFlightLevel();
+	if (!Ac.GetPosition().GetTransponderC())
+		AltitudeDif = 0;
+
+	if (Ac.GetGS() > 160 || AltitudeDif > 50)
+		return string_false;
 
 	POINT AcPosPix = instance->ConvertCoordFromPositionToPixel(Ac.GetPosition().GetPosition());
 
@@ -66,24 +59,14 @@ string CRimcas::GetAcInRunwayArea(CRadarTarget Ac, CRadarScreen *instance) {
 		if (!MonitoredRunwayDep[string(it->first)])
 			continue;
 
-		vector<POINT> RwyPolygon;
+		vector<POINT> RunwayOnScreen;
 
-		if (it->second.isCustomRunway) {
-			for (auto &rwy : it->second.CustomDefinition) // access by reference to avoid copying
-			{
-				RwyPolygon.push_back(instance->ConvertCoordFromPositionToPixel(rwy));
-			}
+		for (auto &Point : it->second.Definition)
+		{
+			RunwayOnScreen.push_back(instance->ConvertCoordFromPositionToPixel(Point));
 		}
-		else {
-			POINT tTopLeft = instance->ConvertCoordFromPositionToPixel(it->second.topLeft);
-			POINT tTopRight = instance->ConvertCoordFromPositionToPixel(it->second.topRight);
-			POINT tBottomLeft = instance->ConvertCoordFromPositionToPixel(it->second.bottomLeft);
-			POINT tBottomRight = instance->ConvertCoordFromPositionToPixel(it->second.bottomRight);
-
-			RwyPolygon = { tTopLeft, tTopRight, tBottomRight, tBottomLeft };
-		}
-
-		if (Is_Inside(AcPosPix, RwyPolygon) && Ac.GetGS() < 180) {
+	
+		if (Is_Inside(AcPosPix, RunwayOnScreen)) {
 			AcOnRunway.insert(std::pair<string, string>(it->first, Ac.GetCallsign()));
 			return string(it->first);
 		}
@@ -93,8 +76,19 @@ string CRimcas::GetAcInRunwayArea(CRadarTarget Ac, CRadarScreen *instance) {
 }
 
 string CRimcas::GetAcInRunwayAreaSoon(CRadarTarget Ac, CRadarScreen *instance, bool isCorrelated) {
-	if (Ac.GetGS() < 25)
-		return CRimcas::string_false;
+	int AltitudeDif = Ac.GetPosition().GetFlightLevel() - Ac.GetPreviousPosition(Ac.GetPosition()).GetFlightLevel();
+	if (!Ac.GetPosition().GetTransponderC())
+		AltitudeDif = 0;
+	
+	// Making sure the AC is airborne and not climbing, but below transition
+	if (Ac.GetGS() < 50 || 
+		AltitudeDif > 50 || 
+		Ac.GetPosition().GetPressureAltitude() > instance->GetPlugIn()->GetTransitionAltitude())
+		return string_false;
+
+	// If the AC is already on the runway, then there is no point in this step
+	if (isAcOnRunway(Ac.GetCallsign()))
+		return string_false;
 
 	POINT AcPosPix = instance->ConvertCoordFromPositionToPixel(Ac.GetPosition().GetPosition());
 
@@ -103,127 +97,81 @@ string CRimcas::GetAcInRunwayAreaSoon(CRadarTarget Ac, CRadarScreen *instance, b
 		if (!MonitoredRunwayArr[it->first])
 			continue;
 
-		if (RunwayTimerShort) {
-			for (int i = 15; i <= 60; i = i + 15) {
-				vector<POINT> RwyPolygon;
+		// We need to know when and if the AC is going to enter the runway within 5 minutes (by steps of 10 seconds
 
-				if (it->second.isCustomRunway) {
-					for (auto &rwy : it->second.CustomDefinition)
-					{
-						RwyPolygon.push_back(instance->ConvertCoordFromPositionToPixel(rwy));
-					}
-				}
-				else {
-					POINT tTopLeft = instance->ConvertCoordFromPositionToPixel(it->second.topLeft);
-					POINT tTopRight = instance->ConvertCoordFromPositionToPixel(it->second.topRight);
-					POINT tBottomLeft = instance->ConvertCoordFromPositionToPixel(it->second.bottomLeft);
-					POINT tBottomRight = instance->ConvertCoordFromPositionToPixel(it->second.bottomRight);
+		vector<POINT> RunwayOnScreen;
 
-					RwyPolygon = { tTopLeft, tTopRight, tBottomRight, tBottomLeft };
-				}
-
-				float Distance = float(Ac.GetGS())*0.514444f;
-				Distance = Distance * float(i);
-				CPosition TempPosition = Haversine(Ac.GetPosition().GetPosition(), float(Ac.GetTrackHeading()), Distance);
-				POINT TempPoint = instance->ConvertCoordFromPositionToPixel(TempPosition);
-
-				if (Is_Inside(TempPoint, RwyPolygon) && !Is_Inside(AcPosPix, RwyPolygon) && Ac.GetGS() < 200) {
-					string toDisplay = string(Ac.GetCallsign());
-					if (!isCorrelated)
-					{
-						toDisplay = Ac.GetSystemID();
-					}
-					TimeTable[it->first][i] = toDisplay;
-
-					// If aircraft is 30 seconds from landing, then it's considered on the runway
-
-					if (i == 30 || i == 15)
-						AcOnRunway.insert(std::pair<string, string>(it->first, string(Ac.GetCallsign())));
-
-					return string(it->first);
-					break;
-				}
-			}
-		}
-		else {
-			for (int i = 30; i <= 120; i = i + 30) {
-				POINT tTopLeft = instance->ConvertCoordFromPositionToPixel(it->second.topLeft);
-				POINT tTopRight = instance->ConvertCoordFromPositionToPixel(it->second.topRight);
-				POINT tBottomLeft = instance->ConvertCoordFromPositionToPixel(it->second.bottomLeft);
-				POINT tBottomRight = instance->ConvertCoordFromPositionToPixel(it->second.bottomRight);
-
-				vector<POINT> RwyPolygon = { tTopLeft, tTopRight, tBottomRight, tBottomLeft };
-
-				float Distance = float(Ac.GetGS())*0.514444f;
-				Distance = Distance * float(i);
-				CPosition TempPosition = Haversine(Ac.GetPosition().GetPosition(), float(Ac.GetTrackHeading()), Distance);
-				POINT TempPoint = instance->ConvertCoordFromPositionToPixel(TempPosition);
-
-				if (Is_Inside(TempPoint, RwyPolygon) && !Is_Inside(AcPosPix, RwyPolygon)) {
-					TimeTable[it->first][i] = string(Ac.GetCallsign());
-
-					// If aircraft is 30 seconds from landing, then it's considered on the runway
-
-					if (i == 30)
-						AcOnRunway.insert(std::pair<string, string>(it->first, string(Ac.GetCallsign())));
-
-					return string(it->first);
-					break;
-				}
-			}
+		for (auto &Point : it->second.Definition)
+		{
+			RunwayOnScreen.push_back(instance->ConvertCoordFromPositionToPixel(Point));
 		}
 
+		double AcSpeed = Ac.GetPosition().GetReportedGS();
+		if (!Ac.GetPosition().GetTransponderC())
+			AcSpeed = Ac.GetGS();
 
+		for (int t = 10; t <= 300; t+= 10)
+		{
+			double distance = AcSpeed*0.514444*t;
+
+			POINT PredictedPosition = instance->ConvertCoordFromPositionToPixel(
+				BetterHarversine(Ac.GetPosition().GetPosition(), Ac.GetTrackHeading(), distance)
+				);
+
+			if (Is_Inside(PredictedPosition, RunwayOnScreen))
+			{
+				// The aircraft is going to be on the runway, we need to decide where it needs to be shown on the AIW
+				bool first = true;
+				for (size_t k = 0; k < CountdownDefinition.size(); k++)
+				{
+					int Time = CountdownDefinition.at(k);
+
+					int PreviousTime = 0;
+					if (first)
+					{
+						PreviousTime = Time - 15;
+						first = false;
+					}
+					else
+					{
+						PreviousTime = CountdownDefinition.at(k-1);
+					}
+
+					if (t < PreviousTime && t >= Time)
+					{
+						TimeTable[it->first][Time] = Ac.GetCallsign();
+					}
+				}
+
+				// If the AC is 15 seconds away from the runway, we consider him on it
+
+				if (t <= 15)
+					AcOnRunway.insert(std::pair<string, string>(it->first, Ac.GetCallsign()));
+
+				// If the AC is 30 seconds away from the runway, we consider him approaching
+
+				if (t > 15 && t <= 30)
+					ApproachingAircrafts.insert(std::pair<string, string>(it->first, Ac.GetCallsign()));
+
+				return Ac.GetCallsign();
+			}
+		}
 	}
 
 	return CRimcas::string_false;
 }
 
-CRimcas::RunwayAreaType CRimcas::GetRunwayArea(CRadarScreen *instance, CPosition Left, CPosition Right, int threshold, double bearing, float hwidth, float hlenght) {
-	float heading = float(Left.DirectionTo(Right));
-	float rheading = float(fmod(heading + 180, 360));
-
-	Left = Haversine(Left, rheading, 250.0f);
-	Right = Haversine(Right, heading, 250.0f);
-	POINT LeftPt = instance->ConvertCoordFromPositionToPixel(Left);
-	POINT RightPt = instance->ConvertCoordFromPositionToPixel(Right);
-
-	float TopLeftheading = float(fmod(heading + 90, 360));
-	CPosition TopLeft = Haversine(Left, TopLeftheading, 92.5f);
-	POINT TopLeftPt = instance->ConvertCoordFromPositionToPixel(TopLeft);
-
-	float BottomRightheading = float(fmod(heading - 90, 360));
-	CPosition BottomRight = Haversine(Right, BottomRightheading, 92.5f);
-	POINT BottomRightPt = instance->ConvertCoordFromPositionToPixel(BottomRight);
-
-	CPosition TopRight = Haversine(Right, TopLeftheading, 92.5f);
-	POINT TopRightPt = instance->ConvertCoordFromPositionToPixel(TopRight);
-
-	CPosition BottomLeft = Haversine(Left, BottomRightheading, 92.5f);
-	POINT BottomLeftPt = instance->ConvertCoordFromPositionToPixel(BottomLeft);
-
-	RunwayAreaType toRender;
-
-	toRender.topLeft = TopLeft;
-	toRender.topRight = TopRight;
-	toRender.bottomLeft = BottomLeft;
-	toRender.bottomRight = BottomRight;
+vector<CPosition> CRimcas::GetRunwayArea(CPosition Left, CPosition Right, float hwidth) {
+	vector<CPosition> out;
 	
-	if (threshold == 1) {
-		toRender.threshold = Left;
-		toRender.threshold2 = Right;
-		toRender.bearing = TrueBearing(Right, Left);
-	}
-	else {
-		toRender.threshold = Right;
-		toRender.threshold = Left;
-		toRender.bearing = TrueBearing(Left, Right);
-	}
+	double RunwayBearing = TrueBearing(Left, Right);
 
-	toRender.set = true;
+	out.push_back(BetterHarversine(Left, fmod(RunwayBearing + 90, 360), hwidth)); // Bottom Left
+	out.push_back(BetterHarversine(Right, fmod(RunwayBearing + 90, 360), hwidth)); // Bottom Right
+	out.push_back(BetterHarversine(Right, fmod(RunwayBearing - 90, 360), hwidth)); // Top Right
+	out.push_back(BetterHarversine(Left, fmod(RunwayBearing - 90, 360), hwidth)); // Top Left
 
-	return toRender;
-
+	return out;
 }
 
 void CRimcas::OnRefreshEnd(CRadarScreen *instance, int threshold) {
@@ -235,43 +183,37 @@ void CRimcas::OnRefreshEnd(CRadarScreen *instance, int threshold) {
 			continue;
 
 		bool isOnClosedRunway = false;
-		if (ClosedRunway.find(it->first) == ClosedRunway.end()) {
-		}
-		else {
+		if (ClosedRunway.find(it->first) != ClosedRunway.end()) {
 			if (ClosedRunway[it->first])
 				isOnClosedRunway = true;
 		}
 
-		if (AcOnRunway.count(string(it->first)) > 1 || isOnClosedRunway) {
+		bool isAnotherAcApproaching = ApproachingAircrafts.count(it->first) > 0;
+
+		if (AcOnRunway.count(it->first) > 1 || isOnClosedRunway || isAnotherAcApproaching) {
 
 			auto AcOnRunwayRange = AcOnRunway.equal_range(it->first);
-
-			string isAnotherAcApproaching = "no";
 
 			for (map<string, string>::iterator it2 = AcOnRunwayRange.first; it2 != AcOnRunwayRange.second; ++it2)
 			{
 				if (isOnClosedRunway) {
-					if (isAnotherAcApproaching != "no") {
+					AcColor[it2->second] = StageTwo;
+				} else
+				{
+					if (instance->GetPlugIn()->RadarTargetSelect(it2->second.c_str()).GetGS() > threshold)
+					{
 						AcColor[it2->second] = StageTwo;
-					}
-					else {
+					} else
+					{
 						AcColor[it2->second] = StageOne;
-						CRadarTarget rt = instance->GetPlugIn()->RadarTargetSelect(it2->second.c_str());
-
-						if (rt.IsValid() && rt.GetPosition().GetReportedGS() > threshold) {
-							if (isAnotherAcApproaching == "no")
-								isAnotherAcApproaching = it2->second;
-
-							AcColor[it2->second] = StageTwo;
-						}
 					}
 				}
 			}
 
-			if (isAnotherAcApproaching != "no") {
-				AcColor[isAnotherAcApproaching] = StageTwo;
+			for (auto &ac : ApproachingAircrafts)
+			{
+				AcColor[ac.second] = StageOne;
 			}
-
 		}
 
 	}

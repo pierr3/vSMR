@@ -328,6 +328,7 @@ void CInsetWindow::render(HDC hDC, CSMRRadar * radar_screen, Graphics* gdi, POIN
 
 		if (LiangBarsky(m_Area, projectPoint(AwayBase), projectPoint(PredictedEnd), liangOne, liangTwo))
 		{
+			dc.SelectObject(&WhitePen);
 			dc.MoveTo(liangOne);
 			dc.LineTo(liangTwo);
 		}
@@ -354,7 +355,7 @@ void CInsetWindow::render(HDC hDC, CSMRRadar * radar_screen, Graphics* gdi, POIN
 			dc.LineTo(RtPoint.x + 10, RtPoint.y + 4);
 		}
 
-		int lenght = 35;
+		int lenght = 45;
 
 		POINT TagCenter;
 		if (m_TagAngles.find(rt.GetCallsign()) == m_TagAngles.end())

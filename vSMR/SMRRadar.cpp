@@ -114,7 +114,19 @@ void CSMRRadar::LoadProfile(string profileName) {
 	CurrentConfig->setActiveProfile(profileName);
 
 	// Loading all the new data
-	RimcasInstance->toggleShortTimer(CurrentConfig->getActiveProfile()["rimcas"]["short_timer"].GetBool());
+	const Value &RimcasTimer = CurrentConfig->getActiveProfile()["rimcas"]["timer"];
+	const Value &RimcasTimerLVP = CurrentConfig->getActiveProfile()["rimcas"]["timer_lvp"];
+
+	vector<int> RimcasNorm;
+	for (SizeType i = 0; i < RimcasTimer.Size(); i++) {
+		RimcasNorm.push_back(RimcasTimer[i].GetInt());
+	}
+
+	vector<int> RimcasLVP;
+	for (SizeType i = 0; i < RimcasTimerLVP.Size(); i++) {
+		RimcasLVP.push_back(RimcasTimerLVP[i].GetInt());
+	}
+	RimcasInstance->setCountdownDefinition(RimcasNorm, RimcasLVP);
 	LeaderLineDefaultlenght = CurrentConfig->getActiveProfile()["labels"]["leader_line_length"].GetInt();
 
 	// Reloading the fonts
@@ -1431,12 +1443,12 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 
 			const Value& CustomMap = CurrentConfig->getAirportMapIfAny(getActiveAirport());
 
+			vector<CPosition> def;
+
 			if (CurrentConfig->isCustomRunwayAvail(getActiveAirport(), runway_name, runway_name2)) {
 				const Value& Runways = CustomMap["runways"];
 
 				assert(Runways.IsArray());
-
-				vector<CPosition> def;
 
 				for (SizeType i = 0; i < Runways.Size(); i++) {
 					if (startsWith(runway_name.c_str(), Runways[i]["runway_name"].GetString()) || 
@@ -1457,12 +1469,12 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 						
 					}
 				}
-
-				RimcasInstance->AddCustomRunway(runway_name, runway_name2, Left, Right, def);
 			}
 			else {
-				RimcasInstance->AddRunwayArea(this, runway_name, runway_name2, Left, Right, bearing1, bearing2);
+				def = RimcasInstance->GetRunwayArea(Left, Right);
 			}
+
+			RimcasInstance->AddRunwayArea(this, runway_name, runway_name2, def);
 
 			if (RimcasInstance->ClosedRunway.find(runway_name) != RimcasInstance->ClosedRunway.end() || RimcasInstance->ClosedRunway.find(runway_name2) != RimcasInstance->ClosedRunway.end()) {
 				if (RimcasInstance->ClosedRunway[runway_name] || RimcasInstance->ClosedRunway[runway_name2]) {
@@ -1509,27 +1521,19 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 
 					}
 					else {
-						CRimcas::RunwayAreaType Area = RimcasInstance->GetRunwayArea(this, Left, Right, 0, bearing1);
+						vector<CPosition> Area = RimcasInstance->GetRunwayArea(Left, Right);
 
-						POINT TopLeftPt = ConvertCoordFromPositionToPixel(Area.topLeft);
+						PointF lpPoints[5000];
+						int w = 0;
+						for(auto &Point : Area)
+						{
+							POINT toDraw = ConvertCoordFromPositionToPixel(Point);
 
-						POINT BottomRightPt = ConvertCoordFromPositionToPixel(Area.bottomRight);
+							lpPoints[w] = { REAL(toDraw.x), REAL(toDraw.y) };
+							w++;
+						}
 
-						POINT TopRightPt = ConvertCoordFromPositionToPixel(Area.topRight);
-
-						POINT BottomLeftPt = ConvertCoordFromPositionToPixel(Area.bottomLeft);
-
-						dc.MoveTo(TopLeftPt);
-						dc.LineTo(TopRightPt);
-
-						dc.MoveTo(TopRightPt);
-						dc.LineTo(BottomRightPt);
-
-						dc.MoveTo(BottomRightPt);
-						dc.LineTo(BottomLeftPt);
-
-						dc.MoveTo(BottomLeftPt);
-						dc.LineTo(TopLeftPt);
+						graphics.FillPolygon(&SolidBrush(Color(150, 0, 0)), lpPoints, w);
 					}
 
 					dc.SelectObject(oldPen);
@@ -1538,7 +1542,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 		}
 	}
 
-	RimcasInstance->OnRefreshBegin();
+	RimcasInstance->OnRefreshBegin(isLVP);
 
 #pragma region symbols
 	// Drawing the symbols
