@@ -42,7 +42,7 @@ public:
 	map<string, map<int, string>> TimeTable;
 	map<string, bool> MonitoredRunwayDep;
 	map<string, bool> MonitoredRunwayArr;
-	map<string, COLORREF> AcColor;
+	map<string, RimcasAlertTypes> AcColor;
 
 	bool IsLVP = false;
 
@@ -118,17 +118,17 @@ public:
 	void OnRefreshEnd(CRadarScreen *instance, int threshold);
 	void Reset();
 
-	bool less_vectors(const int& a, const int& b) {
+	static bool less_vectors(int a, int b) {
 		return a < b;
 	}
 
 	void setCountdownDefinition(vector<int> data, vector<int> dataLVP)
 	{
 		CountdownDefinition = data;
-		sort(CountdownDefinition.begin(), CountdownDefinition.end(), less_vectors);
+		std::sort(CountdownDefinition.begin(), CountdownDefinition.end(), less_vectors);
 
 		CountdownDefinitionLVP = dataLVP;
-		sort(CountdownDefinitionLVP.begin(), CountdownDefinitionLVP.end(), less_vectors);
+		std::sort(CountdownDefinitionLVP.begin(), CountdownDefinitionLVP.end(), less_vectors);
 	}
 
 	void toggleClosedRunway(string runway) {

@@ -3,8 +3,6 @@
 #include "SMRRadar.hpp"
 #include "SMRPlugin.hpp"
 
-RECT TimePopupArea = { 300, 300, 430, 363 };
-
 ULONG_PTR m_gdiplusToken;
 CPoint mouseLocation(0, 0);
 string TagBeingDragged;
@@ -356,8 +354,28 @@ void CSMRRadar::OnMoveScreenObject(int ObjectType, const char * sObjectId, POINT
 		}
 	}
 
-	if (ObjectType == 7000) {
+	if (ObjectType == RIMCAS_IAW) {
 		TimePopupAreas[sObjectId] = Area;
+
+		if (!Released)
+		{
+			if (standardCursor)
+			{
+				smrCursor = CopyCursor((HCURSOR)::LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDC_SMRMOVEWINDOW), IMAGE_CURSOR, 0, 0, LR_SHARED));
+
+				AfxGetMainWnd()->SendMessage(WM_SETCURSOR);
+				standardCursor = false;
+			}
+		}
+		else
+		{
+			if (!standardCursor)
+			{
+				smrCursor = CopyCursor((HCURSOR)::LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDC_SMRCURSOR), IMAGE_CURSOR, 0, 0, LR_SHARED));
+				AfxGetMainWnd()->SendMessage(WM_SETCURSOR);
+				standardCursor = true;
+			}
+		}
 	}
 
 	mouseLocation = Pt;
@@ -2110,66 +2128,51 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 		if (!it->second || RimcasInstance->TimeTable[it->first].empty())
 			continue;
 
-		if (TimePopupAreas.find(it->first) == TimePopupAreas.end())
-			TimePopupAreas[it->first] = TimePopupArea;
+		vector<int> TimeDefinition = RimcasInstance->CountdownDefinition;
+		if (isLVP)
+			TimeDefinition = RimcasInstance->CountdownDefinitionLVP;
 
+		if (TimePopupAreas.find(it->first) == TimePopupAreas.end())
+			TimePopupAreas[it->first] = { 300, 300, 430, LONG(TextHeight*(TimeDefinition.size()+1)) };
+		
 		CRect CRectTime = TimePopupAreas[it->first];
 		CRectTime.NormalizeRect();
 
 		dc.FillRect(CRectTime, &BrushGrey);
-
-		map<int, int> times;
-
-		times[1] = 60; 
-		times[2] = 45; 
-		times[3] = 30;
-		times[4] = 15;
-
-		if (!CurrentConfig->getActiveProfile()["rimcas"]["short_timer"].GetBool()) {
-			times[1] = 120; 
-			times[2] = 90; 
-			times[3] = 60; 
-			times[4] = 30;
-		}
-			
+		
+		// Drawing the runway name
 		string tempS = it->first;
 		dc.TextOutA(CRectTime.left + CRectTime.Width() / 2 - dc.GetTextExtent(tempS.c_str()).cx / 2, CRectTime.top, tempS.c_str());
-		tempS = std::to_string(times[1]) + ": " + RimcasInstance->TimeTable[it->first][times[1]];
-		dc.TextOutA(CRectTime.left, CRectTime.top + TextHeight, tempS.c_str());
-		tempS = std::to_string(times[2]) + ": " + RimcasInstance->TimeTable[it->first][times[2]];
-		dc.TextOutA(CRectTime.left, CRectTime.top + TextHeight * 2, tempS.c_str());
-		tempS = std::to_string(times[3]) + ": " + RimcasInstance->TimeTable[it->first][times[3]];
-		dc.SetTextColor(RGB(33, 33, 33));
-		if (RimcasInstance->AcColor.find(RimcasInstance->TimeTable[it->first][30]) != RimcasInstance->AcColor.end() && RimcasInstance->RunwayTimerShort) {
-			CBrush OrangeBrush(RimcasInstance->GetAircraftColor(RimcasInstance->TimeTable[it->first][30], 
-				Color::Black, 
-				Color::Black,
-				CurrentConfig->getConfigColor(CurrentConfig->getActiveProfile()["rimcas"]["background_color_stage_one"]),
-				CurrentConfig->getConfigColor(CurrentConfig->getActiveProfile()["rimcas"]["background_color_stage_two"])).ToCOLORREF()
-				); // RGB(180, 100, 50)
-			CRect TempRect = { CRectTime.left, CRectTime.top + TextHeight * 3, CRectTime.right, CRectTime.top + TextHeight * 4 };
-			dc.FillRect(TempRect, &OrangeBrush);
-			dc.SetTextColor(RGB(238, 238, 208));
-		}
-		dc.TextOutA(CRectTime.left, CRectTime.top + TextHeight * 3, tempS.c_str());
-		tempS = std::to_string(times[4]) + ": " + RimcasInstance->TimeTable[it->first][times[4]];
-		dc.SetTextColor(RGB(33, 33, 33));
-		if (RimcasInstance->AcColor.find(RimcasInstance->TimeTable[it->first][times[4]]) != RimcasInstance->AcColor.end()) {
-			CBrush OrangeBrush(RimcasInstance->GetAircraftColor(RimcasInstance->TimeTable[it->first][times[4]],
-				Color::Black,
-				Color::Black,
-				CurrentConfig->getConfigColor(CurrentConfig->getActiveProfile()["rimcas"]["background_color_stage_one"]),
-				CurrentConfig->getConfigColor(CurrentConfig->getActiveProfile()["rimcas"]["background_color_stage_two"])).ToCOLORREF()
-				); // RGB(180, 100, 50)
-			CRect TempRect = { CRectTime.left, CRectTime.top + TextHeight * 4, CRectTime.right, CRectTime.top + TextHeight * 5 };
-			dc.FillRect(TempRect, &OrangeBrush);
-			dc.SetTextColor(RGB(238, 238, 208));
-		}
-		dc.TextOutA(CRectTime.left, CRectTime.top + TextHeight * 4, tempS.c_str());
 
-		dc.SetTextColor(oldColor);
+		int TopOffset = TextHeight;
+		// Drawing the times
+		for (auto &Time : TimeDefinition)
+		{
+			dc.SetTextColor(RGB(33, 33, 33));
 
-		AddScreenObject(7000, it->first.c_str(), CRectTime, true, "Runway timer");
+			tempS = std::to_string(Time) + ": " + RimcasInstance->TimeTable[it->first][Time];
+			if (RimcasInstance->AcColor.find(RimcasInstance->TimeTable[it->first][Time]) != RimcasInstance->AcColor.end())
+			{
+				CBrush RimcasBrush(RimcasInstance->GetAircraftColor(RimcasInstance->TimeTable[it->first][Time],
+					Color::Black,
+					Color::Black,
+					CurrentConfig->getConfigColor(CurrentConfig->getActiveProfile()["rimcas"]["background_color_stage_one"]),
+					CurrentConfig->getConfigColor(CurrentConfig->getActiveProfile()["rimcas"]["background_color_stage_two"])).ToCOLORREF()
+					);
+
+				CRect TempRect = { CRectTime.left, CRectTime.top + TopOffset, CRectTime.right, CRectTime.top + TopOffset + TextHeight };
+				TempRect.NormalizeRect();
+
+				dc.FillRect(TempRect, &RimcasBrush);
+				dc.SetTextColor(RGB(238, 238, 208));
+			}
+
+			dc.TextOutA(CRectTime.left, CRectTime.top + TextHeight, tempS.c_str());
+
+			TopOffset += TextHeight;
+		}
+
+		AddScreenObject(RIMCAS_IAW, it->first.c_str(), CRectTime, true, "");
 
 	}
 

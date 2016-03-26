@@ -14,7 +14,6 @@ void CRimcas::Reset() {
 	RunwayAreas.clear();
 	AcColor.clear();
 	AcOnRunway.clear();
-	RunwayAreas.clear();
 	TimeTable.clear();
 	MonitoredRunwayArr.clear();
 	MonitoredRunwayDep.clear();
@@ -49,7 +48,7 @@ string CRimcas::GetAcInRunwayArea(CRadarTarget Ac, CRadarScreen *instance) {
 	if (!Ac.GetPosition().GetTransponderC())
 		AltitudeDif = 0;
 
-	if (Ac.GetGS() > 160 || AltitudeDif > 50)
+	if (Ac.GetGS() > 160 || AltitudeDif > 200)
 		return string_false;
 
 	POINT AcPosPix = instance->ConvertCoordFromPositionToPixel(Ac.GetPosition().GetPosition());
@@ -115,16 +114,18 @@ string CRimcas::GetAcInRunwayAreaSoon(CRadarTarget Ac, CRadarScreen *instance, b
 			double distance = AcSpeed*0.514444*t;
 
 			POINT PredictedPosition = instance->ConvertCoordFromPositionToPixel(
-				BetterHarversine(Ac.GetPosition().GetPosition(), Ac.GetTrackHeading(), distance)
-				);
+				BetterHarversine(Ac.GetPosition().GetPosition(), Ac.GetTrackHeading(), distance));
 
 			if (Is_Inside(PredictedPosition, RunwayOnScreen))
 			{
 				// The aircraft is going to be on the runway, we need to decide where it needs to be shown on the AIW
 				bool first = true;
-				for (size_t k = 0; k < CountdownDefinition.size(); k++)
+				vector<int> Definiton = CountdownDefinition;
+				if (IsLVP)
+					Definiton = CountdownDefinitionLVP;
+				for (size_t k = 0; k < Definiton.size(); k++)
 				{
-					int Time = CountdownDefinition.at(k);
+					int Time = Definiton.at(k);
 
 					int PreviousTime = 0;
 					if (first)
@@ -134,12 +135,13 @@ string CRimcas::GetAcInRunwayAreaSoon(CRadarTarget Ac, CRadarScreen *instance, b
 					}
 					else
 					{
-						PreviousTime = CountdownDefinition.at(k-1);
+						PreviousTime = Definiton.at(k-1);
 					}
 
 					if (t < PreviousTime && t >= Time)
 					{
 						TimeTable[it->first][Time] = Ac.GetCallsign();
+						break;
 					}
 				}
 
