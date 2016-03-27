@@ -119,7 +119,7 @@ public:
 	void Reset();
 
 	static bool less_vectors(int a, int b) {
-		return a < b;
+		return a > b;
 	}
 
 	void setCountdownDefinition(vector<int> data, vector<int> dataLVP)

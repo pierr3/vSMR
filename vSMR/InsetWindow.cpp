@@ -181,11 +181,10 @@ void CInsetWindow::render(HDC hDC, CSMRRadar * radar_screen, Graphics* gdi, POIN
 
 			}
 
-			if (radar_screen->RimcasInstance->MonitoredRunwayArr[rwy.GetRunwayName(0)] || 
-				radar_screen->RimcasInstance->MonitoredRunwayArr[rwy.GetRunwayName(1)])
+			if (rwy.IsElementActive(false, 0) || rwy.IsElementActive(false, 1))
 			{
 				CPosition Threshold, OtherEnd;
-				if (radar_screen->RimcasInstance->MonitoredRunwayArr[rwy.GetRunwayName(0)])
+				if (rwy.IsElementActive(false, 0))
 				{
 					Threshold = EndOne; 
 					OtherEnd = EndTwo;
@@ -258,7 +257,7 @@ void CInsetWindow::render(HDC hDC, CSMRRadar * radar_screen, Graphics* gdi, POIN
 	{
 		int radarRange = radar_screen->CurrentConfig->getActiveProfile()["filters"]["radar_range_nm"].GetInt();
 
-		if (rt.GetGS() < 50 ||
+		if (rt.GetGS() < 60 ||
 			rt.GetPosition().GetPressureAltitude() > m_Filter ||
 			!rt.IsValid() ||
 			!rt.GetPosition().IsValid() ||
@@ -317,7 +316,7 @@ void CInsetWindow::render(HDC hDC, CSMRRadar * radar_screen, Graphics* gdi, POIN
 		}
 
 		// Predicted Track Line
-		// It starts 20 seconds away from the ac
+		// It starts 10 seconds away from the ac
 		double d = double(rt.GetPosition().GetReportedGS()*0.514444)*10;
 		CPosition AwayBase = BetterHarversine(rt.GetPosition().GetPosition(), rt.GetTrackHeading(), d);
 

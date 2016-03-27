@@ -111,12 +111,31 @@ string CRimcas::GetAcInRunwayAreaSoon(CRadarTarget Ac, CRadarScreen *instance, b
 
 		for (int t = 10; t <= 300; t+= 10)
 		{
-			double distance = AcSpeed*0.514444*t;
+			double distance = Ac.GetPosition().GetReportedGS()*0.514444*t;
 
-			POINT PredictedPosition = instance->ConvertCoordFromPositionToPixel(
-				BetterHarversine(Ac.GetPosition().GetPosition(), Ac.GetTrackHeading(), distance));
+			// We tolerate up 2 degree variations to the runway at long range (> 120 s)
+			// And 3 degrees after (<= 120 t)
 
-			if (Is_Inside(PredictedPosition, RunwayOnScreen))
+			bool isGoingToLand = false;
+			int AngleMin = -2; 
+			int AngleMax = 2;
+			if (t <= 120)
+			{
+				AngleMin = -3;
+				AngleMax = 3;
+			}
+
+			for (int a = AngleMin; a <= AngleMax;  a++)
+			{
+				POINT PredictedPosition = instance->ConvertCoordFromPositionToPixel(
+					BetterHarversine(Ac.GetPosition().GetPosition(), fmod(Ac.GetTrackHeading() + a, 360), distance));
+				isGoingToLand = Is_Inside(PredictedPosition, RunwayOnScreen);
+
+				if (isGoingToLand)
+					break;
+			}
+
+			if (isGoingToLand)
 			{
 				// The aircraft is going to be on the runway, we need to decide where it needs to be shown on the AIW
 				bool first = true;
@@ -137,7 +156,6 @@ string CRimcas::GetAcInRunwayAreaSoon(CRadarTarget Ac, CRadarScreen *instance, b
 					{
 						PreviousTime = Definiton.at(k-1);
 					}
-
 					if (t < PreviousTime && t >= Time)
 					{
 						TimeTable[it->first][Time] = Ac.GetCallsign();
@@ -166,7 +184,7 @@ string CRimcas::GetAcInRunwayAreaSoon(CRadarTarget Ac, CRadarScreen *instance, b
 vector<CPosition> CRimcas::GetRunwayArea(CPosition Left, CPosition Right, float hwidth) {
 	vector<CPosition> out;
 	
-	double RunwayBearing = TrueBearing(Left, Right);
+	double RunwayBearing = RadToDeg(TrueBearing(Left, Right));
 
 	out.push_back(BetterHarversine(Left, fmod(RunwayBearing + 90, 360), hwidth)); // Bottom Left
 	out.push_back(BetterHarversine(Right, fmod(RunwayBearing + 90, 360), hwidth)); // Bottom Right
@@ -214,7 +232,11 @@ void CRimcas::OnRefreshEnd(CRadarScreen *instance, int threshold) {
 
 			for (auto &ac : ApproachingAircrafts)
 			{
-				AcColor[ac.second] = StageOne;
+				if (ac.first == it->first && AcOnRunway.count(it->first) > 1)
+					AcColor[ac.second] = StageOne;
+
+				if (ac.first == it->first && isOnClosedRunway)
+					AcColor[ac.second] = StageTwo;
 			}
 		}
 

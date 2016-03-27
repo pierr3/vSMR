@@ -1494,8 +1494,10 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 
 			RimcasInstance->AddRunwayArea(this, runway_name, runway_name2, def);
 
-			if (RimcasInstance->ClosedRunway.find(runway_name) != RimcasInstance->ClosedRunway.end() || RimcasInstance->ClosedRunway.find(runway_name2) != RimcasInstance->ClosedRunway.end()) {
-				if (RimcasInstance->ClosedRunway[runway_name] || RimcasInstance->ClosedRunway[runway_name2]) {
+			string RwName = runway_name + " / " + runway_name2;
+
+			if (RimcasInstance->ClosedRunway.find(RwName) != RimcasInstance->ClosedRunway.end()) {
+				if (RimcasInstance->ClosedRunway[RwName]) {
 
 					CPen RedPen(PS_SOLID, 2, RGB(150, 0, 0));
 					CPen * oldPen = dc.SelectObject(&RedPen);
@@ -2125,15 +2127,18 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 
 	for (std::map<string, bool>::iterator it = RimcasInstance->MonitoredRunwayArr.begin(); it != RimcasInstance->MonitoredRunwayArr.end(); ++it)
 	{
+		log("looping");
 		if (!it->second || RimcasInstance->TimeTable[it->first].empty())
 			continue;
+
+		log("passed conditions");
 
 		vector<int> TimeDefinition = RimcasInstance->CountdownDefinition;
 		if (isLVP)
 			TimeDefinition = RimcasInstance->CountdownDefinitionLVP;
 
 		if (TimePopupAreas.find(it->first) == TimePopupAreas.end())
-			TimePopupAreas[it->first] = { 300, 300, 430, LONG(TextHeight*(TimeDefinition.size()+1)) };
+			TimePopupAreas[it->first] = { 300, 300, 430, 300+LONG(TextHeight*(TimeDefinition.size()+1)) };
 		
 		CRect CRectTime = TimePopupAreas[it->first];
 		CRectTime.NormalizeRect();
@@ -2167,7 +2172,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 				dc.SetTextColor(RGB(238, 238, 208));
 			}
 
-			dc.TextOutA(CRectTime.left, CRectTime.top + TextHeight, tempS.c_str());
+			dc.TextOutA(CRectTime.left, CRectTime.top + TopOffset, tempS.c_str());
 
 			TopOffset += TextHeight;
 		}
