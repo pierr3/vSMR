@@ -97,6 +97,7 @@ public:
 	bool QDMenabled = false;
 	bool QDMSelectEnabled = false;
 	POINT QDMSelectPt;
+	POINT QDMmousePt;
 
 	bool ColorSettingsDay = true;
 

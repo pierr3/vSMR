@@ -131,8 +131,6 @@ void CSMRRadar::LoadProfile(string profileName) {
 	this->LoadCustomFont();
 }
 
-// TODO: Save the trails data, afterglow, predicted line
-
 void CSMRRadar::OnAsrContentLoaded(bool Loaded)
 {
 	const char * p_value;
@@ -177,6 +175,12 @@ void CSMRRadar::OnAsrContentLoaded(bool Loaded)
 		if ((p_value = GetDataFromAsr(string(prefix + "BottomRightY").c_str())) != NULL)
 			appWindows[i]->m_Area.bottom = atoi(p_value);
 
+		if ((p_value = GetDataFromAsr(string(prefix + "OffsetX").c_str())) != NULL)
+			appWindows[i]->m_Offset.x = atoi(p_value);
+
+		if ((p_value = GetDataFromAsr(string(prefix + "OffsetY").c_str())) != NULL)
+			appWindows[i]->m_Offset.y = atoi(p_value);
+
 		if ((p_value = GetDataFromAsr(string(prefix + "Filter").c_str())) != NULL)
 			appWindows[i]->m_Filter = atoi(p_value);
 
@@ -197,16 +201,12 @@ void CSMRRadar::OnAsrContentLoaded(bool Loaded)
 		rwy = GetPlugIn()->SectorFileElementSelectNext(rwy, SECTOR_ELEMENT_RUNWAY))
 	{
 		if (startsWith(getActiveAirport().c_str(), rwy.GetAirportName())) {
-			if (rwy.IsElementActive(true, 0) || rwy.IsElementActive(false, 0)) {
-				RimcasInstance->toggleMonitoredRunwayDep(rwy.GetRunwayName(0));
-				if (rwy.IsElementActive(false, 0)) {
-					RimcasInstance->toggleMonitoredRunwayArr(rwy.GetRunwayName(0));
-				}
-			}
-			if (rwy.IsElementActive(true, 1) || rwy.IsElementActive(false, 1)) {
-				RimcasInstance->toggleMonitoredRunwayDep(rwy.GetRunwayName(1));
-				if (rwy.IsElementActive(false, 1)) {
-					RimcasInstance->toggleMonitoredRunwayArr(rwy.GetRunwayName(1));
+			string name = rwy.GetRunwayName(0) + string(" / ") + rwy.GetRunwayName(1);
+
+			if (rwy.IsElementActive(true, 0) || rwy.IsElementActive(true, 1) || rwy.IsElementActive(false, 0) || rwy.IsElementActive(false, 1)) {
+				RimcasInstance->toggleMonitoredRunwayDep(name);
+				if (rwy.IsElementActive(false, 0) || rwy.IsElementActive(false, 1)) {
+					RimcasInstance->toggleMonitoredRunwayArr(name);
 				}
 			}
 		}
@@ -248,6 +248,12 @@ void CSMRRadar::OnAsrContentToBeSaved()
 
 		temp = std::to_string(appWindows[i]->m_Area.bottom);
 		SaveDataToAsr(string(prefix + "BottomRightY").c_str(), "SRW position", temp.c_str());
+
+		temp = std::to_string(appWindows[i]->m_Offset.x);
+		SaveDataToAsr(string(prefix + "OffsetX").c_str(), "SRW offset", temp.c_str());
+
+		temp = std::to_string(appWindows[i]->m_Offset.y);
+		SaveDataToAsr(string(prefix + "OffsetY").c_str(), "SRW offset", temp.c_str());
 
 		temp = std::to_string(appWindows[i]->m_Filter);
 		SaveDataToAsr(string(prefix + "Filter").c_str(), "SRW filter", temp.c_str());
@@ -453,6 +459,21 @@ void CSMRRadar::OnClickScreenObject(int ObjectType, const char * sObjectId, POIN
 			if (Button == BUTTON_LEFT)
 			{
 				QDMSelectPt = Pt;
+				RequestRefresh();
+			}
+
+			if (Button == BUTTON_RIGHT)
+			{
+				QDMSelectEnabled = false;
+				RequestRefresh();
+			}
+		}
+
+		if (QDMenabled)
+		{
+			if (Button == BUTTON_RIGHT)
+			{
+				QDMenabled = false;
 				RequestRefresh();
 			}
 		}
@@ -1388,13 +1409,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 			return Area;
 		}
 	};
-
-	POINT p;
-	if (GetCursorPos(&p))
-	{
-		mouseLocation = p;
-	}
-
+	
 	// Timer each seconds
 	clock_final = clock() - clock_init;
 	double delta_t = (double)clock_final / ((double)CLOCKS_PER_SEC);
@@ -1402,6 +1417,15 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 		clock_init = clock();
 		BLINK = !BLINK;
 		RefreshAirportActivity();
+	}
+
+	if (!QDMenabled && !QDMSelectEnabled)
+	{
+		POINT p;
+		if (GetCursorPos(&p))
+		{
+			mouseLocation = p;
+		}
 	}
 
 	CDC dc;
@@ -1431,7 +1455,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 
 	RimcasInstance->RunwayAreas.clear();
 
-	if (QDMSelectEnabled)
+	if (QDMSelectEnabled || QDMenabled)
 	{
 		CRect R(GetRadarArea());
 		R.top += 20;
@@ -2297,42 +2321,39 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 			AirportCPos = ConvertCoordFromPixelToPosition(QDMSelectPt);
 		}
 		dc.MoveTo(AirportPos);
-		POINT point;
-		if (GetCursorPos(&point))
-		{
-			dc.LineTo(point);
+		POINT point = mouseLocation;
+		dc.LineTo(point);
 
-			CPosition CursorPos = ConvertCoordFromPixelToPosition(point);
-			double Distance = AirportCPos.DistanceTo(CursorPos);
-			double Bearing = AirportCPos.DirectionTo(CursorPos);
+		CPosition CursorPos = ConvertCoordFromPixelToPosition(point);
+		double Distance = AirportCPos.DistanceTo(CursorPos);
+		double Bearing = AirportCPos.DirectionTo(CursorPos);
 
-			TGraphics th;
-			th.DrawEllipse(dc, point.x - 5, point.y - 5, point.x + 5, point.y + 5, RGB(255, 255, 255));
+		TGraphics th;
+		th.DrawEllipse(dc, point.x - 5, point.y - 5, point.x + 5, point.y + 5, RGB(255, 255, 255));
 
-			Distance = Distance / 0.00053996f;
+		Distance = Distance / 0.00053996f;
 
-			Distance = round(Distance * 10) / 10;
+		Distance = round(Distance * 10) / 10;
 
-			Bearing = round(Bearing * 10) / 10;
+		Bearing = round(Bearing * 10) / 10;
 
-			POINT TextPos = { point.x + 20, point.y };
+		POINT TextPos = { point.x + 20, point.y };
 
-			string distances = std::to_string(Distance);
-			size_t decimal_pos = distances.find(".");
-			distances = distances.substr(0, decimal_pos + 2);
+		string distances = std::to_string(Distance);
+		size_t decimal_pos = distances.find(".");
+		distances = distances.substr(0, decimal_pos + 2);
 
-			string bearings = std::to_string(Bearing);
-			decimal_pos = bearings.find(".");
-			bearings = bearings.substr(0, decimal_pos + 2);
+		string bearings = std::to_string(Bearing);
+		decimal_pos = bearings.find(".");
+		bearings = bearings.substr(0, decimal_pos + 2);
 
-			string text = bearings;
-			text += "° / ";
-			text += distances;
-			text += "m";
-			COLORREF old_color = dc.SetTextColor(RGB(255, 255, 255));
-			dc.TextOutA(TextPos.x, TextPos.y, text.c_str());
-			dc.SetTextColor(old_color);
-		}
+		string text = bearings;
+		text += "° / ";
+		text += distances;
+		text += "m";
+		COLORREF old_color = dc.SetTextColor(RGB(255, 255, 255));
+		dc.TextOutA(TextPos.x, TextPos.y, text.c_str());
+		dc.SetTextColor(old_color);
 
 		dc.SelectObject(oldPen);
 		RequestRefresh();
