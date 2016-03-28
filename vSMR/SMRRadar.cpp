@@ -261,7 +261,7 @@ void CSMRRadar::OnAsrContentToBeSaved()
 		temp = std::to_string(appWindows[i]->m_Scale);
 		SaveDataToAsr(string(prefix + "Scale").c_str(), "SRW range", temp.c_str());
 
-		temp = std::to_string(appWindows[i]->m_Rotation);
+		temp = std::to_string((int)appWindows[i]->m_Rotation);
 		SaveDataToAsr(string(prefix + "Rotation").c_str(), "SRW rotation", temp.c_str());
 
 		string to_save = "0";
@@ -1963,7 +1963,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 		TagWidth = int(max(line1Box.GetRight(), line2Box.GetRight()));
 		TagHeight = int((line1Box.GetBottom() + line2Box.GetBottom())-2);
 
-		// Pfiou, done with that, now we can draw the actual rectangle.
+		// Done with that, now we can draw the actual rectangle.
 
 		// We need to figure out if the tag color changes according to RIMCAS alerts, or not
 		bool rimcasLabelOnly = CurrentConfig->getActiveProfile()["rimcas"]["rimcas_label_only"].GetBool();
@@ -2046,11 +2046,6 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 		// Now adding the clickable zones
 
 		// We need to get the size of a blank space
-		int blank_space_width = 0;
-		CRect blankSpace(0, 0, 0, 0);
-		dc.DrawText(" ", &blankSpace, DT_CALCRECT);
-		blank_space_width = blankSpace.right;
-
 		vector<string> line1_items = split(line1_size, ' ');
 		int offset = 0;
 		for (auto &item : line1_items)
@@ -2063,6 +2058,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 
 				int ItemWidth, ItemHeight;
 				wstring item_sizew = wstring(item.begin(), item.end());
+				item_sizew += L" ";
 
 				RectF itemBox;
 
@@ -2089,7 +2085,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 
 				// Finally, we update the offset
 
-				offset += ItemWidth + blank_space_width;
+				offset += ItemWidth;
 			}
 		}
 
@@ -2107,6 +2103,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 
 					int ItemWidth, ItemHeight;
 					wstring item_sizew = wstring(item.begin(), item.end());
+					item_sizew += L" ";
 
 					RectF itemBox;
 
@@ -2133,7 +2130,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 
 					// Finally, we update the offset
 
-					offset += ItemWidth + blank_space_width;
+					offset += ItemWidth;
 				}
 			}
 		}

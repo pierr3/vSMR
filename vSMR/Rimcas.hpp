@@ -10,6 +10,7 @@
 #include <GdiPlus.h>
 #include <GdiPlusColor.h>
 #include "Constant.hpp"
+#include <functional>
 
 class CSMRRadar;
 using namespace std;
@@ -118,17 +119,13 @@ public:
 	void OnRefreshEnd(CRadarScreen *instance, int threshold);
 	void Reset();
 
-	static bool less_vectors(int a, int b) {
-		return a > b;
-	}
-
 	void setCountdownDefinition(vector<int> data, vector<int> dataLVP)
 	{
 		CountdownDefinition = data;
-		std::sort(CountdownDefinition.begin(), CountdownDefinition.end(), less_vectors);
+		std::sort(CountdownDefinition.begin(), CountdownDefinition.end(), std::greater<int>());
 
 		CountdownDefinitionLVP = dataLVP;
-		std::sort(CountdownDefinitionLVP.begin(), CountdownDefinitionLVP.end(), less_vectors);
+		std::sort(CountdownDefinitionLVP.begin(), CountdownDefinitionLVP.end(), std::greater<int>());
 	}
 
 	void toggleClosedRunway(string runway) {

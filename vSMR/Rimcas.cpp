@@ -109,7 +109,7 @@ string CRimcas::GetAcInRunwayAreaSoon(CRadarTarget Ac, CRadarScreen *instance, b
 		if (!Ac.GetPosition().GetTransponderC())
 			AcSpeed = Ac.GetGS();
 
-		for (int t = 10; t <= 300; t+= 10)
+		for (int t = 5; t <= 300; t+= 5)
 		{
 			double distance = Ac.GetPosition().GetReportedGS()*0.514444*t;
 
@@ -163,14 +163,18 @@ string CRimcas::GetAcInRunwayAreaSoon(CRadarTarget Ac, CRadarScreen *instance, b
 					}
 				}
 
-				// If the AC is 15 seconds away from the runway, we consider him on it
+				// If the AC is xx seconds away from the runway, we consider him on it
 
-				if (t <= 15)
+				int StageTwoTrigger = 20;
+				if (IsLVP)
+					StageTwoTrigger = 30;
+
+				if (t <= StageTwoTrigger)
 					AcOnRunway.insert(std::pair<string, string>(it->first, Ac.GetCallsign()));
 
-				// If the AC is 30 seconds away from the runway, we consider him approaching
+				// If the AC is 45 seconds away from the runway, we consider him approaching
 
-				if (t > 15 && t <= 30)
+				if (t > StageTwoTrigger && t <= 45)
 					ApproachingAircrafts.insert(std::pair<string, string>(it->first, Ac.GetCallsign()));
 
 				return Ac.GetCallsign();
