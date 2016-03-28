@@ -652,6 +652,9 @@ void CSMRRadar::OnClickScreenObject(int ObjectType, const char * sObjectId, POIN
 	}
 
 	if (ObjectType == TAG_CITEM_CALLSIGN) {
+		if (Button != BUTTON_RIGHT)
+			return;
+
 		CFlightPlan Fp = GetPlugIn()->FlightPlanSelect(sObjectId);
 		CRadarTarget rt = GetPlugIn()->RadarTargetSelect(sObjectId);
 		if (rt.GetCorrelatedFlightPlan().IsValid()) {
@@ -668,6 +671,9 @@ void CSMRRadar::OnClickScreenObject(int ObjectType, const char * sObjectId, POIN
 	}
 
 	if (ObjectType == TAG_CITEM_FPBOX) {
+		if (Button != BUTTON_RIGHT)
+			return;
+
 		CFlightPlan Fp = GetPlugIn()->FlightPlanSelect(sObjectId);
 		CRadarTarget rt = GetPlugIn()->RadarTargetSelect(sObjectId);
 		if (rt.GetCorrelatedFlightPlan().IsValid()) {
@@ -681,6 +687,9 @@ void CSMRRadar::OnClickScreenObject(int ObjectType, const char * sObjectId, POIN
 	}
 
 	if (ObjectType == TAG_CITEM_RWY) {
+		if (Button != BUTTON_RIGHT)
+			return;
+
 		CFlightPlan Fp = GetPlugIn()->FlightPlanSelect(sObjectId);
 		CRadarTarget rt = GetPlugIn()->RadarTargetSelect(sObjectId);
 		if (rt.GetCorrelatedFlightPlan().IsValid()) {
@@ -694,6 +703,9 @@ void CSMRRadar::OnClickScreenObject(int ObjectType, const char * sObjectId, POIN
 	}
 
 	if (ObjectType == TAG_CITEM_GATE) {
+		if (Button != BUTTON_RIGHT)
+			return;
+
 		CFlightPlan Fp = GetPlugIn()->FlightPlanSelect(sObjectId);
 		CRadarTarget rt = GetPlugIn()->RadarTargetSelect(sObjectId);
 		if (rt.GetCorrelatedFlightPlan().IsValid()) {
