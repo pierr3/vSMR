@@ -52,6 +52,8 @@ public:
 	CSMRRadar();
 	virtual ~CSMRRadar();
 
+	static map<string, string> vStripsStands;
+
 	bool BLINK = false;
 
 	map<string, POINT> TagsOffsets;
@@ -134,8 +136,6 @@ public:
 	bool ReleaseInProgress = false;
 	bool AcquireInProgress = false;
 
-	map<string, string> vStripsStands;
-
 	//----
 	// Tag types
 	//---
@@ -155,7 +155,7 @@ public:
 
 	//---GenerateTagData--------------------------------------------
 
-	static map<string, string> GenerateTagData(CRadarTarget Rt, CFlightPlan fp, map<string, string> vStripsStands, bool isAcCorrelated, bool isProMode, int TransitionAltitude, bool useSpeedForGates);
+	static map<string, string> GenerateTagData(CRadarTarget Rt, CFlightPlan fp, bool isAcCorrelated, bool isProMode, int TransitionAltitude, bool useSpeedForGates);
 
 	//---IsCorrelatedFuncs---------------------------------------------
 

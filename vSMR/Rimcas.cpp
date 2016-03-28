@@ -149,7 +149,7 @@ string CRimcas::GetAcInRunwayAreaSoon(CRadarTarget Ac, CRadarScreen *instance, b
 					int PreviousTime = 0;
 					if (first)
 					{
-						PreviousTime = Time - 15;
+						PreviousTime = Time + 15;
 						first = false;
 					}
 					else

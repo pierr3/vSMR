@@ -19,6 +19,8 @@ WNDPROC gSourceProc;
 HWND pluginWindow;
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
+map<string, string> CSMRRadar::vStripsStands;
+
 map<int, CInsetWindow *> appWindows;
 
 inline double closest(std::vector<double> const& vec, double value) {
@@ -181,6 +183,7 @@ void CSMRRadar::OnAsrContentLoaded(bool Loaded)
 		if ((p_value = GetDataFromAsr(string(prefix + "OffsetY").c_str())) != NULL)
 			appWindows[i]->m_Offset.y = atoi(p_value);
 
+
 		if ((p_value = GetDataFromAsr(string(prefix + "Filter").c_str())) != NULL)
 			appWindows[i]->m_Filter = atoi(p_value);
 
@@ -219,7 +222,7 @@ void CSMRRadar::OnAsrContentToBeSaved()
 {
 	SaveDataToAsr("Airport", "Active airport for RIMCAS", getActiveAirport().c_str());
 
-	SaveDataToAsr("ActiveProfile", "vSMR active profile", CurrentConfig->getActiveProfile()["name"].GetString());
+	SaveDataToAsr("ActiveProfile", "vSMR active profile", CurrentConfig->getActiveProfileName().c_str());
 
 	SaveDataToAsr("FontSize", "vSMR font size", std::to_string(currentFontSize).c_str());
 
@@ -231,7 +234,7 @@ void CSMRRadar::OnAsrContentToBeSaved()
 
 	SaveDataToAsr("PredictedLine", "vSMR Predicted Track Lines", std::to_string(PredictedLenght).c_str());
 
-	string temp;
+	string temp = "";
 	
 	for (int i = 1; i < 3; i++)
 	{
@@ -1134,7 +1137,7 @@ bool CSMRRadar::OnCompileCommand(const char * sCommandLine)
 	return false;
 }
 
-map<string, string> CSMRRadar::GenerateTagData(CRadarTarget rt, CFlightPlan fp, map<string, string> vStripsStands, bool isAcCorrelated, bool isProMode, int TransitionAltitude, bool useSpeedForGates)
+map<string, string> CSMRRadar::GenerateTagData(CRadarTarget rt, CFlightPlan fp, bool isAcCorrelated, bool isProMode, int TransitionAltitude, bool useSpeedForGates)
 {
 	// ----
 	// Tag items available
@@ -1896,7 +1899,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 			TagType = TagTypes::Uncorrelated;
 		}
 
-		map<string, string> TagReplacingMap = GenerateTagData(rt, fp, vStripsStands, IsCorrelated(fp, rt), CurrentConfig->getActiveProfile()["filters"]["pro_mode"]["enable"].GetBool(), GetPlugIn()->GetTransitionAltitude(), CurrentConfig->getActiveProfile()["labels"]["use_aspeed_for_gate"].GetBool());
+		map<string, string> TagReplacingMap = GenerateTagData(rt, fp, IsCorrelated(fp, rt), CurrentConfig->getActiveProfile()["filters"]["pro_mode"]["enable"].GetBool(), GetPlugIn()->GetTransitionAltitude(), CurrentConfig->getActiveProfile()["labels"]["use_aspeed_for_gate"].GetBool());
 
 		// ----- Generating the clickable map -----
 		map<string, int> TagClickableMap;

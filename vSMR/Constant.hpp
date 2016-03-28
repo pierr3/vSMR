@@ -265,14 +265,16 @@ inline static CPosition BetterHarversine(CPosition init, double angle, double me
 	newPos.m_Longitude = RadToDeg(lon);
 
 	return newPos;
-}
+};
 
 inline static string padWithZeros(int padding, int s)
 {
 	stringstream ss;
 	ss << setfill('0') << setw(padding) << s;
 	return ss.str();
-}
+};
+
+//
 
 const int DRAWING_TAG = 1211;
 const int DRAWING_AC_SYMBOL = 1212;

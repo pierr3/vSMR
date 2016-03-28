@@ -63,8 +63,6 @@ asio::ip::udp::endpoint receiver_endpoint;
 std::thread vStripsThread;
 char recv_buf[1024];
 
-map<string, string> vStripsStandsToBeSent;
-
 void datalinkLogin(void * arg) {
 	string raw;
 	string url = baseUrlDatalink;
@@ -246,14 +244,14 @@ void vStripsReceiveThread(const asio::error_code &error, size_t bytes_transferre
 
 	if (data.front() == string("STAND"))
 	{
-		vStripsStandsToBeSent[data.at(1)] = data.back();
+		CSMRRadar::vStripsStands[data.at(1)] = data.back();
 	}
 
 	if (data.front() == string("DELETE"))
 	{
-		if (vStripsStandsToBeSent.find(data.back()) != vStripsStandsToBeSent.end())
+		if (CSMRRadar::vStripsStands.find(data.back()) != CSMRRadar::vStripsStands.end())
 		{
-			vStripsStandsToBeSent.erase(vStripsStandsToBeSent.find(data.back()));
+			CSMRRadar::vStripsStands.erase(CSMRRadar::vStripsStands.find(data.back()));
 		}
 	}
 	
@@ -597,11 +595,6 @@ void CSMRPlugin::OnTimer(int Counter)
 		timer = clock();
 	}
 
-	for (auto rd : RadarDisplayOpened) // access by reference to avoid copying
-	{
-		rd->vStripsStands = vStripsStandsToBeSent;
-	}
-
 	for (auto &ac : AircraftWilco) 
 	{
 		CRadarTarget RadarTarget = RadarTargetSelect(ac.c_str());
@@ -642,5 +635,6 @@ void __declspec (dllexport) EuroScopePlugInExit(void)
 	for (auto &rd : RadarDisplayOpened) // access by reference to avoid copying
 	{
 		rd->EuroScopePlugInExitCustom();
+		RadarDisplayOpened.erase(std::find(RadarDisplayOpened.begin(), RadarDisplayOpened.end(), rd));
 	}
 }
