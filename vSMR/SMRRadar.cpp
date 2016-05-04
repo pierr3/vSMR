@@ -1249,7 +1249,6 @@ map<string, string> CSMRRadar::GenerateTagData(CRadarTarget rt, CFlightPlan fp, 
 	if (vStripsStands.find(rt.GetCallsign()) != vStripsStands.end())
 	{
 		gate = vStripsStands[rt.GetCallsign()];
-
 	}
 
 	if (gate.size() == 0 || gate == "0" || !isAcCorrelated)
