@@ -143,11 +143,11 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CallsignLookup.hpp" />
+    <ClInclude Include="ColorManager.h" />
     <ClInclude Include="Config.hpp" />
     <ClInclude Include="Constant.hpp" />
     <ClInclude Include="CPDLCSettingsDialog.hpp" />
     <ClInclude Include="DataLinkDialog.hpp" />
-    <ClInclude Include="HSV.hpp" />
     <ClInclude Include="HttpHelper.hpp" />
     <ClInclude Include="InsetWindow.h" />
     <ClInclude Include="rapidjson\document.h" />

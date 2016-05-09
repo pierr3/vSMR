@@ -66,6 +66,9 @@ CSMRRadar::CSMRRadar()
 	if (CurrentConfig == nullptr)
 		CurrentConfig = new CConfig(DllPath + "\\vSMR_Profiles.json");
 
+	if (ColorManager == nullptr)
+		ColorManager = new CColorManager();
+
 	standardCursor = true;
 	ActiveAirport = "LFPG";
 
@@ -871,6 +874,24 @@ void CSMRRadar::OnFunctionCall(int FunctionId, const char * sItemString, POINT P
 		ShowLists["Predicted Track Line"] = true;
 	}
 
+	if (FunctionId == RIMCAS_BRIGHTNESS_LABEL)
+	{
+		ColorManager->update_brightness("label", std::atoi(sItemString));
+		ShowLists["Label"] = true;
+	}
+
+	if (FunctionId == RIMCAS_BRIGHTNESS_AFTERGLOW)
+	{
+		ColorManager->update_brightness("afterglow", std::atoi(sItemString));
+		ShowLists["Afterglow"] = true;
+	}
+
+	if (FunctionId == RIMCAS_BRIGHTNESS_SYMBOL)
+	{
+		ColorManager->update_brightness("symbol", std::atoi(sItemString));
+		ShowLists["Symbol"] = true;
+	}
+
 	if (FunctionId == RIMCAS_UPDATE_RELEASE)
 	{
 		ReleaseInProgress = !ReleaseInProgress;
@@ -1652,7 +1673,8 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 				acPosPix = ConvertCoordFromPositionToPixel(pAcPos.GetPosition());
 
 				if (i == 1 && !Patatoides[rt.GetCallsign()].History_one_points.empty() && Afterglow && CurrentConfig->getActiveProfile()["targets"]["show_primary_target"].GetBool()) {
-					SolidBrush H_Brush(CurrentConfig->getConfigColor(CurrentConfig->getActiveProfile()["targets"]["history_one_color"]));
+					SolidBrush H_Brush(ColorManager->get_corrected_color("afterglow",
+						CurrentConfig->getConfigColor(CurrentConfig->getActiveProfile()["targets"]["history_one_color"])));
 					
 					PointF lpPoints[100];
 					for (unsigned int i1 = 0; i1 < Patatoides[rt.GetCallsign()].History_one_points.size(); i1++)
@@ -1668,7 +1690,8 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 
 				if (i != 2) {
 					if (!Patatoides[rt.GetCallsign()].History_two_points.empty() && Afterglow && CurrentConfig->getActiveProfile()["targets"]["show_primary_target"].GetBool()) {
-						SolidBrush H_Brush(CurrentConfig->getConfigColor(CurrentConfig->getActiveProfile()["targets"]["history_two_color"]));
+						SolidBrush H_Brush(ColorManager->get_corrected_color("afterglow",
+							CurrentConfig->getConfigColor(CurrentConfig->getActiveProfile()["targets"]["history_two_color"])));
 
 						PointF lpPoints[100];
 						for (unsigned int i1 = 0; i1 < Patatoides[rt.GetCallsign()].History_two_points.size(); i1++)
@@ -1684,7 +1707,8 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 				}
 
 				if (i == 2 && !Patatoides[rt.GetCallsign()].History_three_points.empty() && Afterglow && CurrentConfig->getActiveProfile()["targets"]["show_primary_target"].GetBool()) {
-					SolidBrush H_Brush(CurrentConfig->getConfigColor(CurrentConfig->getActiveProfile()["targets"]["history_three_color"]));
+					SolidBrush H_Brush(ColorManager->get_corrected_color("afterglow",
+						CurrentConfig->getConfigColor(CurrentConfig->getActiveProfile()["targets"]["history_three_color"])));
 
 					PointF lpPoints[100];
 					for (unsigned int i1 = 0; i1 < Patatoides[rt.GetCallsign()].History_three_points.size(); i1++)
@@ -1699,9 +1723,6 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 				}
 			}
 
-			CPen qTrailDotsPen(PS_SOLID, 1, RGB(255, 255, 255));
-			CPen* pqOrigDotsPen = dc.SelectObject(&qTrailDotsPen);
-
 			int TrailNumber = Trail_Gnd;
 			if (reportedGs > 50)
 				TrailNumber = Trail_App;
@@ -1710,20 +1731,22 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 			for (int j = 1; j <= TrailNumber; j++) {
 				POINT pCoord = ConvertCoordFromPositionToPixel(previousPos.GetPosition());
 
-				graphics.FillRectangle(&SolidBrush(Color::White), pCoord.x - 1, pCoord.y - 1, 2, 2);
+				graphics.FillRectangle(&SolidBrush(ColorManager->get_corrected_color("symbol", Gdiplus::Color::White)),
+					pCoord.x - 1, pCoord.y - 1, 2, 2);
 
 				//dc.Rectangle(, pCoord.x + 1, pCoord.y + 1);
 
 				previousPos = rt.GetPreviousPosition(previousPos);
 			}
 
-			dc.SelectObject(pqOrigDotsPen);
+
 		}
 
 
 		if (CurrentConfig->getActiveProfile()["targets"]["show_primary_target"].GetBool()) {
 
-			SolidBrush H_Brush(CurrentConfig->getConfigColor(CurrentConfig->getActiveProfile()["targets"]["target_color"]));
+			SolidBrush H_Brush(ColorManager->get_corrected_color("afterglow", 
+				CurrentConfig->getConfigColor(CurrentConfig->getActiveProfile()["targets"]["target_color"])));
 
 			PointF lpPoints[100];
 			for (unsigned int i = 0; i < Patatoides[rt.GetCallsign()].points.size(); i++)
@@ -1744,7 +1767,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 		if (!AcisCorrelated && reportedGs < 1 && !ReleaseInProgress && !AcquireInProgress)
 			continue;
 
-		CPen qTrailPen(PS_SOLID, 1, RGB(255, 255, 255));
+		CPen qTrailPen(PS_SOLID, 1, ColorManager->get_corrected_color("symbol", Gdiplus::Color::White).ToCOLORREF());
 		CPen* pqOrigPen = dc.SelectObject(&qTrailPen);
 
 		if (RtPos.GetTransponderC()) {
@@ -1993,16 +2016,19 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 			CurrentConfig->getConfigColor(LabelsSettings[Utils2::getEnumString(TagType).c_str()]["background_color"]),
 			CurrentConfig->getConfigColor(LabelsSettings[Utils2::getEnumString(TagType).c_str()]["background_color_on_runway"]));
 	
+		TagBackgroundColor = ColorManager->get_corrected_color("label", TagBackgroundColor);
+
 		CRect TagBackgroundRect(TagCenter.x - (TagWidth / 2), TagCenter.y - (TagHeight / 2), TagCenter.x + (TagWidth / 2), TagCenter.y + (TagHeight / 2));
 		SolidBrush TagBackgroundBrush(TagBackgroundColor);
 		graphics.FillRectangle(&TagBackgroundBrush, CopyRect(TagBackgroundRect));
 		if (mouseWithin(TagBackgroundRect) || IsTagBeingDragged(rt.GetCallsign()))
 		{
-			Pen pw(Color::White);
+			Pen pw(ColorManager->get_corrected_color("label", Color::White));
 			graphics.DrawRectangle(&pw, CopyRect(TagBackgroundRect));
 		}
 
-		SolidBrush FontColor(CurrentConfig->getConfigColor(LabelsSettings[Utils2::getEnumString(TagType).c_str()]["text_color"]));
+		SolidBrush FontColor(ColorManager->get_corrected_color("label", 
+			CurrentConfig->getConfigColor(LabelsSettings[Utils2::getEnumString(TagType).c_str()]["text_color"])));
 		wstring line1w = wstring(line1_size.begin(), line1_size.end());
 		graphics.DrawString(line1w.c_str(), wcslen(line1w.c_str()), customFonts[currentFontSize], PointF(Gdiplus::REAL(TagBackgroundRect.left), Gdiplus::REAL(TagBackgroundRect.top)), &Gdiplus::StringFormat(), &FontColor);
 			
@@ -2015,7 +2041,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 		RECT TagBackRectData = TagBackgroundRect;
 		POINT toDraw1, toDraw2;
 		if (LiangBarsky(TagBackRectData, acPosPix, TagBackgroundRect.CenterPoint(), toDraw1, toDraw2))
-			graphics.DrawLine(&Pen(Color::White), PointF(Gdiplus::REAL(acPosPix.x), Gdiplus::REAL(acPosPix.y)), PointF(Gdiplus::REAL(toDraw1.x), Gdiplus::REAL(toDraw1.y)));
+			graphics.DrawLine(&Pen(ColorManager->get_corrected_color("symbol", Color::White)), PointF(Gdiplus::REAL(acPosPix.x), Gdiplus::REAL(acPosPix.y)), PointF(Gdiplus::REAL(toDraw1.x), Gdiplus::REAL(toDraw1.y)));
 
 		// If we use a RIMCAS label only, we display it, and adapt the rectangle
 		CRect oldCrectSave = TagBackgroundRect;
@@ -2026,6 +2052,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 				CurrentConfig->getConfigColor(CurrentConfig->getActiveProfile()["rimcas"]["background_color_stage_two"]));
 
 			if (RimcasLabelColor.ToCOLORREF() != Color(Color::AliceBlue).ToCOLORREF()) {
+				RimcasLabelColor = ColorManager->get_corrected_color("label", RimcasLabelColor);
 				int rimcas_height = 0;
 
 				wstring wrimcas_height = wstring(L"ALERT");
@@ -2077,7 +2104,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 				RectF itemBox;
 
 				graphics.MeasureString(item_sizew.c_str(), wcslen(item_sizew.c_str()), customFonts[currentFontSize], PointF(0, 0), &Gdiplus::StringFormat(), &itemBox);
-				ItemWidth = int(itemBox.GetRight());
+				ItemWidth = int(itemBox.GetRight())+2;
 				ItemHeight = int(itemBox.GetBottom() - 2);
 
 				// We then calculate the rectangle
@@ -2122,7 +2149,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 					RectF itemBox;
 
 					graphics.MeasureString(item_sizew.c_str(), wcslen(item_sizew.c_str()), customFonts[currentFontSize], PointF(0, 0), &Gdiplus::StringFormat(), &itemBox);
-					ItemWidth = int(itemBox.GetRight());
+					ItemWidth = int(itemBox.GetRight())+2;
 					ItemHeight = int(itemBox.GetBottom() - 2);
 
 					// We then calculate the rectangle
@@ -2316,6 +2343,46 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 		ShowLists["Predicted Track Line"] = false;
 	}
 	
+	if (ShowLists["Brightness"])
+	{
+		GetPlugIn()->OpenPopupList(ListAreas["Brightness"], "Brightness", 1);
+		GetPlugIn()->AddPopupListElement("Label", "", RIMCAS_OPEN_LIST, false);
+		GetPlugIn()->AddPopupListElement("Symbol", "", RIMCAS_OPEN_LIST, false);
+		GetPlugIn()->AddPopupListElement("Afterglow", "", RIMCAS_OPEN_LIST, false);
+		GetPlugIn()->AddPopupListElement("Close", "", RIMCAS_CLOSE, false, 2, false, true);
+		ShowLists["Brightness"] = false;
+	}
+
+	if (ShowLists["Label"])
+	{
+		GetPlugIn()->OpenPopupList(ListAreas["Label"], "Label Brightness", 1);
+		for(int i = CColorManager::bounds_low(); i <= CColorManager::bounds_high(); i +=10)
+			GetPlugIn()->AddPopupListElement(std::to_string(i).c_str(), "", RIMCAS_BRIGHTNESS_LABEL, false);
+
+		GetPlugIn()->AddPopupListElement("Close", "", RIMCAS_CLOSE, false, 2, false, true);
+		ShowLists["Label"] = false;
+	}
+
+	if (ShowLists["Symbol"])
+	{
+		GetPlugIn()->OpenPopupList(ListAreas["Symbol"], "Symbol Brightness", 1);
+		for (int i = CColorManager::bounds_low(); i <= CColorManager::bounds_high(); i += 10)
+			GetPlugIn()->AddPopupListElement(std::to_string(i).c_str(), "", RIMCAS_BRIGHTNESS_SYMBOL, false);
+
+		GetPlugIn()->AddPopupListElement("Close", "", RIMCAS_CLOSE, false, 2, false, true);
+		ShowLists["Symbol"] = false;
+	}
+
+	if (ShowLists["Afterglow"])
+	{
+		GetPlugIn()->OpenPopupList(ListAreas["Afterglow"], "Afterglow Brightness", 1);
+		for (int i = CColorManager::bounds_low(); i <= CColorManager::bounds_high(); i += 10)
+			GetPlugIn()->AddPopupListElement(std::to_string(i).c_str(), "", RIMCAS_BRIGHTNESS_AFTERGLOW, false);
+
+		GetPlugIn()->AddPopupListElement("Close", "", RIMCAS_CLOSE, false, 2, false, true);
+		ShowLists["Afterglow"] = false;
+	}
+
 	//---------------------------------
 	// QRD
 	//---------------------------------

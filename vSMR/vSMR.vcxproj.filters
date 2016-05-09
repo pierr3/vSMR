@@ -119,10 +119,10 @@
     <ClInclude Include="Config.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="HSV.hpp">
+    <ClInclude Include="InsetWindow.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="InsetWindow.h">
+    <ClInclude Include="ColorManager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -25,6 +25,7 @@
 #include <memory>
 #include <asio/io_service.hpp>
 #include <thread>
+#include "ColorManager.h"
 
 using namespace std;
 using namespace Gdiplus;
@@ -86,6 +87,7 @@ public:
 	char DllPathFile[_MAX_PATH];
 	string DllPath;
 	CCallsignLookup * Callsigns;
+	CColorManager * ColorManager;
 
 	map<string, bool> ShowLists;
 	map<string, RECT> ListAreas;
