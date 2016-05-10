@@ -43,14 +43,14 @@ public:
 
 		int r, g, b;
 		r = GetRValue(colorr);
-		g = GetBValue(colorr);
-		b = GetGValue(colorr);
+		g = GetGValue(colorr);
+		b = GetBValue(colorr);
 		BYTE a = color.GetAlpha();
 		
 
-		r = min(255, int(r*(get_brightness(id)/100)));
-		g = min(255, int(g*(get_brightness(id)/100)));
-		b = min(255, int(b*(get_brightness(id)/100)));
+		r = min(255, int((r*get_brightness(id))/100));
+		g = min(255, int((g*get_brightness(id))/100));
+		b = min(255, int((b*get_brightness(id))/100));
 
 		Gdiplus::Color out(a, r, g, b);
 

@@ -2116,7 +2116,8 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 				// If there is a squawk error and the item is a squawk error, we re-draw it with the color
 
 				if (TagReplacingMap["sqerror"].size() > 0 && strcmp(item.c_str(), TagReplacingMap["sqerror"].c_str()) == 0) {
-					SolidBrush TextColor(CurrentConfig->getConfigColor(LabelsSettings["squawk_error_color"]));
+					SolidBrush TextColor(ColorManager->get_corrected_color("label", 
+						CurrentConfig->getConfigColor(LabelsSettings["squawk_error_color"])));
 					wstring sqw = wstring(TagReplacingMap["sqerror"].begin(), TagReplacingMap["sqerror"].end());
 					graphics.DrawString(sqw.c_str(), wcslen(sqw.c_str()), customFonts[currentFontSize], PointF(Gdiplus::REAL(ItemRect.left), Gdiplus::REAL(ItemRect.top)), &Gdiplus::StringFormat(), &TextColor);
 				}
@@ -2161,7 +2162,8 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 					// If there is a squawk error and the item is a squawk error, we re-draw it with the color
 
 					if (TagReplacingMap["sqerror"].size() > 0 && strcmp(item.c_str(), TagReplacingMap["sqerror"].c_str()) == 0) {
-							SolidBrush TextColor(CurrentConfig->getConfigColor(LabelsSettings["squawk_error_color"]));
+							SolidBrush TextColor(ColorManager->get_corrected_color("label",
+								CurrentConfig->getConfigColor(LabelsSettings["squawk_error_color"])));
 							wstring sqw = wstring(TagReplacingMap["sqerror"].begin(), TagReplacingMap["sqerror"].end());
 							graphics.DrawString(sqw.c_str(), wcslen(sqw.c_str()), customFonts[currentFontSize], PointF(Gdiplus::REAL(ItemRect.left), Gdiplus::REAL(ItemRect.top)), &Gdiplus::StringFormat(), &TextColor);
 					}
