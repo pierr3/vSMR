@@ -2086,6 +2086,8 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 
 		// Now adding the clickable zones
 
+		/// TODO: Change to loop for all tag text per line
+
 		// We need to get the size of a blank space
 		vector<string> line1_items = split(line1_size, ' ');
 		int offset = 0;
@@ -2130,6 +2132,8 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 				offset += ItemWidth;
 			}
 		}
+
+		/// TODO: Remove
 
 		// If there is a line 2, then we do it all over again :p
 		if (LabelsSettings[Utils2::getEnumString(TagType).c_str()]["two_lines_tag"].GetBool()) {

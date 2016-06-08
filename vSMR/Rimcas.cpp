@@ -226,7 +226,29 @@ void CRimcas::OnRefreshEnd(CRadarScreen *instance, int threshold) {
 				{
 					if (instance->GetPlugIn()->RadarTargetSelect(it2->second.c_str()).GetGS() > threshold)
 					{
-						AcColor[it2->second] = StageTwo;
+						// If the aircraft is on the runway and stage two, we check if 
+						// the aircraft is going towards any aircraft thats on the runway
+						// if not, we don't display the warning
+						bool triggerStageTwo = false;
+						CRadarTarget rd1 = instance->GetPlugIn()->RadarTargetSelect(it2->second.c_str());
+						CRadarTargetPositionData currentRd1 = rd1.GetPosition();
+						for (map<string, string>::iterator it3 = AcOnRunwayRange.first; it2 != AcOnRunwayRange.second; ++it2)
+						{
+							CRadarTarget rd2 = instance->GetPlugIn()->RadarTargetSelect(it3->second.c_str());
+
+							double currentDist = currentRd1.GetPosition().DistanceTo(rd2.GetPosition().GetPosition());
+							double oldDist = rd1.GetPreviousPosition(currentRd1).GetPosition()
+								.DistanceTo(rd2.GetPreviousPosition(rd2.GetPosition()).GetPosition());
+
+							if (currentDist < oldDist)
+							{
+								triggerStageTwo = true;
+								break;
+							}
+						}
+
+						if (triggerStageTwo)
+							AcColor[it2->second] = StageTwo;
 					} else
 					{
 						AcColor[it2->second] = StageOne;
