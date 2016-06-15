@@ -87,7 +87,7 @@ CSMRRadar::CSMRRadar()
 
 CSMRRadar::~CSMRRadar()
 {
-	OnAsrContentToBeSaved();
+	this->OnAsrContentToBeSaved();
 	// Shutting down GDI+
 	GdiplusShutdown(m_gdiplusToken);
 }
@@ -1443,6 +1443,15 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 			RECT Area = { Pos.x, Pos.y, Pos.x + dc->GetTextExtent(text.c_str()).cx, Pos.y + dc->GetTextExtent(text.c_str()).cy };
 			return Area;
 		}
+		static string getEnumString(TagTypes type) {
+			if (type == TagTypes::Departure)
+				return "departure";
+			if (type == TagTypes::Arrival)
+				return "arrival";
+			if (type == TagTypes::Uncorrelated)
+				return "uncorrelated";
+			return "airborne";
+		}
 	};
 	
 	// Timer each seconds
@@ -1945,78 +1954,76 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 		// ----- Now the hard part, drawing (using gdi+) -------
 		//	
 
-		struct Utils2 {
-			static string getEnumString(TagTypes type) {
-				if (type == TagTypes::Departure)
-					return "departure";
-				if (type == TagTypes::Arrival)
-					return "arrival";
-				if (type == TagTypes::Uncorrelated)
-					return "uncorrelated";
-				return "airborne";
-			}
-		};
-
 		// First we need to figure out the tag size
 		
-		int TagWidth, TagHeight;
+		int TagWidth = 0, TagHeight = 0;
+		RectF mesureRect;
+		graphics.MeasureString(L" ", wcslen(L" "), customFonts[currentFontSize], PointF(0, 0), &Gdiplus::StringFormat(), &mesureRect);
+		int blankWidth = mesureRect.GetRight();
+
+		mesureRect = RectF(0, 0, 0, 0);
+		graphics.MeasureString(L"AZERTYUIOPQSDFGHJKLMWXCVBN", wcslen(L"AZERTYUIOPQSDFGHJKLMWXCVBN"),
+			customFonts[currentFontSize], PointF(0, 0), &Gdiplus::StringFormat(), &mesureRect);
+		int oneLineHeight = mesureRect.GetBottom();
+
 		const Value& LabelsSettings = CurrentConfig->getActiveProfile()["labels"];
+		const Value& LabelLines = LabelsSettings[Utils::getEnumString(TagType).c_str()]["definition"];
+		vector<vector<string>> ReplacedLabelLines;
 
-		string line1_size = "";
-		string line2_size = "";
-		for (SizeType i = 0; i < LabelsSettings[Utils2::getEnumString(TagType).c_str()]["line1"].Size(); i++) {
-			const Value& item = LabelsSettings[Utils2::getEnumString(TagType).c_str()]["line1"][i];
-			line1_size.append(item.GetString());
-			if (i != LabelsSettings[Utils2::getEnumString(TagType).c_str()]["line1"].Size() - 1)
-				line1_size.append(" ");
-		}
-
-		// If there is a second line, then we determine its size.
-		if (LabelsSettings[Utils2::getEnumString(TagType).c_str()]["two_lines_tag"].GetBool()) {
-			for (SizeType i = 0; i < LabelsSettings[Utils2::getEnumString(TagType).c_str()]["line2"].Size(); i++) {
-				const Value& item = LabelsSettings[Utils2::getEnumString(TagType).c_str()]["line2"][i];
-				line2_size.append(item.GetString());
-				if (i != LabelsSettings[Utils2::getEnumString(TagType).c_str()]["line2"].Size() - 1)
-					line2_size.append(" ");
-			}
-		}
-
-		for (std::map<string, string>::iterator iterator = TagReplacingMap.begin(); iterator != TagReplacingMap.end(); ++iterator)
+		for (int i = 0; i < LabelLines.Size(); i++)
 		{
-			replaceAll(line1_size, iterator->first, iterator->second);
-
-			if (LabelsSettings[Utils2::getEnumString(TagType).c_str()]["two_lines_tag"].GetBool()) {
-				replaceAll(line2_size, iterator->first, iterator->second);
-			}
-		}
-
-		wstring line1_sizew = wstring(line1_size.begin(), line1_size.end());
-		wstring line2_sizew = wstring(line2_size.begin(), line2_size.end());
-
-		RectF line1Box, line2Box;
 			
-		graphics.MeasureString(line1_sizew.c_str(), wcslen(line1_sizew.c_str()), customFonts[currentFontSize], PointF(0, 0), &Gdiplus::StringFormat(), &line1Box);
-		graphics.MeasureString(line2_sizew.c_str(), wcslen(line2_sizew.c_str()), customFonts[currentFontSize], PointF(0, 0), &Gdiplus::StringFormat(), &line2Box);
-		TagWidth = int(max(line1Box.GetRight(), line2Box.GetRight()));
-		TagHeight = int((line1Box.GetBottom() + line2Box.GetBottom())-2);
+			const Value& line = LabelLines[i];
+			vector<string> lineStringArray;
 
-		// Done with that, now we can draw the actual rectangle.
+			// Adds one line height
+			TagHeight += oneLineHeight;
+
+			int TempTagWidth = 0;
+
+			for(int j = 0; j < line.Size(); j++) 
+			{
+				mesureRect = RectF(0, 0, 0, 0);
+				string element = line[j].GetString();
+
+				for (auto& kv : TagReplacingMap)
+					replaceAll(element, kv.first, kv.second);
+
+				lineStringArray.push_back(element);
+
+				wstring wstr = wstring(element.begin(), element.end());
+				graphics.MeasureString(wstr.c_str(), wcslen(wstr.c_str()),
+					customFonts[currentFontSize], PointF(0, 0), &Gdiplus::StringFormat(), &mesureRect);
+
+				TempTagWidth += mesureRect.GetRight();
+
+				if (j != line.Size() - 1)
+					TempTagWidth += blankWidth;
+			}
+			
+			TagWidth = max(TagWidth, TempTagWidth);
+
+			ReplacedLabelLines.push_back(lineStringArray);
+		}
+		TagHeight = TagHeight - 2;
 
 		// We need to figure out if the tag color changes according to RIMCAS alerts, or not
 		bool rimcasLabelOnly = CurrentConfig->getActiveProfile()["rimcas"]["rimcas_label_only"].GetBool();
 
 		Color TagBackgroundColor = RimcasInstance->GetAircraftColor(rt.GetCallsign(), 
-			CurrentConfig->getConfigColor(LabelsSettings[Utils2::getEnumString(TagType).c_str()]["background_color"]),
-			CurrentConfig->getConfigColor(LabelsSettings[Utils2::getEnumString(TagType).c_str()]["background_color_on_runway"]),
+			CurrentConfig->getConfigColor(LabelsSettings[Utils::getEnumString(TagType).c_str()]["background_color"]),
+			CurrentConfig->getConfigColor(LabelsSettings[Utils::getEnumString(TagType).c_str()]["background_color_on_runway"]),
 			CurrentConfig->getConfigColor(CurrentConfig->getActiveProfile()["rimcas"]["background_color_stage_one"]),
 			CurrentConfig->getConfigColor(CurrentConfig->getActiveProfile()["rimcas"]["background_color_stage_two"]));
 
 		if (rimcasLabelOnly)
 			TagBackgroundColor = RimcasInstance->GetAircraftColor(rt.GetCallsign(),
-			CurrentConfig->getConfigColor(LabelsSettings[Utils2::getEnumString(TagType).c_str()]["background_color"]),
-			CurrentConfig->getConfigColor(LabelsSettings[Utils2::getEnumString(TagType).c_str()]["background_color_on_runway"]));
+			CurrentConfig->getConfigColor(LabelsSettings[Utils::getEnumString(TagType).c_str()]["background_color"]),
+			CurrentConfig->getConfigColor(LabelsSettings[Utils::getEnumString(TagType).c_str()]["background_color_on_runway"]));
 	
 		TagBackgroundColor = ColorManager->get_corrected_color("label", TagBackgroundColor);
+
+		// Drawing the tag background
 
 		CRect TagBackgroundRect(TagCenter.x - (TagWidth / 2), TagCenter.y - (TagHeight / 2), TagCenter.x + (TagWidth / 2), TagCenter.y + (TagHeight / 2));
 		SolidBrush TagBackgroundBrush(TagBackgroundColor);
@@ -2027,14 +2034,45 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 			graphics.DrawRectangle(&pw, CopyRect(TagBackgroundRect));
 		}
 
+		// Drawing the tag text
+
 		SolidBrush FontColor(ColorManager->get_corrected_color("label", 
-			CurrentConfig->getConfigColor(LabelsSettings[Utils2::getEnumString(TagType).c_str()]["text_color"])));
-		wstring line1w = wstring(line1_size.begin(), line1_size.end());
-		graphics.DrawString(line1w.c_str(), wcslen(line1w.c_str()), customFonts[currentFontSize], PointF(Gdiplus::REAL(TagBackgroundRect.left), Gdiplus::REAL(TagBackgroundRect.top)), &Gdiplus::StringFormat(), &FontColor);
-			
-		if (LabelsSettings[Utils2::getEnumString(TagType).c_str()]["two_lines_tag"].GetBool()) {
-			wstring line2w = wstring(line2_size.begin(), line2_size.end());
-			graphics.DrawString(line2w.c_str(), wcslen(line2w.c_str()), customFonts[currentFontSize], PointF(Gdiplus::REAL(TagBackgroundRect.left), Gdiplus::REAL(TagBackgroundRect.top + (TagHeight / 2))), &Gdiplus::StringFormat(), &FontColor);
+			CurrentConfig->getConfigColor(LabelsSettings[Utils::getEnumString(TagType).c_str()]["text_color"])));
+		SolidBrush SquawkErrorColor(ColorManager->get_corrected_color("label",
+			CurrentConfig->getConfigColor(LabelsSettings["squawk_error_color"])));
+
+		int heightOffset = 0;
+		for (auto&& line : ReplacedLabelLines)
+		{
+			int widthOffset = 0;
+			for (auto&& element : line)
+			{
+				SolidBrush* color = &FontColor;
+				if (TagReplacingMap["sqerror"].size() > 0 && strcmp(element.c_str(), TagReplacingMap["sqerror"].c_str()) == 0)
+					color = &SquawkErrorColor;
+
+				RectF mRect(0, 0, 0, 0);
+
+				wstring welement = wstring(element.begin(), element.end());
+
+				graphics.DrawString(welement.c_str(), wcslen(welement.c_str()), customFonts[currentFontSize], 
+					PointF(Gdiplus::REAL(TagBackgroundRect.left + widthOffset), Gdiplus::REAL(TagBackgroundRect.top + heightOffset)), 
+					&Gdiplus::StringFormat(), color);
+
+
+				graphics.MeasureString(welement.c_str(), wcslen(welement.c_str()),
+					customFonts[currentFontSize], PointF(0, 0), &Gdiplus::StringFormat(), &mRect);
+
+				CRect ItemRect(TagBackgroundRect.left + widthOffset, TagBackgroundRect.top + heightOffset, 
+					TagBackgroundRect.left + widthOffset + mRect.GetRight(), TagBackgroundRect.top + heightOffset + mRect.GetBottom());
+
+				AddScreenObject(TagClickableMap[element], rt.GetCallsign(), ItemRect, true, GetBottomLine(rt.GetCallsign()).c_str());
+
+				widthOffset += mRect.GetRight();
+				widthOffset += blankWidth;
+			}
+
+			heightOffset += oneLineHeight;
 		}
 		
 		// Drawing the leader line
@@ -2083,104 +2121,6 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 		AddScreenObject(DRAWING_TAG, rt.GetCallsign(), TagBackgroundRect, true, GetBottomLine(rt.GetCallsign()).c_str());
 
 		TagBackgroundRect = oldCrectSave;
-
-		// Now adding the clickable zones
-
-		/// TODO: Change to loop for all tag text per line
-
-		// We need to get the size of a blank space
-		vector<string> line1_items = split(line1_size, ' ');
-		int offset = 0;
-		for (auto &item : line1_items)
-		{
-			if (TagClickableMap.find(item) != TagClickableMap.end()) {
-				// We need to get the area that text covers
-
-				if (TagClickableMap[item] == TAG_CITEM_NO)
-					continue;
-
-				int ItemWidth, ItemHeight;
-				wstring item_sizew = wstring(item.begin(), item.end());
-				item_sizew += L" ";
-
-				RectF itemBox;
-
-				graphics.MeasureString(item_sizew.c_str(), wcslen(item_sizew.c_str()), customFonts[currentFontSize], PointF(0, 0), &Gdiplus::StringFormat(), &itemBox);
-				ItemWidth = int(itemBox.GetRight())+2;
-				ItemHeight = int(itemBox.GetBottom() - 2);
-
-				// We then calculate the rectangle
-				CRect ItemRect(TagBackgroundRect.left + offset, 
-					TagBackgroundRect.top, 
-					(TagBackgroundRect.left + offset) + ItemWidth,
-					TagBackgroundRect.top + ItemHeight);
-
-				// If there is a squawk error and the item is a squawk error, we re-draw it with the color
-
-				if (TagReplacingMap["sqerror"].size() > 0 && strcmp(item.c_str(), TagReplacingMap["sqerror"].c_str()) == 0) {
-					SolidBrush TextColor(ColorManager->get_corrected_color("label", 
-						CurrentConfig->getConfigColor(LabelsSettings["squawk_error_color"])));
-					wstring sqw = wstring(TagReplacingMap["sqerror"].begin(), TagReplacingMap["sqerror"].end());
-					graphics.DrawString(sqw.c_str(), wcslen(sqw.c_str()), customFonts[currentFontSize], PointF(Gdiplus::REAL(ItemRect.left), Gdiplus::REAL(ItemRect.top)), &Gdiplus::StringFormat(), &TextColor);
-				}
-
-				// We then add the screen object
-				AddScreenObject(TagClickableMap[item], rt.GetCallsign(), ItemRect, true, GetBottomLine(rt.GetCallsign()).c_str());
-
-				// Finally, we update the offset
-
-				offset += ItemWidth;
-			}
-		}
-
-		/// TODO: Remove
-
-		// If there is a line 2, then we do it all over again :p
-		if (LabelsSettings[Utils2::getEnumString(TagType).c_str()]["two_lines_tag"].GetBool()) {
-			vector<string> line2_items = split(line2_size, ' ');
-			offset = 0;
-			for (auto &item : line2_items)
-			{
-				if (TagClickableMap.find(item) != TagClickableMap.end()) {
-					// We need to get the area that text covers
-
-					if (TagClickableMap[item] == TAG_CITEM_NO)
-						continue;
-
-					int ItemWidth, ItemHeight;
-					wstring item_sizew = wstring(item.begin(), item.end());
-					item_sizew += L" ";
-
-					RectF itemBox;
-
-					graphics.MeasureString(item_sizew.c_str(), wcslen(item_sizew.c_str()), customFonts[currentFontSize], PointF(0, 0), &Gdiplus::StringFormat(), &itemBox);
-					ItemWidth = int(itemBox.GetRight())+2;
-					ItemHeight = int(itemBox.GetBottom() - 2);
-
-					// We then calculate the rectangle
-					CRect ItemRect(TagBackgroundRect.left + offset,
-						TagBackgroundRect.top + (TagHeight / 2),
-						(TagBackgroundRect.left + offset) + ItemWidth,
-						(TagBackgroundRect.top + (TagHeight / 2) ) + ItemHeight);
-
-					// If there is a squawk error and the item is a squawk error, we re-draw it with the color
-
-					if (TagReplacingMap["sqerror"].size() > 0 && strcmp(item.c_str(), TagReplacingMap["sqerror"].c_str()) == 0) {
-							SolidBrush TextColor(ColorManager->get_corrected_color("label",
-								CurrentConfig->getConfigColor(LabelsSettings["squawk_error_color"])));
-							wstring sqw = wstring(TagReplacingMap["sqerror"].begin(), TagReplacingMap["sqerror"].end());
-							graphics.DrawString(sqw.c_str(), wcslen(sqw.c_str()), customFonts[currentFontSize], PointF(Gdiplus::REAL(ItemRect.left), Gdiplus::REAL(ItemRect.top)), &Gdiplus::StringFormat(), &TextColor);
-					}
-
-					// We then add the screen object
-					AddScreenObject(TagClickableMap[item], rt.GetCallsign(), ItemRect, true, GetBottomLine(rt.GetCallsign()).c_str());
-
-					// Finally, we update the offset
-
-					offset += ItemWidth;
-				}
-			}
-		}
 	}
 
 #pragma endregion Drawing of the tags
@@ -2363,7 +2303,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 	{
 		GetPlugIn()->OpenPopupList(ListAreas["Label"], "Label Brightness", 1);
 		for(int i = CColorManager::bounds_low(); i <= CColorManager::bounds_high(); i +=10)
-			GetPlugIn()->AddPopupListElement(std::to_string(i).c_str(), "", RIMCAS_BRIGHTNESS_LABEL, false);
+			GetPlugIn()->AddPopupListElement(std::to_string(i).c_str(), "", RIMCAS_BRIGHTNESS_LABEL, false, int(bool(i == ColorManager->get_brightness("label"))));
 
 		GetPlugIn()->AddPopupListElement("Close", "", RIMCAS_CLOSE, false, 2, false, true);
 		ShowLists["Label"] = false;
@@ -2373,7 +2313,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 	{
 		GetPlugIn()->OpenPopupList(ListAreas["Symbol"], "Symbol Brightness", 1);
 		for (int i = CColorManager::bounds_low(); i <= CColorManager::bounds_high(); i += 10)
-			GetPlugIn()->AddPopupListElement(std::to_string(i).c_str(), "", RIMCAS_BRIGHTNESS_SYMBOL, false);
+			GetPlugIn()->AddPopupListElement(std::to_string(i).c_str(), "", RIMCAS_BRIGHTNESS_SYMBOL, false, int(bool(i == ColorManager->get_brightness("symbol"))));
 
 		GetPlugIn()->AddPopupListElement("Close", "", RIMCAS_CLOSE, false, 2, false, true);
 		ShowLists["Symbol"] = false;
@@ -2383,7 +2323,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 	{
 		GetPlugIn()->OpenPopupList(ListAreas["Afterglow"], "Afterglow Brightness", 1);
 		for (int i = CColorManager::bounds_low(); i <= CColorManager::bounds_high(); i += 10)
-			GetPlugIn()->AddPopupListElement(std::to_string(i).c_str(), "", RIMCAS_BRIGHTNESS_AFTERGLOW, false);
+			GetPlugIn()->AddPopupListElement(std::to_string(i).c_str(), "", RIMCAS_BRIGHTNESS_AFTERGLOW, false, int(bool(i == ColorManager->get_brightness("afterglow"))));
 
 		GetPlugIn()->AddPopupListElement("Close", "", RIMCAS_CLOSE, false, 2, false, true);
 		ShowLists["Afterglow"] = false;
