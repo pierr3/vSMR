@@ -275,7 +275,7 @@ void CInsetWindow::render(HDC hDC, CSMRRadar * radar_screen, Graphics* gdi, POIN
 	// Aircrafts
 
 	vector<POINT> appAreaVect = { windowAreaCRect.TopLeft(),{ windowAreaCRect.right, windowAreaCRect.top }, windowAreaCRect.BottomRight(),{ windowAreaCRect.left, windowAreaCRect.bottom } };
-	CPen WhitePen(PS_SOLID, 1, RGB(255, 255, 255));
+	CPen WhitePen(PS_SOLID, 1, radar_screen->ColorManager->get_corrected_color("symbol", Color::White).ToCOLORREF());
 
 	CRadarTarget rt;
 	for (rt = radar_screen->GetPlugIn()->RadarTargetSelectFirst();
@@ -310,7 +310,7 @@ void CInsetWindow::render(HDC hDC, CSMRRadar * radar_screen, Graphics* gdi, POIN
 			hPoint = projectPoint(hPos.GetPosition());
 
 			if (Is_Inside(hPoint, appAreaVect)) {
-				dc.SetPixel(hPoint, RGB(255, 255, 255));
+				dc.SetPixel(hPoint, radar_screen->ColorManager->get_corrected_color("symbol", Color::White).ToCOLORREF());
 			}
 
 			hPos = rt.GetPreviousPosition(hPos);
@@ -381,7 +381,7 @@ void CInsetWindow::render(HDC hDC, CSMRRadar * radar_screen, Graphics* gdi, POIN
 			dc.LineTo(RtPoint.x + 10, RtPoint.y + 4);
 		}
 
-		int lenght = 55;
+		int lenght = 50;
 
 		POINT TagCenter;
 		if (m_TagAngles.find(rt.GetCallsign()) == m_TagAngles.end())
@@ -426,18 +426,18 @@ void CInsetWindow::render(HDC hDC, CSMRRadar * radar_screen, Graphics* gdi, POIN
 		int TagWidth = 0, TagHeight = 0;
 		RectF mesureRect;
 		gdi->MeasureString(L" ", wcslen(L" "), radar_screen->customFonts[radar_screen->currentFontSize], PointF(0, 0), &Gdiplus::StringFormat(), &mesureRect);
-		int blankWidth = mesureRect.GetRight();
+		int blankWidth = (int)mesureRect.GetRight();
 
 		mesureRect = RectF(0, 0, 0, 0);
 		gdi->MeasureString(L"AZERTYUIOPQSDFGHJKLMWXCVBN", wcslen(L"AZERTYUIOPQSDFGHJKLMWXCVBN"),
 			radar_screen->customFonts[radar_screen->currentFontSize], PointF(0, 0), &Gdiplus::StringFormat(), &mesureRect);
-		int oneLineHeight = mesureRect.GetBottom();
+		int oneLineHeight = (int)mesureRect.GetBottom();
 
 		const Value& LabelsSettings = radar_screen->CurrentConfig->getActiveProfile()["labels"];
 		const Value& LabelLines = LabelsSettings[Utils::getEnumString(TagType).c_str()]["definition"];
 		vector<vector<string>> ReplacedLabelLines;
 
-		for (int i = 0; i < LabelLines.Size(); i++)
+		for (unsigned int i = 0; i < LabelLines.Size(); i++)
 		{
 
 			const Value& line = LabelLines[i];
@@ -448,7 +448,7 @@ void CInsetWindow::render(HDC hDC, CSMRRadar * radar_screen, Graphics* gdi, POIN
 
 			int TempTagWidth = 0;
 
-			for (int j = 0; j < line.Size(); j++)
+			for (unsigned int j = 0; j < line.Size(); j++)
 			{
 				mesureRect = RectF(0, 0, 0, 0);
 				string element = line[j].GetString();
@@ -462,10 +462,10 @@ void CInsetWindow::render(HDC hDC, CSMRRadar * radar_screen, Graphics* gdi, POIN
 				gdi->MeasureString(wstr.c_str(), wcslen(wstr.c_str()),
 					radar_screen->customFonts[radar_screen->currentFontSize], PointF(0, 0), &Gdiplus::StringFormat(), &mesureRect);
 
-				TempTagWidth += mesureRect.GetRight();
+				TempTagWidth += (int) mesureRect.GetRight();
 
 				if (j != line.Size() - 1)
-					TempTagWidth += blankWidth;
+					TempTagWidth += (int) blankWidth;
 			}
 
 			TagWidth = max(TagWidth, TempTagWidth);
@@ -503,6 +503,7 @@ void CInsetWindow::render(HDC hDC, CSMRRadar * radar_screen, Graphics* gdi, POIN
 				radar_screen->CurrentConfig->getConfigColor(LabelsSettings[Utils::getEnumString(TagType).c_str()]["text_color"])));
 			SolidBrush SquawkErrorColor(radar_screen->ColorManager->get_corrected_color("label",
 				radar_screen->CurrentConfig->getConfigColor(LabelsSettings["squawk_error_color"])));
+			SolidBrush RimcasTextColor(radar_screen->CurrentConfig->getConfigColor(radar_screen->CurrentConfig->getActiveProfile()["rimcas"]["alert_text_color"]));
 
 			int heightOffset = 0;
 			for (auto&& line : ReplacedLabelLines)
@@ -513,6 +514,9 @@ void CInsetWindow::render(HDC hDC, CSMRRadar * radar_screen, Graphics* gdi, POIN
 					SolidBrush* color = &FontColor;
 					if (TagReplacingMap["sqerror"].size() > 0 && strcmp(element.c_str(), TagReplacingMap["sqerror"].c_str()) == 0)
 						color = &SquawkErrorColor;
+
+					if (radar_screen->RimcasInstance->getAlert(rt.GetCallsign()) != CRimcas::NoAlert)
+						color = &RimcasTextColor;
 
 					RectF mRect(0, 0, 0, 0);
 
@@ -527,11 +531,11 @@ void CInsetWindow::render(HDC hDC, CSMRRadar * radar_screen, Graphics* gdi, POIN
 						radar_screen->customFonts[radar_screen->currentFontSize], PointF(0, 0), &Gdiplus::StringFormat(), &mRect);
 
 					CRect ItemRect(TagBackgroundRect.left + widthOffset, TagBackgroundRect.top + heightOffset,
-						TagBackgroundRect.left + widthOffset + mRect.GetRight(), TagBackgroundRect.top + heightOffset + mRect.GetBottom());
+						TagBackgroundRect.left + widthOffset + (int)mRect.GetRight(), TagBackgroundRect.top + heightOffset + (int)mRect.GetBottom());
 
 					radar_screen->AddScreenObject(TagClickableMap[element], rt.GetCallsign(), ItemRect, true, radar_screen->GetBottomLine(rt.GetCallsign()).c_str());
 
-					widthOffset += mRect.GetRight();
+					widthOffset += (int)mRect.GetRight();
 					widthOffset += blankWidth;
 				}
 
@@ -542,7 +546,7 @@ void CInsetWindow::render(HDC hDC, CSMRRadar * radar_screen, Graphics* gdi, POIN
 			RECT TagBackRectData = TagBackgroundRect;
 			POINT toDraw1, toDraw2;
 			if (LiangBarsky(TagBackRectData, RtPoint, TagBackgroundRect.CenterPoint(), toDraw1, toDraw2))
-				gdi->DrawLine(&Pen(Color::White), PointF(Gdiplus::REAL(RtPoint.x), Gdiplus::REAL(RtPoint.y)), PointF(Gdiplus::REAL(toDraw1.x), Gdiplus::REAL(toDraw1.y)));
+				gdi->DrawLine(&Pen(radar_screen->ColorManager->get_corrected_color("symbol", Color::White)), PointF(Gdiplus::REAL(RtPoint.x), Gdiplus::REAL(RtPoint.y)), PointF(Gdiplus::REAL(toDraw1.x), Gdiplus::REAL(toDraw1.y)));
 
 			// If we use a RIMCAS label only, we display it, and adapt the rectangle
 			CRect oldCrectSave = TagBackgroundRect;
@@ -570,11 +574,10 @@ void CInsetWindow::render(HDC hDC, CSMRRadar * radar_screen, Graphics* gdi, POIN
 
 					// Drawing the text
 
-					SolidBrush WhiteBrush(Color::White);
 					wstring rimcasw = wstring(L"ALERT");
 					StringFormat stformat = new StringFormat();
 					stformat.SetAlignment(StringAlignment::StringAlignmentCenter);
-					gdi->DrawString(rimcasw.c_str(), wcslen(rimcasw.c_str()), radar_screen->customFonts[radar_screen->currentFontSize], PointF(Gdiplus::REAL((TagBackgroundRect.left + TagBackgroundRect.right) / 2), Gdiplus::REAL(TagBackgroundRect.top)), &stformat, &WhiteBrush);
+					gdi->DrawString(rimcasw.c_str(), wcslen(rimcasw.c_str()), radar_screen->customFonts[radar_screen->currentFontSize], PointF(Gdiplus::REAL((TagBackgroundRect.left + TagBackgroundRect.right) / 2), Gdiplus::REAL(TagBackgroundRect.top)), &stformat, &RimcasTextColor);
 
 				}
 			}

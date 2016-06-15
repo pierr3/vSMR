@@ -1959,18 +1959,18 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 		int TagWidth = 0, TagHeight = 0;
 		RectF mesureRect;
 		graphics.MeasureString(L" ", wcslen(L" "), customFonts[currentFontSize], PointF(0, 0), &Gdiplus::StringFormat(), &mesureRect);
-		int blankWidth = mesureRect.GetRight();
+		int blankWidth = (int)mesureRect.GetRight();
 
 		mesureRect = RectF(0, 0, 0, 0);
 		graphics.MeasureString(L"AZERTYUIOPQSDFGHJKLMWXCVBN", wcslen(L"AZERTYUIOPQSDFGHJKLMWXCVBN"),
 			customFonts[currentFontSize], PointF(0, 0), &Gdiplus::StringFormat(), &mesureRect);
-		int oneLineHeight = mesureRect.GetBottom();
+		int oneLineHeight = (int)mesureRect.GetBottom();
 
 		const Value& LabelsSettings = CurrentConfig->getActiveProfile()["labels"];
 		const Value& LabelLines = LabelsSettings[Utils::getEnumString(TagType).c_str()]["definition"];
 		vector<vector<string>> ReplacedLabelLines;
 
-		for (int i = 0; i < LabelLines.Size(); i++)
+		for (unsigned int i = 0; i < LabelLines.Size(); i++)
 		{
 			
 			const Value& line = LabelLines[i];
@@ -1981,7 +1981,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 
 			int TempTagWidth = 0;
 
-			for(int j = 0; j < line.Size(); j++) 
+			for(unsigned int j = 0; j < line.Size(); j++)
 			{
 				mesureRect = RectF(0, 0, 0, 0);
 				string element = line[j].GetString();
@@ -1995,10 +1995,10 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 				graphics.MeasureString(wstr.c_str(), wcslen(wstr.c_str()),
 					customFonts[currentFontSize], PointF(0, 0), &Gdiplus::StringFormat(), &mesureRect);
 
-				TempTagWidth += mesureRect.GetRight();
+				TempTagWidth += (int) mesureRect.GetRight();
 
 				if (j != line.Size() - 1)
-					TempTagWidth += blankWidth;
+					TempTagWidth += (int) blankWidth;
 			}
 			
 			TagWidth = max(TagWidth, TempTagWidth);
@@ -2040,6 +2040,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 			CurrentConfig->getConfigColor(LabelsSettings[Utils::getEnumString(TagType).c_str()]["text_color"])));
 		SolidBrush SquawkErrorColor(ColorManager->get_corrected_color("label",
 			CurrentConfig->getConfigColor(LabelsSettings["squawk_error_color"])));
+		SolidBrush RimcasTextColor(CurrentConfig->getConfigColor(CurrentConfig->getActiveProfile()["rimcas"]["alert_text_color"]));
 
 		int heightOffset = 0;
 		for (auto&& line : ReplacedLabelLines)
@@ -2050,6 +2051,9 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 				SolidBrush* color = &FontColor;
 				if (TagReplacingMap["sqerror"].size() > 0 && strcmp(element.c_str(), TagReplacingMap["sqerror"].c_str()) == 0)
 					color = &SquawkErrorColor;
+
+				if (RimcasInstance->getAlert(rt.GetCallsign()) != CRimcas::NoAlert)
+					color = &RimcasTextColor;
 
 				RectF mRect(0, 0, 0, 0);
 
@@ -2064,11 +2068,11 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 					customFonts[currentFontSize], PointF(0, 0), &Gdiplus::StringFormat(), &mRect);
 
 				CRect ItemRect(TagBackgroundRect.left + widthOffset, TagBackgroundRect.top + heightOffset, 
-					TagBackgroundRect.left + widthOffset + mRect.GetRight(), TagBackgroundRect.top + heightOffset + mRect.GetBottom());
+					TagBackgroundRect.left + widthOffset + (int)mRect.GetRight(), TagBackgroundRect.top + heightOffset + (int)mRect.GetBottom());
 
 				AddScreenObject(TagClickableMap[element], rt.GetCallsign(), ItemRect, true, GetBottomLine(rt.GetCallsign()).c_str());
 
-				widthOffset += mRect.GetRight();
+				widthOffset += (int)mRect.GetRight();
 				widthOffset += blankWidth;
 			}
 
@@ -2107,12 +2111,11 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 				TagBackgroundRect.top -= rimcas_height;
 
 				// Drawing the text
-				
-				SolidBrush WhiteBrush(Color::White);
+			
 				wstring rimcasw = wstring(L"ALERT");
 				StringFormat stformat = new StringFormat();
 				stformat.SetAlignment(StringAlignment::StringAlignmentCenter);
-				graphics.DrawString(rimcasw.c_str(), wcslen(rimcasw.c_str()), customFonts[currentFontSize], PointF(Gdiplus::REAL((TagBackgroundRect.left + TagBackgroundRect.right) / 2), Gdiplus::REAL(TagBackgroundRect.top)), &stformat, &WhiteBrush);
+				graphics.DrawString(rimcasw.c_str(), wcslen(rimcasw.c_str()), customFonts[currentFontSize], PointF(Gdiplus::REAL((TagBackgroundRect.left + TagBackgroundRect.right) / 2), Gdiplus::REAL(TagBackgroundRect.top)), &stformat, &RimcasTextColor);
 			}
 		}
 

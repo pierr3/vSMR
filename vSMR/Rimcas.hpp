@@ -119,6 +119,8 @@ public:
 	void OnRefreshEnd(CRadarScreen *instance, int threshold);
 	void Reset();
 
+	RimcasAlertTypes getAlert(string callsign);
+
 	void setCountdownDefinition(vector<int> data, vector<int> dataLVP)
 	{
 		CountdownDefinition = data;

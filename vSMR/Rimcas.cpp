@@ -281,6 +281,14 @@ bool CRimcas::isAcOnRunway(string callsign) {
 	return false;
 }
 
+CRimcas::RimcasAlertTypes CRimcas::getAlert(string callsign)
+{
+	if (AcColor.find(callsign) == AcColor.end())
+		return NoAlert;
+
+	return AcColor[callsign];
+}
+
 Color CRimcas::GetAircraftColor(string AcCallsign, Color StandardColor, Color OnRunwayColor, Color RimcasStageOne, Color RimcasStageTwo) {
 	if (AcColor.find(AcCallsign) == AcColor.end()) {
 		if (isAcOnRunway(AcCallsign)) {
