@@ -138,6 +138,10 @@ public:
 	bool ReleaseInProgress = false;
 	bool AcquireInProgress = false;
 
+	multimap<string, string> DistanceTools;
+	bool DistanceToolActive = false;
+	pair<string, string> ActiveDistance;
+
 	//----
 	// Tag types
 	//---
@@ -255,6 +259,34 @@ public:
 	//---OnRadarTargetPositionUpdate---------------------------------------------
 
 	virtual void OnRadarTargetPositionUpdate(CRadarTarget RadarTarget);
+
+	//---OnFlightPlanDisconnect---------------------------------------------
+
+	virtual void OnFlightPlanDisconnect(CFlightPlan FlightPlan);
+
+	virtual bool isVisible(CRadarTarget rt)
+	{
+		CRadarTargetPositionData RtPos = rt.GetPosition();
+		int radarRange = CurrentConfig->getActiveProfile()["filters"]["radar_range_nm"].GetInt();
+		int altitudeFilter = CurrentConfig->getActiveProfile()["filters"]["hide_above_alt"].GetInt();
+		int speedFilter = CurrentConfig->getActiveProfile()["filters"]["hide_above_spd"].GetInt();
+		bool isAcDisplayed = true;
+
+		if (AirportPositions[getActiveAirport()].DistanceTo(RtPos.GetPosition()) > radarRange)
+			isAcDisplayed = false;
+
+		if (altitudeFilter != 0) {
+			if (RtPos.GetPressureAltitude() > altitudeFilter)
+				isAcDisplayed = false;
+		}
+
+		if (speedFilter != 0) {
+			if (RtPos.GetReportedGS() > speedFilter)
+				isAcDisplayed = false;
+		}
+
+		return isAcDisplayed;
+	}
 
 	//---Haversine---------------------------------------------
 	// Heading in deg, distance in m

@@ -546,6 +546,29 @@ void CSMRRadar::OnClickScreenObject(int ObjectType, const char * sObjectId, POIN
 			GetPlugIn()->AddPopupListElement("Visibility", "", RIMCAS_OPEN_LIST);
 			GetPlugIn()->AddPopupListElement("Close", "", RIMCAS_CLOSE, false, 2, false, true);
 		}
+
+		if (strcmp(sObjectId, "/") == 0)
+		{
+			if (Button == BUTTON_LEFT)
+			{
+				DistanceToolActive = !DistanceToolActive;
+				if (!DistanceToolActive)
+					ActiveDistance = pair<string, string>("", "");
+
+				if (DistanceToolActive)
+				{
+					QDMenabled = false;
+					QDMSelectEnabled = false;
+				}
+			}
+			if (Button == BUTTON_RIGHT)
+			{
+				DistanceToolActive = false;
+				ActiveDistance = pair<string, string>("", "");
+				DistanceTools.clear();
+			}
+
+		}
 		
 	}
 
@@ -615,7 +638,22 @@ void CSMRRadar::OnClickScreenObject(int ObjectType, const char * sObjectId, POIN
 					QDMSelectPt = Pt;
 					RequestRefresh();
 				}
-			} else
+			}
+			else if (DistanceToolActive) {
+				if (ActiveDistance.first == "")
+				{
+					ActiveDistance.first = sObjectId;
+				}
+				else if (ActiveDistance.second == "")
+				{
+					ActiveDistance.second = sObjectId;
+					DistanceTools.insert(ActiveDistance);
+					ActiveDistance = pair<string, string>("", "");
+					DistanceToolActive = false;
+				}
+				RequestRefresh();
+			}
+			else
 			{
 				if (TagsOffsets.find(sObjectId) != TagsOffsets.end())
 					TagsOffsets.erase(sObjectId);
@@ -650,11 +688,27 @@ void CSMRRadar::OnClickScreenObject(int ObjectType, const char * sObjectId, POIN
 
 	if (ObjectType == DRAWING_AC_SYMBOL_APPWINDOW1 || ObjectType == DRAWING_AC_SYMBOL_APPWINDOW2)
 	{
-		if (ObjectType == DRAWING_AC_SYMBOL_APPWINDOW1)
-			appWindows[1]->OnClickScreenObject(sObjectId, Pt, Button);
+		if (DistanceToolActive) {
+			if (ActiveDistance.first == "")
+			{
+				ActiveDistance.first = sObjectId;
+			}
+			else if (ActiveDistance.second == "")
+			{
+				ActiveDistance.second = sObjectId;
+				DistanceTools.insert(ActiveDistance);
+				ActiveDistance = pair<string, string>("", "");
+				DistanceToolActive = false;
+			}
+			RequestRefresh();
+		} else
+		{
+			if (ObjectType == DRAWING_AC_SYMBOL_APPWINDOW1)
+				appWindows[1]->OnClickScreenObject(sObjectId, Pt, Button);
 
-		if (ObjectType == DRAWING_AC_SYMBOL_APPWINDOW2)
-			appWindows[2]->OnClickScreenObject(sObjectId, Pt, Button);
+			if (ObjectType == DRAWING_AC_SYMBOL_APPWINDOW2)
+				appWindows[2]->OnClickScreenObject(sObjectId, Pt, Button);
+		}
 	}
 
 	if (ObjectType == TAG_CITEM_CALLSIGN) {
@@ -722,6 +776,24 @@ void CSMRRadar::OnClickScreenObject(int ObjectType, const char * sObjectId, POIN
 		}
 
 		StartTagFunction(rt.GetCallsign(), NULL, TAG_CITEM_GATE, rt.GetCallsign(), NULL, EuroScopePlugIn::TAG_ITEM_FUNCTION_EDIT_SCRATCH_PAD, Pt, Area);
+	}
+
+	if (ObjectType == RIMCAS_DISTANCE_TOOL)
+	{
+		vector<string> s = split(sObjectId, ',');
+		pair<string, string> toRemove = pair<string, string>(s.front(), s.back());
+
+		typedef multimap<string, string>::iterator iterator;
+		std::pair<iterator, iterator> iterpair = DistanceTools.equal_range(toRemove.first);
+
+		iterator it = iterpair.first;
+		for (; it != iterpair.second; ++it) {
+			if (it->second == toRemove.second) {
+				DistanceTools.erase(it);
+				break;
+			}
+		}
+
 	}
 
 	RequestRefresh();
@@ -1388,6 +1460,16 @@ map<string, string> CSMRRadar::GenerateTagData(CRadarTarget rt, CFlightPlan fp, 
 	return TagReplacingMap;
 }
 
+void CSMRRadar::OnFlightPlanDisconnect(CFlightPlan FlightPlan)
+{
+	string callsign = string(FlightPlan.GetCallsign());
+
+	for (multimap<string, string>::iterator itr = DistanceTools.begin(); itr != DistanceTools.end(); ++itr) {
+		if (itr->first == callsign || itr->second == callsign)
+			DistanceTools.erase(itr);
+	}
+}
+
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	switch (uMsg)
@@ -1646,20 +1728,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 		int radarRange = CurrentConfig->getActiveProfile()["filters"]["radar_range_nm"].GetInt();
 		int altitudeFilter = CurrentConfig->getActiveProfile()["filters"]["hide_above_alt"].GetInt();
 		int speedFilter = CurrentConfig->getActiveProfile()["filters"]["hide_above_spd"].GetInt();
-		bool isAcDisplayed = true;
-
-		if (AirportPositions[getActiveAirport()].DistanceTo(rt.GetPosition().GetPosition()) > radarRange)
-			isAcDisplayed = false;
-
-		if (altitudeFilter != 0) {
-			if (rt.GetPosition().GetPressureAltitude() > altitudeFilter)
-				isAcDisplayed = false;
-		}
-
-		if (speedFilter != 0) {
-			if (reportedGs > speedFilter)
-				isAcDisplayed = false;
-		}
+		bool isAcDisplayed = isVisible(rt);
 
 		if (!isAcDisplayed)
 			continue;
@@ -1868,20 +1937,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 		int radarRange = CurrentConfig->getActiveProfile()["filters"]["radar_range_nm"].GetInt();
 		int altitudeFilter = CurrentConfig->getActiveProfile()["filters"]["hide_above_alt"].GetInt();
 		int speedFilter = CurrentConfig->getActiveProfile()["filters"]["hide_above_spd"].GetInt();
-		bool isAcDisplayed = true;
-
-		if (AirportPositions[getActiveAirport()].DistanceTo(RtPos.GetPosition()) > radarRange)
-			isAcDisplayed = false;
-
-		if (altitudeFilter != 0) {
-			if (RtPos.GetPressureAltitude() > altitudeFilter)
-				isAcDisplayed = false;
-		}
-
-		if (speedFilter != 0) {
-			if (reportedGs > speedFilter)
-				isAcDisplayed = false;
-		}
+		bool isAcDisplayed = isVisible(rt);
 
 		bool AcisCorrelated = IsCorrelated(fp, rt);
 
@@ -2336,7 +2392,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 	// QRD
 	//---------------------------------
 
-	if (QDMenabled || QDMSelectEnabled) {
+	if (QDMenabled || QDMSelectEnabled || (DistanceToolActive && ActiveDistance.first != "")) {
 		CPen Pen(PS_SOLID, 1, RGB(255, 255, 255));
 		CPen *oldPen = dc.SelectObject(&Pen);
 
@@ -2346,6 +2402,12 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 		{
 			AirportPos = QDMSelectPt;
 			AirportCPos = ConvertCoordFromPixelToPosition(QDMSelectPt);
+		}
+		if (DistanceToolActive)
+		{
+			CPosition r = GetPlugIn()->RadarTargetSelect(ActiveDistance.first.c_str()).GetPosition().GetPosition();
+			AirportPos = ConvertCoordFromPositionToPixel(r);
+			AirportCPos = r;
 		}
 		dc.MoveTo(AirportPos);
 		POINT point = mouseLocation;
@@ -2366,6 +2428,52 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 
 		POINT TextPos = { point.x + 20, point.y };
 
+		if (!DistanceToolActive)
+		{
+			string distances = std::to_string(Distance);
+			size_t decimal_pos = distances.find(".");
+			distances = distances.substr(0, decimal_pos + 2);
+
+			string bearings = std::to_string(Bearing);
+			decimal_pos = bearings.find(".");
+			bearings = bearings.substr(0, decimal_pos + 2);
+
+			string text = bearings;
+			text += "° / ";
+			text += distances;
+			text += "m";
+			COLORREF old_color = dc.SetTextColor(RGB(255, 255, 255));
+			dc.TextOutA(TextPos.x, TextPos.y, text.c_str());
+			dc.SetTextColor(old_color);
+		}
+
+		dc.SelectObject(oldPen);
+		RequestRefresh();
+	}
+
+	// Distance tools here
+	for (auto&& kv : DistanceTools)
+	{
+		CRadarTarget one = GetPlugIn()->RadarTargetSelect(kv.first.c_str());
+		CRadarTarget two = GetPlugIn()->RadarTargetSelect(kv.second.c_str());
+
+		if (!isVisible(one) || !isVisible(two))
+			continue;
+
+		CPen Pen(PS_SOLID, 1, RGB(255, 255, 255));
+		CPen *oldPen = dc.SelectObject(&Pen);
+
+		POINT onePoint = ConvertCoordFromPositionToPixel(one.GetPosition().GetPosition());
+		POINT twoPoint = ConvertCoordFromPositionToPixel(two.GetPosition().GetPosition());
+		
+		dc.MoveTo(onePoint);
+		dc.LineTo(twoPoint);
+		
+		POINT TextPos = { twoPoint.x + 20, twoPoint.y };
+
+		double Distance = one.GetPosition().GetPosition().DistanceTo(two.GetPosition().GetPosition());
+		double Bearing = one.GetPosition().GetPosition().DirectionTo(two.GetPosition().GetPosition());
+
 		string distances = std::to_string(Distance);
 		size_t decimal_pos = distances.find(".");
 		distances = distances.substr(0, decimal_pos + 2);
@@ -2377,13 +2485,19 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 		string text = bearings;
 		text += "° / ";
 		text += distances;
-		text += "m";
-		COLORREF old_color = dc.SetTextColor(RGB(255, 255, 255));
+		text += "nm";
+		COLORREF old_color = dc.SetTextColor(RGB(0, 0, 0));
+		
+		CRect ClickableRect = { TextPos.x - 2, TextPos.y, TextPos.x + dc.GetTextExtent(text.c_str()).cx + 2, TextPos.y + dc.GetTextExtent(text.c_str()).cy };
+		graphics.FillRectangle(&SolidBrush(Color(127, 122, 122)), CopyRect(ClickableRect));
+		dc.Draw3dRect(ClickableRect, RGB(75, 75, 75), RGB(45, 45, 45));
 		dc.TextOutA(TextPos.x, TextPos.y, text.c_str());
+		
+		AddScreenObject(RIMCAS_DISTANCE_TOOL, string(kv.first+","+kv.second).c_str(), ClickableRect, false, "");
+
 		dc.SetTextColor(old_color);
 
 		dc.SelectObject(oldPen);
-		RequestRefresh();
 	}
 
 	//---------------------------------
@@ -2416,7 +2530,16 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 
 	offset += dc.GetTextExtent("Colours").cx + 10;
 	dc.TextOutA(ToolBarAreaTop.left + offset, ToolBarAreaTop.top + 4, "Alerts");
-	AddScreenObject(RIMCAS_MENU, "RIMCASMenu", { ToolBarAreaTop.left + offset, ToolBarAreaTop.top + 4, ToolBarAreaTop.left + offset + dc.GetTextExtent("RIMCAS").cx, ToolBarAreaTop.top + 4 + +dc.GetTextExtent("RIMCAS").cy }, false, "RIMCAS menu");
+	AddScreenObject(RIMCAS_MENU, "RIMCASMenu", { ToolBarAreaTop.left + offset, ToolBarAreaTop.top + 4, ToolBarAreaTop.left + offset + dc.GetTextExtent("Alerts").cx, ToolBarAreaTop.top + 4 + +dc.GetTextExtent("Alerts").cy }, false, "RIMCAS menu");
+
+	offset += dc.GetTextExtent("Alerts").cx + 10;
+	dc.TextOutA(ToolBarAreaTop.left + offset, ToolBarAreaTop.top + 4, "/");
+	CRect barDistanceRect = { ToolBarAreaTop.left + offset - 2, ToolBarAreaTop.top + 4, ToolBarAreaTop.left + offset + dc.GetTextExtent("/").cx, ToolBarAreaTop.top + 4 + +dc.GetTextExtent("/").cy };
+	if (DistanceToolActive)
+	{
+		graphics.DrawRectangle(&Pen(Color::White), CopyRect(barDistanceRect));
+	}
+	AddScreenObject(RIMCAS_MENU, "/", barDistanceRect, false, "Distance tool");
 
 	dc.SetTextColor(oldTextColor);
 
@@ -2539,7 +2662,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 			continue;
 
 		int appWindowId = it->first;
-		appWindows[appWindowId]->render(hDC, this, &graphics, mouseLocation);
+		appWindows[appWindowId]->render(hDC, this, &graphics, mouseLocation, DistanceTools);
 	}
 
 	dc.Detach();
