@@ -712,7 +712,7 @@ void CSMRRadar::OnClickScreenObject(int ObjectType, const char * sObjectId, POIN
 	}
 
 	if (ObjectType == TAG_CITEM_CALLSIGN) {
-		if (Button != BUTTON_RIGHT)
+		if (Button != BUTTON_RIGHT || Button != BUTTON_MIDDLE)
 			return;
 
 		CFlightPlan Fp = GetPlugIn()->FlightPlanSelect(sObjectId);
@@ -724,7 +724,7 @@ void CSMRRadar::OnClickScreenObject(int ObjectType, const char * sObjectId, POIN
 			GetPlugIn()->SetASELAircraft(Fp);
 		}
 
-		if (Button == EuroScopePlugIn::BUTTON_LEFT || Button == EuroScopePlugIn::BUTTON_MIDDLE)
+		if (Button == EuroScopePlugIn::BUTTON_MIDDLE)
 			StartTagFunction(rt.GetCallsign(), NULL, TAG_CITEM_CALLSIGN, rt.GetCallsign(), NULL, EuroScopePlugIn::TAG_ITEM_FUNCTION_HANDOFF_POPUP_MENU, Pt, Area);
 		else if (Button == EuroScopePlugIn::BUTTON_RIGHT)
 			StartTagFunction(rt.GetCallsign(), NULL, TAG_CITEM_CALLSIGN, rt.GetCallsign(), NULL, EuroScopePlugIn::TAG_ITEM_FUNCTION_COMMUNICATION_POPUP, Pt, Area);
