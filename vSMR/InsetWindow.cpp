@@ -411,7 +411,7 @@ void CInsetWindow::render(HDC hDC, CSMRRadar * radar_screen, Graphics* gdi, POIN
 		TagClickableMap[TagReplacingMap["tendency"]] = TAG_CITEM_NO;
 		TagClickableMap[TagReplacingMap["wake"]] = TAG_CITEM_FPBOX;
 		TagClickableMap[TagReplacingMap["tssr"]] = TAG_CITEM_NO;
-		TagClickableMap[TagReplacingMap["ssid"]] = TagClickableMap[TagReplacingMap["asid"]] = TAG_CITEM_NO;
+		TagClickableMap[TagReplacingMap["ssid"]] = TagClickableMap[TagReplacingMap["asid"]] = TAG_CITEM_SID;
 		TagClickableMap[TagReplacingMap["systemid"]] = TAG_CITEM_MANUALCORRELATE;
 
 		//

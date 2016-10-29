@@ -308,7 +308,7 @@ void CSMRRadar::OnMoveScreenObject(int ObjectType, const char * sObjectId, POINT
 		}
 	}
 
-	if (ObjectType == DRAWING_TAG || ObjectType == TAG_CITEM_MANUALCORRELATE ||ObjectType == TAG_CITEM_CALLSIGN || ObjectType == TAG_CITEM_FPBOX || ObjectType == TAG_CITEM_RWY || ObjectType == TAG_CITEM_GATE) {
+	if (ObjectType == DRAWING_TAG || ObjectType == TAG_CITEM_MANUALCORRELATE ||ObjectType == TAG_CITEM_CALLSIGN || ObjectType == TAG_CITEM_FPBOX || ObjectType == TAG_CITEM_RWY || ObjectType == TAG_CITEM_SID || ObjectType == TAG_CITEM_GATE) {
 		CRadarTarget rt = GetPlugIn()->RadarTargetSelect(sObjectId);
 
 		if (!Released)
@@ -712,7 +712,7 @@ void CSMRRadar::OnClickScreenObject(int ObjectType, const char * sObjectId, POIN
 	}
 
 	if (ObjectType == TAG_CITEM_CALLSIGN) {
-		if (Button != BUTTON_RIGHT || Button != BUTTON_MIDDLE)
+		if (Button != BUTTON_RIGHT && Button != BUTTON_MIDDLE)
 			return;
 
 		CFlightPlan Fp = GetPlugIn()->FlightPlanSelect(sObjectId);
@@ -724,7 +724,7 @@ void CSMRRadar::OnClickScreenObject(int ObjectType, const char * sObjectId, POIN
 			GetPlugIn()->SetASELAircraft(Fp);
 		}
 
-		if (Button == EuroScopePlugIn::BUTTON_MIDDLE)
+		if (Button == EuroScopePlugIn::BUTTON_LEFT || Button == EuroScopePlugIn::BUTTON_MIDDLE)
 			StartTagFunction(rt.GetCallsign(), NULL, TAG_CITEM_CALLSIGN, rt.GetCallsign(), NULL, EuroScopePlugIn::TAG_ITEM_FUNCTION_HANDOFF_POPUP_MENU, Pt, Area);
 		else if (Button == EuroScopePlugIn::BUTTON_RIGHT)
 			StartTagFunction(rt.GetCallsign(), NULL, TAG_CITEM_CALLSIGN, rt.GetCallsign(), NULL, EuroScopePlugIn::TAG_ITEM_FUNCTION_COMMUNICATION_POPUP, Pt, Area);
@@ -760,6 +760,22 @@ void CSMRRadar::OnClickScreenObject(int ObjectType, const char * sObjectId, POIN
 		}
 
 		StartTagFunction(rt.GetCallsign(), NULL, TAG_CITEM_RWY, rt.GetCallsign(), NULL, EuroScopePlugIn::TAG_ITEM_FUNCTION_ASSIGNED_RUNWAY, Pt, Area);
+	}
+
+	if (ObjectType == TAG_CITEM_SID) {
+		if (Button != BUTTON_RIGHT)
+			return;
+
+		CFlightPlan Fp = GetPlugIn()->FlightPlanSelect(sObjectId);
+		CRadarTarget rt = GetPlugIn()->RadarTargetSelect(sObjectId);
+		if (rt.GetCorrelatedFlightPlan().IsValid()) {
+			StartTagFunction(rt.GetCallsign(), NULL, EuroScopePlugIn::TAG_ITEM_TYPE_CALLSIGN, rt.GetCallsign(), NULL, EuroScopePlugIn::TAG_ITEM_FUNCTION_NO, Pt, Area);
+		}
+		else {
+			GetPlugIn()->SetASELAircraft(Fp);
+		}
+
+		StartTagFunction(rt.GetCallsign(), NULL, TAG_CITEM_SID, rt.GetCallsign(), NULL, EuroScopePlugIn::TAG_ITEM_FUNCTION_ASSIGNED_SID, Pt, Area);
 	}
 
 	if (ObjectType == TAG_CITEM_GATE) {
@@ -2003,7 +2019,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 		TagClickableMap[TagReplacingMap["tendency"]] = TAG_CITEM_NO;
 		TagClickableMap[TagReplacingMap["wake"]] = TAG_CITEM_FPBOX;
 		TagClickableMap[TagReplacingMap["tssr"]] = TAG_CITEM_NO;
-		TagClickableMap[TagReplacingMap["asid"]] = TagClickableMap[TagReplacingMap["ssid"]] = TAG_CITEM_NO;
+		TagClickableMap[TagReplacingMap["asid"]] = TagClickableMap[TagReplacingMap["ssid"]] = TAG_CITEM_SID;
 		TagClickableMap[TagReplacingMap["systemid"]] = TAG_CITEM_NO;
 
 		//
@@ -2098,42 +2114,6 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 			CurrentConfig->getConfigColor(LabelsSettings["squawk_error_color"])));
 		SolidBrush RimcasTextColor(CurrentConfig->getConfigColor(CurrentConfig->getActiveProfile()["rimcas"]["alert_text_color"]));
 
-		int heightOffset = 0;
-		for (auto&& line : ReplacedLabelLines)
-		{
-			int widthOffset = 0;
-			for (auto&& element : line)
-			{
-				SolidBrush* color = &FontColor;
-				if (TagReplacingMap["sqerror"].size() > 0 && strcmp(element.c_str(), TagReplacingMap["sqerror"].c_str()) == 0)
-					color = &SquawkErrorColor;
-
-				if (RimcasInstance->getAlert(rt.GetCallsign()) != CRimcas::NoAlert)
-					color = &RimcasTextColor;
-
-				RectF mRect(0, 0, 0, 0);
-
-				wstring welement = wstring(element.begin(), element.end());
-
-				graphics.DrawString(welement.c_str(), wcslen(welement.c_str()), customFonts[currentFontSize], 
-					PointF(Gdiplus::REAL(TagBackgroundRect.left + widthOffset), Gdiplus::REAL(TagBackgroundRect.top + heightOffset)), 
-					&Gdiplus::StringFormat(), color);
-
-
-				graphics.MeasureString(welement.c_str(), wcslen(welement.c_str()),
-					customFonts[currentFontSize], PointF(0, 0), &Gdiplus::StringFormat(), &mRect);
-
-				CRect ItemRect(TagBackgroundRect.left + widthOffset, TagBackgroundRect.top + heightOffset, 
-					TagBackgroundRect.left + widthOffset + (int)mRect.GetRight(), TagBackgroundRect.top + heightOffset + (int)mRect.GetBottom());
-
-				AddScreenObject(TagClickableMap[element], rt.GetCallsign(), ItemRect, true, GetBottomLine(rt.GetCallsign()).c_str());
-
-				widthOffset += (int)mRect.GetRight();
-				widthOffset += blankWidth;
-			}
-
-			heightOffset += oneLineHeight;
-		}
 		
 		// Drawing the leader line
 		RECT TagBackRectData = TagBackgroundRect;
@@ -2180,6 +2160,46 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 		AddScreenObject(DRAWING_TAG, rt.GetCallsign(), TagBackgroundRect, true, GetBottomLine(rt.GetCallsign()).c_str());
 
 		TagBackgroundRect = oldCrectSave;
+
+		// Clickable zones
+		int heightOffset = 0;
+		for (auto&& line : ReplacedLabelLines)
+		{
+			int widthOffset = 0;
+			for (auto&& element : line)
+			{
+				SolidBrush* color = &FontColor;
+				if (TagReplacingMap["sqerror"].size() > 0 && strcmp(element.c_str(), TagReplacingMap["sqerror"].c_str()) == 0)
+					color = &SquawkErrorColor;
+
+				if (RimcasInstance->getAlert(rt.GetCallsign()) != CRimcas::NoAlert)
+					color = &RimcasTextColor;
+
+				RectF mRect(0, 0, 0, 0);
+
+				wstring welement = wstring(element.begin(), element.end());
+
+				graphics.DrawString(welement.c_str(), wcslen(welement.c_str()), customFonts[currentFontSize],
+					PointF(Gdiplus::REAL(TagBackgroundRect.left + widthOffset), Gdiplus::REAL(TagBackgroundRect.top + heightOffset)),
+					&Gdiplus::StringFormat(), color);
+
+
+				graphics.MeasureString(welement.c_str(), wcslen(welement.c_str()), customFonts[currentFontSize],
+					PointF(0, 0), &Gdiplus::StringFormat(), &mRect);
+
+				CRect ItemRect(TagBackgroundRect.left + widthOffset, TagBackgroundRect.top + heightOffset,
+					TagBackgroundRect.left + widthOffset + (int)mRect.GetRight(), TagBackgroundRect.top + heightOffset + (int)mRect.GetBottom());
+
+				AddScreenObject(TagClickableMap[element], rt.GetCallsign(), ItemRect, true, GetBottomLine(rt.GetCallsign()).c_str());
+
+				widthOffset += (int)mRect.GetRight();
+				widthOffset += blankWidth;
+			}
+
+			heightOffset += oneLineHeight;
+		}
+
+
 	}
 
 #pragma endregion Drawing of the tags

@@ -289,6 +289,7 @@ const int TAG_CITEM_FPBOX = 1912;
 const int TAG_CITEM_RWY = 1913;
 const int TAG_CITEM_GATE = 1914;
 const int TAG_CITEM_MANUALCORRELATE = 1915;
+const int TAG_CITEM_SID = 1916;
 
 const int FUNC_MANUAL_CALLSIGN = 2000;
 
