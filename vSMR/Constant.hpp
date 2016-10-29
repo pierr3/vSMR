@@ -73,7 +73,7 @@ inline static std::vector<std::string> split(const std::string &s, char delim) {
 static void log(string s)
 {
 	std::ofstream file;
-	file.open("H:/Users/Lionel/Documents/Visual Studio 2015/Projects/vSMR/Release/vsmr.log", std::ofstream::out | std::ofstream::app);
+	file.open("C:/Users/Pierre/Documents/Visual Studio 2015/Projects/vSMR/Release/vsmr.log", std::ofstream::out | std::ofstream::app);
 	file << s << endl;
 	file.close();
 }
