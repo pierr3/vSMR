@@ -73,7 +73,7 @@ inline static std::vector<std::string> split(const std::string &s, char delim) {
 static void log(string s)
 {
 	std::ofstream file;
-	file.open("C:/Users/Pierre/Documents/Visual Studio 2015/Projects/vSMR/Release/vsmr.log", std::ofstream::out | std::ofstream::app);
+	file.open("H:/Users/Lionel/Documents/Visual Studio 2015/Projects/vSMR/Release/vsmr.log", std::ofstream::out | std::ofstream::app);
 	file << s << endl;
 	file.close();
 }
@@ -289,6 +289,7 @@ const int TAG_CITEM_FPBOX = 1912;
 const int TAG_CITEM_RWY = 1913;
 const int TAG_CITEM_GATE = 1914;
 const int TAG_CITEM_MANUALCORRELATE = 1915;
+const int TAG_CITEM_SID = 1916;
 
 const int FUNC_MANUAL_CALLSIGN = 2000;
 
