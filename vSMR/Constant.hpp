@@ -24,6 +24,9 @@ const int TAG_FUNC_DATALINK_STBY = 546;
 const int TAG_FUNC_DATALINK_VOICE = 547;
 const int TAG_FUNC_DATALINK_RESET = 548;
 
+string DLL_PATH = "";
+bool ENABLE_LOG = false;
+
 inline static bool startsWith(const char *pre, const char *str)
 {
 	size_t lenpre = strlen(pre), lenstr = strlen(str);
@@ -72,10 +75,12 @@ inline static std::vector<std::string> split(const std::string &s, char delim) {
 
 static void log(string s)
 {
-	std::ofstream file;
-	file.open("C:/Users/Pierre/Documents/Visual Studio 2015/Projects/vSMR/Release/vsmr.log", std::ofstream::out | std::ofstream::app);
-	file << s << endl;
-	file.close();
+	if (ENABLE_LOG) {
+		std::ofstream file;
+		file.open(DLL_PATH + "\\vsmr.log", std::ofstream::out | std::ofstream::app);
+		file << s << endl;
+		file.close();
+	}
 }
 
 inline static double TrueBearing(CPosition pos1, CPosition pos2)

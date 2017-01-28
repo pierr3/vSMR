@@ -43,6 +43,8 @@ bool mouseWithin(CRect rect) {
 
 CSMRRadar::CSMRRadar()
 {
+	log("CSMRRadar::CSMRRadar()");
+
 	// Initializing randomizer
 	srand(static_cast<unsigned>(time(nullptr)));
 
@@ -54,10 +56,12 @@ CSMRRadar::CSMRRadar()
 	GetModuleFileNameA(HINSTANCE(&__ImageBase), DllPathFile, sizeof(DllPathFile));
 	DllPath = DllPathFile;
 	DllPath.resize(DllPath.size() - strlen("vSMR.dll"));
-
+	DLL_PATH = string(DllPath);
+	log("Loading callsigns");
 	// Loading up the callsigns for the bottom lign
 	Callsigns = new CCallsignLookup(DllPath + "\\ICAO_Airlines.txt");
 
+	log("Loading RIMCAS & Config");
 	// Creating the RIMCAS instance
 	if (RimcasInstance == nullptr)
 		RimcasInstance = new CRimcas();
@@ -78,6 +82,8 @@ CSMRRadar::CSMRRadar()
 	appWindows[1] = new CInsetWindow(APPWINDOW_ONE);
 	appWindows[2] = new CInsetWindow(APPWINDOW_TWO);
 
+	log("Loading profile");
+
 	this->CSMRRadar::LoadProfile("Default");
 
 	this->CSMRRadar::LoadCustomFont();
@@ -87,12 +93,14 @@ CSMRRadar::CSMRRadar()
 
 CSMRRadar::~CSMRRadar()
 {
+	log(strin(__FUNCSIG__));
 	this->OnAsrContentToBeSaved();
 	// Shutting down GDI+
 	GdiplusShutdown(m_gdiplusToken);
 }
 
 void CSMRRadar::LoadCustomFont() {
+	log(string(__FUNCSIG__));
 	// Loading the custom font if there is one in use
 	customFonts.clear();
 		
@@ -113,6 +121,7 @@ void CSMRRadar::LoadCustomFont() {
 }
 
 void CSMRRadar::LoadProfile(string profileName) {
+	log(string(__FUNCSIG__));
 	// Loading the new profile
 	CurrentConfig->setActiveProfile(profileName);
 
@@ -138,6 +147,7 @@ void CSMRRadar::LoadProfile(string profileName) {
 
 void CSMRRadar::OnAsrContentLoaded(bool Loaded)
 {
+	log(string(__FUNCSIG__));
 	const char * p_value;
 
 	// ReSharper disable CppZeroConstantCanBeReplacedWithNullptr
@@ -223,6 +233,8 @@ void CSMRRadar::OnAsrContentLoaded(bool Loaded)
 
 void CSMRRadar::OnAsrContentToBeSaved()
 {
+	log(string(__FUNCSIG__));
+
 	SaveDataToAsr("Airport", "Active airport for RIMCAS", getActiveAirport().c_str());
 
 	SaveDataToAsr("ActiveProfile", "vSMR active profile", CurrentConfig->getActiveProfileName().c_str());
@@ -279,6 +291,7 @@ void CSMRRadar::OnAsrContentToBeSaved()
 }
 
 void CSMRRadar::OnMoveScreenObject(int ObjectType, const char * sObjectId, POINT Pt, RECT Area, bool Released) {
+	log(string(__FUNCSIG__));
 
 	if (ObjectType == APPWINDOW_ONE || ObjectType == APPWINDOW_TWO) {
 		int appWindowId = ObjectType - APPWINDOW_BASE;
@@ -397,12 +410,14 @@ void CSMRRadar::OnMoveScreenObject(int ObjectType, const char * sObjectId, POINT
 
 void CSMRRadar::OnOverScreenObject(int ObjectType, const char * sObjectId, POINT Pt, RECT Area)
 {
+	log(string(__FUNCSIG__));
 	mouseLocation = Pt;
 	RequestRefresh();
 }
 
 void CSMRRadar::OnClickScreenObject(int ObjectType, const char * sObjectId, POINT Pt, RECT Area, int Button)
 {
+	log(string(__FUNCSIG__));
 	mouseLocation = Pt;
 
 	if (ObjectType == APPWINDOW_ONE || APPWINDOW_TWO) {
@@ -816,6 +831,7 @@ void CSMRRadar::OnClickScreenObject(int ObjectType, const char * sObjectId, POIN
 };
 
 void CSMRRadar::OnFunctionCall(int FunctionId, const char * sItemString, POINT Pt, RECT Area) {
+	log(string(__FUNCSIG__));
 	mouseLocation = Pt;
 	if (FunctionId == APPWINDOW_ONE || FunctionId == APPWINDOW_TWO) {
 		int id = FunctionId - APPWINDOW_BASE;
@@ -1036,7 +1052,7 @@ void CSMRRadar::OnFunctionCall(int FunctionId, const char * sItemString, POINT P
 }
 
 void CSMRRadar::RefreshAirportActivity(void) {
-
+	log(string(__FUNCSIG__));
 	//
 	// Getting the depatures and arrivals airports
 	//
@@ -1058,6 +1074,7 @@ void CSMRRadar::RefreshAirportActivity(void) {
 
 void CSMRRadar::OnRadarTargetPositionUpdate(CRadarTarget RadarTarget)
 {
+	log(string(__FUNCSIG__));
 	if (!RadarTarget.IsValid() || !RadarTarget.GetPosition().IsValid())
 		return;
 
@@ -1179,6 +1196,7 @@ void CSMRRadar::OnRadarTargetPositionUpdate(CRadarTarget RadarTarget)
 }
 
 string CSMRRadar::GetBottomLine(const char * Callsign) {
+	log(string(__FUNCSIG__));
 	
 	CFlightPlan fp = GetPlugIn()->FlightPlanSelect(Callsign);
 	string to_render = "";
@@ -1237,9 +1255,15 @@ string CSMRRadar::GetBottomLine(const char * Callsign) {
 
 bool CSMRRadar::OnCompileCommand(const char * sCommandLine)
 {
+	log(string(__FUNCSIG__));
 	if (strcmp(sCommandLine, ".smr reload") == 0) {
 		CurrentConfig = new CConfig(DllPath + "\\vSMR_Profiles.json");
 		LoadProfile(CurrentConfig->getActiveProfileName());
+		return true;
+	}
+
+	if (strcmp(sCommandLine, ".smr log") == 0) {
+		ENABLE_LOG = !ENABLE_LOG;
 		return true;
 	}
 
@@ -1248,6 +1272,7 @@ bool CSMRRadar::OnCompileCommand(const char * sCommandLine)
 
 map<string, string> CSMRRadar::GenerateTagData(CRadarTarget rt, CFlightPlan fp, bool isAcCorrelated, bool isProMode, int TransitionAltitude, bool useSpeedForGates)
 {
+	log(string(__FUNCSIG__));
 	// ----
 	// Tag items available
 	// callsign: Callsign with freq state and comm *
@@ -1478,6 +1503,7 @@ map<string, string> CSMRRadar::GenerateTagData(CRadarTarget rt, CFlightPlan fp, 
 
 void CSMRRadar::OnFlightPlanDisconnect(CFlightPlan FlightPlan)
 {
+	log(string(__FUNCSIG__));
 	string callsign = string(FlightPlan.GetCallsign());
 
 	for (multimap<string, string>::iterator itr = DistanceTools.begin(); itr != DistanceTools.end(); ++itr) {
@@ -1500,6 +1526,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 {
+	log(string(__FUNCSIG__));
 	// Changing the mouse cursor
 	if (initCursor)
 	{
@@ -1514,6 +1541,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 	}
 
 	if (Phase == REFRESH_PHASE_AFTER_LISTS) {
+		log("Phase == REFRESH_PHASE_AFTER_LISTS");
 		if (!ColorSettingsDay) {
 			// Creating the gdi+ graphics
 			Graphics graphics(hDC);
@@ -1531,10 +1559,15 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 
 			graphics.ReleaseHDC(hDC);
 		}
+
+		log("break Phase == REFRESH_PHASE_AFTER_LISTS");
+		return;
 	}
 
 	if (Phase != REFRESH_PHASE_BEFORE_TAGS)
 		return;
+
+	log("Phase != REFRESH_PHASE_BEFORE_TAGS")
 
 	struct Utils {
 		static RECT GetAreaFromText(CDC * dc, string text, POINT Pos) {
@@ -1570,6 +1603,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 		}
 	}
 
+	log("Graphics set up")
 	CDC dc;
 	dc.Attach(hDC);
 
@@ -1584,6 +1618,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 	RadarArea.bottom = ChatArea.top;
 
 	AirportPositions.clear();
+
 
 	CSectorElement apt;
 	for (apt = GetPlugIn()->SectorFileElementSelectFirst(SECTOR_ELEMENT_AIRPORT);
@@ -1607,6 +1642,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 		AddScreenObject(DRAWING_BACKGROUND_CLICK, "", R, false, "");
 	}
 
+	log("Runway loop")
 	CSectorElement rwy;
 	for (rwy = GetPlugIn()->SectorFileElementSelectFirst(SECTOR_ELEMENT_RUNWAY);
 		rwy.IsValid();
@@ -1732,6 +1768,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 
 #pragma region symbols
 	// Drawing the symbols
+	log("Symbols loop")
 	EuroScopePlugIn::CRadarTarget rt;
 	for (rt = GetPlugIn()->RadarTargetSelectFirst();
 		rt.IsValid();
@@ -1936,6 +1973,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 
 #pragma region tags
 	// Drawing the Tags
+	log("Tags loop")
 	for (rt = GetPlugIn()->RadarTargetSelectFirst();
 		rt.IsValid();
 		rt = GetPlugIn()->RadarTargetSelectNext(rt))
@@ -2211,14 +2249,11 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 	COLORREF oldColor = dc.SetTextColor(RGB(33, 33, 33));
 
 	int TextHeight = dc.GetTextExtent("60").cy;
-
+	log("RIMCAS Loop")
 	for (std::map<string, bool>::iterator it = RimcasInstance->MonitoredRunwayArr.begin(); it != RimcasInstance->MonitoredRunwayArr.end(); ++it)
 	{
-		log("looping");
 		if (!it->second || RimcasInstance->TimeTable[it->first].empty())
 			continue;
-
-		log("passed conditions");
 
 		vector<int> TimeDefinition = RimcasInstance->CountdownDefinition;
 		if (isLVP)
@@ -2267,6 +2302,8 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 		AddScreenObject(RIMCAS_IAW, it->first.c_str(), CRectTime, true, "");
 
 	}
+
+	log("Menu bar lists")
 
 	if (ShowLists["Conflict Alert ARR"]) {
 		GetPlugIn()->OpenPopupList(ListAreas["Conflict Alert ARR"], "CA Arrival", 1);
@@ -2408,6 +2445,8 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 		ShowLists["Afterglow"] = false;
 	}
 
+	log("QRD")
+
 	//---------------------------------
 	// QRD
 	//---------------------------------
@@ -2459,7 +2498,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 			bearings = bearings.substr(0, decimal_pos + 2);
 
 			string text = bearings;
-			text += "° / ";
+			text += "ï¿½ / ";
 			text += distances;
 			text += "m";
 			COLORREF old_color = dc.SetTextColor(RGB(255, 255, 255));
@@ -2503,7 +2542,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 		bearings = bearings.substr(0, decimal_pos + 2);
 
 		string text = bearings;
-		text += "° / ";
+		text += "ï¿½ / ";
 		text += distances;
 		text += "nm";
 		COLORREF old_color = dc.SetTextColor(RGB(0, 0, 0));
@@ -2523,6 +2562,8 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 	//---------------------------------
 	// Drawing the toolbar
 	//---------------------------------
+
+	log("Menu Bar")
 
 	COLORREF qToolBarColor = RGB(127, 122, 122);
 
@@ -2566,6 +2607,8 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 	//
 	// Tag deconflicting
 	//
+
+	log("Tag deconfliction loop")
 
 	for (const auto areas : tagAreas)
 	{
@@ -2676,6 +2719,8 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 	// App windows
 	//
 
+	log("App window rendering")
+
 	for (std::map<int, bool>::iterator it = appWindowDisplays.begin(); it != appWindowDisplays.end(); ++it)
 	{
 		if (!it->second)
@@ -2687,6 +2732,8 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 
 	dc.Detach();
 
+	log("END "+ string(__FUNCSIG__))
+
 }
 
 // ReSharper restore CppMsExtAddressOfClassRValue
@@ -2695,6 +2742,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 
 void CSMRRadar::EuroScopePlugInExitCustom()
 {
+	log(string(__FUNCSIG__));
 	AFX_MANAGE_STATE(AfxGetStaticModuleState())
 
 		if (smrCursor != nullptr)
