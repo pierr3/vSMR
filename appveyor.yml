@@ -9,10 +9,7 @@
 #---------------------------------#
 
 # version format
-version: 1.0.{build}
-
-# you can use {branch} name in version format too
-# version: 1.0.{build}-{branch}
+version: 1.3.3.{build}
 
 # branches to build
 branches:
@@ -49,13 +46,15 @@ configuration: Debug
 build_script:
   - cmd: msbuild "C:\projects\vsmr\vSMR.sln" /m /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
 
+after_build:
+  - cmd: mkdir vSMR-nightly
+  - cmd: cp $(configuration)\vSMR.dll vSMR-nightly\
+  - cmd: cp vSMR\vSMR_Profiles.json vSMR-nightly\
+  - cmd: 7z a vSMR-nightly.zip %APPVEYOR_BUILD_FOLDER%\vSMR-nightly\
+
 #---------------------------------#
 #      artifacts configuration    #
 #---------------------------------#
 
 artifacts:
-
-  # pushing a single file
-  - path: vSMR.zip
-
- 
+  - path: vSMR-nightly.zip
