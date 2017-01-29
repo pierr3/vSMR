@@ -50,9 +50,6 @@ build:
   parallel: true                  # enable MSBuild parallel builds
   project: vSMR.sln      # path to Visual Studio solution or project
 
-  # MSBuild verbosity level
-  verbosity: quiet|minimal|normal|detailed
-
 
 #---------------------------------#
 #      artifacts configuration    #
