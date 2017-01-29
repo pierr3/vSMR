@@ -1,6 +1,6 @@
 # vSMR Plugin [![Build status](https://ci.appveyor.com/api/projects/status/0ebifm90mrmmatew?svg=true)](https://ci.appveyor.com/project/pierr3/vsmr)
 
-vSMR is a plugin for EuroScope that simulates the NOVA 9000 A-SMGCS system on VATSIM. 
+vSMR is a plugin for EuroScope that simulates the NOVA 9000 A-SMGCS system on VATSIM.
 
 Features:
 * Custom aircraft polygons with history trails.
@@ -9,8 +9,21 @@ Features:
 * Approach view window.
 * Hoppie CPDLC clearance system integration.
 
-Download the plugin here: <https://github.com/pierr3/vSMR/releases>
-
 Find out all you need to know on the wiki: <https://github.com/pierr3/vSMR/wiki>
 
-Big thanks to Even Rognlien, Juha Holopainen and Lionel Bischof for their help with the code and thanks to Sam White and Theo Bearman for their help on the wiki!
+### Release
+
+This is the latest stable release, which has been tested and the one you should use for day to day use.
+
+Download the latest release here: <https://github.com/pierr3/vSMR/releases>
+
+### Nightly build
+
+vSMR now has a nightly build courtersey of Appveyor, available at <https://ci.appveyor.com/api/projects/pierr3/vSMR/artifacts/vSMR-nightly.zip>
+
+The nightly build is always up to date with the latest commit, however it may be very unstable and may crash EuroScope. **Don't forget to add the ICAO_Airlines.txt file to the vSMR dll folder when using this build.**
+
+
+### Thanks
+
+Special thanks to Even Rognlien, Juha Holopainen and Lionel Bischof for their help with the code and thanks to Sam White and Theo Bearman for their help on the wiki!
