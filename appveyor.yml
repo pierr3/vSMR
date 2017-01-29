@@ -39,7 +39,7 @@ os: Visual Studio 2015
 #---------------------------------#
 
 # build Configuration, i.e. Debug, Release, etc.
-configuration: Release
+configuration: Debug
 
 # to add several configurations to build matrix:
 #configuration:
