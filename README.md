@@ -1,6 +1,6 @@
-# vSMR Plugin 
+# vSMR Plugin [![Build status](https://ci.appveyor.com/api/projects/status/0ebifm90mrmmatew?svg=true)](https://ci.appveyor.com/project/pierr3/vsmr)
 
-vSMR is a plugin for EuroScope that simulates the NOVA 9000 A-SMGCS system on VATSIM. [![Build status](https://ci.appveyor.com/api/projects/status/0ebifm90mrmmatew?svg=true)](https://ci.appveyor.com/project/pierr3/vsmr)
+vSMR is a plugin for EuroScope that simulates the NOVA 9000 A-SMGCS system on VATSIM. 
 
 Features:
 * Custom aircraft polygons with history trails.
