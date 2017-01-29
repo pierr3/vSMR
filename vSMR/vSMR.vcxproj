@@ -59,7 +59,7 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_WINDOWS;_DEBUG;_USRDLL;%(PreprocessorDefinitions);CURL_STATICLIB;CURL_STATIC;ASIO_STANDALONE</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>C:\Users\Pierre\Documents\Visual Studio 2015\Projects\vSMR\lib\include;C:\Users\Pierre\Documents\Visual Studio 2015\Projects\vSMR\curl\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\lib\include;..\curl\include</AdditionalIncludeDirectories>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <TreatWChar_tAsBuiltInType>false</TreatWChar_tAsBuiltInType>
       <IntrinsicFunctions>true</IntrinsicFunctions>
@@ -72,7 +72,7 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <ModuleDefinitionFile>.\vSMR.def</ModuleDefinitionFile>
-      <AdditionalDependencies>C:\Users\Pierre\Documents\Visual Studio 2015\Projects\vSMR\lib\EuroScopePlugInDll.lib;C:\Users\Pierre\Documents\Visual Studio 2015\Projects\vSMR\curl\build\Win32\VC14\LIB Debug\libcurld.lib</AdditionalDependencies>
+      <AdditionalDependencies>..\lib\EuroScopePlugInDll.lib;..\lib\libcurld.lib</AdditionalDependencies>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>/ignore:4099 %(AdditionalOptions)</AdditionalOptions>
@@ -96,7 +96,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;_USRDLL;%(PreprocessorDefinitions);CURL_STATICLIB;CURL_STATIC;ASIO_STANDALONE</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>C:\Users\Pierre\Documents\Visual Studio 2015\Projects\vSMR\lib\include;C:\Users\Pierre\Documents\Visual Studio 2015\Projects\vSMR\curl\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\lib\include;..\curl\include</AdditionalIncludeDirectories>
       <TreatWChar_tAsBuiltInType>false</TreatWChar_tAsBuiltInType>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
@@ -106,7 +106,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <ModuleDefinitionFile>.\vSMR.def</ModuleDefinitionFile>
-      <AdditionalDependencies>C:\Users\Pierre\Documents\Visual Studio 2015\Projects\vSMR\lib\EuroScopePlugInDll.lib;C:\Users\Pierre\Documents\Visual Studio 2015\Projects\vSMR\curl\build\Win32\VC14\LIB Release\libcurl.lib</AdditionalDependencies>
+      <AdditionalDependencies>..\vSMR\lib\EuroScopePlugInDll.lib;..\lib\libcurl.lib</AdditionalDependencies>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>/ignore:4099 %(AdditionalOptions)</AdditionalOptions>
@@ -179,7 +179,7 @@
     <ResourceCompile Include="vSMR.rc" />
   </ItemGroup>
   <ItemGroup>
-    <Media Include="..\..\Ding.wav" />
+    <Media Include="..\Ding.wav" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />
