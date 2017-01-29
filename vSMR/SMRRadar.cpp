@@ -93,7 +93,7 @@ CSMRRadar::CSMRRadar()
 
 CSMRRadar::~CSMRRadar()
 {
-	log(strin(__FUNCSIG__));
+	log(string(__FUNCSIG__));
 	this->OnAsrContentToBeSaved();
 	// Shutting down GDI+
 	GdiplusShutdown(m_gdiplusToken);
