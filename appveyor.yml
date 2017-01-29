@@ -46,17 +46,8 @@ install:
 # build Configuration, i.e. Debug, Release, etc.
 configuration: Debug
 
-# to add several configurations to build matrix:
-#configuration:
-#  - Debug
-#  - Release
-
-build:
-  parallel: true                  # enable MSBuild parallel builds
-  project: vSMR.sln      # path to Visual Studio solution or project
-  
-  
-
+build_script:
+  - cmd: msbuild "C:\projects\vsmr\vSMR.sln" /m /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
 
 #---------------------------------#
 #      artifacts configuration    #
