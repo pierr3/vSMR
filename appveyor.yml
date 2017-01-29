@@ -38,6 +38,10 @@ os: Visual Studio 2015
 #       build configuration       #
 #---------------------------------#
 
+init:
+  - cmd: set PATH=C:\Program Files (x86)\MSBuild\14.0\Bin;%PATH%
+  - cmd: msbuild /version
+
 # build Configuration, i.e. Debug, Release, etc.
 configuration: Debug
 
@@ -49,6 +53,8 @@ configuration: Debug
 build:
   parallel: true                  # enable MSBuild parallel builds
   project: vSMR.sln      # path to Visual Studio solution or project
+  
+  
 
 
 #---------------------------------#
@@ -59,17 +65,5 @@ artifacts:
 
   # pushing a single file
   - path: vSMR.zip
-
-#---------------------------------#
-#         notifications           #
-#---------------------------------#
-
-notifications:
-
-  # Email
-  - provider: Email
-    to:
-      - pierre@ferran.io
-    on_build_status_changed: true
 
  
