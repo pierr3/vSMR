@@ -24,8 +24,8 @@ const int TAG_FUNC_DATALINK_STBY = 546;
 const int TAG_FUNC_DATALINK_VOICE = 547;
 const int TAG_FUNC_DATALINK_RESET = 548;
 
-string DLL_PATH = "";
-bool ENABLE_LOG = false;
+static string DLL_PATH = "";
+static bool ENABLE_LOG = false;
 
 inline static bool startsWith(const char *pre, const char *str)
 {
