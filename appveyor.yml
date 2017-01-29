@@ -48,7 +48,7 @@ build_script:
 
 after_build:
   - cmd: mkdir vSMR-nightly
-  - cmd: cp $(configuration)\vSMR.dll vSMR-nightly\
+  - cmd: cp Debug\vSMR.dll vSMR-nightly\
   - cmd: cp vSMR\vSMR_Profiles.json vSMR-nightly\
   - cmd: 7z a vSMR-nightly.zip %APPVEYOR_BUILD_FOLDER%\vSMR-nightly\
 
