@@ -134,14 +134,14 @@ void pollMessages(void * arg) {
 		{
 			if (i == 1)
 				message.from = parsed;
-			if (i == 2) 
+			if (i == 2)
 				message.type = parsed;
 			if (i > 2)
 			{
 				message.message.append(" ");
 				message.message.append(parsed);
 			}
-				
+
 			i++;
 		}
 		if (message.type.find("telex") != std::string::npos || message.type.find("cpdlc") != std::string::npos) {
@@ -213,7 +213,7 @@ void sendDatalinkClearance(void * arg) {
 	url += " IF UNABLE CALL VOICE ";
 	if (DatalinkToSend.message != "no" && DatalinkToSend.message.size() > 1)
 		url += DatalinkToSend.message;
-	
+
 	size_t start_pos = 0;
 	while ((start_pos = url.find(" ", start_pos)) != std::string::npos) {
 		url.replace(start_pos, string(" ").length(), "%20");
@@ -239,7 +239,7 @@ void vStripsReceiveThread(const asio::error_code &error, size_t bytes_transferre
 {
 	log(string(__FUNCSIG__));
 	string out(recv_buf, bytes_transferred);
-	
+
 	// Processing the data
 	vector<string> data = split(out, ':');
 
@@ -255,7 +255,7 @@ void vStripsReceiveThread(const asio::error_code &error, size_t bytes_transferre
 			CSMRRadar::vStripsStands.erase(CSMRRadar::vStripsStands.find(data.back()));
 		}
 	}
-	
+
 	if (!error)
 	{
 		_socket->async_receive_from(asio::buffer(recv_buf), receiver_endpoint,
@@ -324,7 +324,7 @@ CSMRPlugin::~CSMRPlugin()
 	if (PlaySoundClr)
 		temp = 1;
 	SaveDataToSettings("cpdlc_sound", "Play sound on clearance request", std::to_string(temp).c_str());
-	
+
 	try
 	{
 		io_service.stop();
@@ -351,7 +351,7 @@ bool CSMRPlugin::OnCompileCommand(const char * sCommandLine) {
 		else {
 			DisplayUserMessage("CPDLC", "Error", "You are not logged in as a controller!", true, true, false, true, false);
 		}
-		
+
 		return true;
 	}
 	else if (startsWith(".smr poll", sCommandLine))
@@ -426,7 +426,7 @@ void CSMRPlugin::OnFunctionCall(int FunctionId, const char * sItemString, POINT 
 	log(string(__FUNCSIG__));
 	if (FunctionId == TAG_FUNC_DATALINK_MENU) {
 		CFlightPlan FlightPlan = FlightPlanSelectASEL();
-		
+
 		bool menu_is_datalink = true;
 
 		if (FlightPlan.IsValid()) {
@@ -535,7 +535,7 @@ void CSMRPlugin::OnFunctionCall(int FunctionId, const char * sItemString, POINT 
 						toReturn += str;
 					}
 					else if (ClearedAltitude <= Ta && ClearedAltitude > 2) {
-						
+
 
 						toReturn = std::to_string(ClearedAltitude);
 						toReturn += "ft";
@@ -601,7 +601,7 @@ void CSMRPlugin::OnTimer(int Counter)
 		timer = clock();
 	}
 
-	for (auto &ac : AircraftWilco) 
+	for (auto &ac : AircraftWilco)
 	{
 		CRadarTarget RadarTarget = RadarTargetSelect(ac.c_str());
 

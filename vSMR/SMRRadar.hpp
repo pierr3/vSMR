@@ -167,7 +167,7 @@ public:
 
 	inline virtual bool IsCorrelated(CFlightPlan fp, CRadarTarget rt)
 	{
-		
+
 		if (CurrentConfig->getActiveProfile()["filters"]["pro_mode"]["enable"].GetBool())
 		{
 			if (fp.IsValid())
@@ -360,4 +360,3 @@ public:
 		delete this;
 	};
 };
-
