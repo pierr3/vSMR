@@ -85,7 +85,8 @@ bool CConfig::isAirportMapAvail(string airport) {
 bool CConfig::isCustomRunwayAvail(string airport, string name1, string name2) {
 	if (getActiveProfile().HasMember("maps")) {
 		if (getActiveProfile()["maps"].HasMember(airport.c_str())) {
-			if (getActiveProfile()["maps"][airport.c_str()].HasMember("runways")) {
+			if (getActiveProfile()["maps"][airport.c_str()].HasMember("runways") 
+				&& getActiveProfile()["maps"][airport.c_str()]["runways"].IsArray()) {
 				const Value& Runways = getActiveProfile()["maps"][airport.c_str()]["runways"];
 				for (SizeType i = 0; i < Runways.Size(); i++) {
 					if (startsWith(name1.c_str(), Runways[i]["runway_name"].GetString()) ||

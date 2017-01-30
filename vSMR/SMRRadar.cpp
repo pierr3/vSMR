@@ -1668,25 +1668,25 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 			if (CurrentConfig->isCustomRunwayAvail(getActiveAirport(), runway_name, runway_name2)) {
 				const Value& Runways = CustomMap["runways"];
 
-				assert(Runways.IsArray());
+				if (Runways.IsArray()) {
+					for (SizeType i = 0; i < Runways.Size(); i++) {
+						if (startsWith(runway_name.c_str(), Runways[i]["runway_name"].GetString()) ||
+							startsWith(runway_name2.c_str(), Runways[i]["runway_name"].GetString())) {
 
-				for (SizeType i = 0; i < Runways.Size(); i++) {
-					if (startsWith(runway_name.c_str(), Runways[i]["runway_name"].GetString()) ||
-						startsWith(runway_name2.c_str(), Runways[i]["runway_name"].GetString())) {
+							string path_name = "path";
 
-						string path_name = "path";
+							if (isLVP)
+								path_name = "path_lvp";
 
-						if (isLVP)
-							path_name = "path_lvp";
+							const Value& Path = Runways[i][path_name.c_str()];
+							for (SizeType j = 0; j < Path.Size(); j++) {
+								CPosition position;
+								position.LoadFromStrings(Path[j][(SizeType)1].GetString(), Path[j][(SizeType)0].GetString());
 
-						const Value& Path = Runways[i][path_name.c_str()];
-						for (SizeType j = 0; j < Path.Size(); j++) {
-							CPosition position;
-							position.LoadFromStrings(Path[j][(SizeType)1].GetString(), Path[j][(SizeType)0].GetString());
+								def.push_back(position);
+							}
 
-							def.push_back(position);
 						}
-
 					}
 				}
 			}
@@ -1707,37 +1707,37 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 					if (CurrentConfig->isCustomRunwayAvail(getActiveAirport(), runway_name, runway_name2)) {
 						const Value& Runways = CustomMap["runways"];
 
-						assert(Runways.IsArray());
+						if (Runways.IsArray()) {
+							for (SizeType i = 0; i < Runways.Size(); i++) {
+								if (startsWith(runway_name.c_str(), Runways[i]["runway_name"].GetString()) ||
+									startsWith(runway_name2.c_str(), Runways[i]["runway_name"].GetString())) {
 
-						for (SizeType i = 0; i < Runways.Size(); i++) {
-							if (startsWith(runway_name.c_str(), Runways[i]["runway_name"].GetString()) ||
-								startsWith(runway_name2.c_str(), Runways[i]["runway_name"].GetString())) {
+									string path_name = "path";
 
-								string path_name = "path";
+									if (isLVP)
+										path_name = "path_lvp";
 
-								if (isLVP)
-									path_name = "path_lvp";
+									const Value& Path = Runways[i][path_name.c_str()];
 
-								const Value& Path = Runways[i][path_name.c_str()];
+									PointF lpPoints[5000];
 
-								PointF lpPoints[5000];
+									int k = 1;
+									int l = 0;
+									for (SizeType w = 0; w < Path.Size(); w++) {
+										CPosition position;
+										position.LoadFromStrings(Path[w][static_cast<SizeType>(1)].GetString(), Path[w][static_cast<SizeType>(0)].GetString());
 
-								int k = 1;
-								int l = 0;
-								for (SizeType w = 0; w < Path.Size(); w++) {
-									CPosition position;
-									position.LoadFromStrings(Path[w][static_cast<SizeType>(1)].GetString(), Path[w][static_cast<SizeType>(0)].GetString());
+										POINT cv = ConvertCoordFromPositionToPixel(position);
+										lpPoints[l] = { REAL(cv.x), REAL(cv.y) };
 
-									POINT cv = ConvertCoordFromPositionToPixel(position);
-									lpPoints[l] = { REAL(cv.x), REAL(cv.y) };
+										k++;
+										l++;
+									}
 
-									k++;
-									l++;
+									graphics.FillPolygon(&SolidBrush(Color(150, 0, 0)), lpPoints, k - 1);
+
+									break;
 								}
-
-								graphics.FillPolygon(&SolidBrush(Color(150, 0, 0)), lpPoints, k-1);
-
-								break;
 							}
 						}
 
@@ -2079,6 +2079,9 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 		const Value& LabelsSettings = CurrentConfig->getActiveProfile()["labels"];
 		const Value& LabelLines = LabelsSettings[Utils::getEnumString(TagType).c_str()]["definition"];
 		vector<vector<string>> ReplacedLabelLines;
+
+		if (!LabelLines.IsArray())
+			return;
 
 		for (unsigned int i = 0; i < LabelLines.Size(); i++)
 		{
@@ -2498,7 +2501,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 			bearings = bearings.substr(0, decimal_pos + 2);
 
 			string text = bearings;
-			text += "� / ";
+			text += "° / ";
 			text += distances;
 			text += "m";
 			COLORREF old_color = dc.SetTextColor(RGB(255, 255, 255));
@@ -2542,7 +2545,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 		bearings = bearings.substr(0, decimal_pos + 2);
 
 		string text = bearings;
-		text += "� / ";
+		text += "° / ";
 		text += distances;
 		text += "nm";
 		COLORREF old_color = dc.SetTextColor(RGB(0, 0, 0));

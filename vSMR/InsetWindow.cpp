@@ -18,7 +18,7 @@ void CInsetWindow::setAirport(string icao)
 
 void CInsetWindow::OnClickScreenObject(const char * sItemString, POINT Pt, int Button)
 {
-	if (Button == EuroScopePlugIn::BUTTON_LEFT)
+	if (Button == EuroScopePlugIn::BUTTON_RIGHT)
 	{
 		if (m_TagAngles.find(sItemString) != m_TagAngles.end())
 		{
@@ -29,7 +29,7 @@ void CInsetWindow::OnClickScreenObject(const char * sItemString, POINT Pt, int B
 		}
 	}
 
-	if (Button == EuroScopePlugIn::BUTTON_RIGHT)
+	if (Button == EuroScopePlugIn::BUTTON_LEFT)
 	{
 		if (m_TagAngles.find(sItemString) != m_TagAngles.end())
 		{
@@ -436,6 +436,9 @@ void CInsetWindow::render(HDC hDC, CSMRRadar * radar_screen, Graphics* gdi, POIN
 		const Value& LabelsSettings = radar_screen->CurrentConfig->getActiveProfile()["labels"];
 		const Value& LabelLines = LabelsSettings[Utils::getEnumString(TagType).c_str()]["definition"];
 		vector<vector<string>> ReplacedLabelLines;
+
+		if (!LabelLines.IsArray())
+			return;
 
 		for (unsigned int i = 0; i < LabelLines.Size(); i++)
 		{
