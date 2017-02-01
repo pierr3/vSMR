@@ -820,7 +820,7 @@ void CSMRRadar::OnClickScreenObject(int ObjectType, const char * sObjectId, POIN
 		iterator it = iterpair.first;
 		for (; it != iterpair.second; ++it) {
 			if (it->second == toRemove.second) {
-				DistanceTools.erase(it);
+				it = DistanceTools.erase(it);
 				break;
 			}
 		}
