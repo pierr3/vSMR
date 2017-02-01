@@ -360,7 +360,11 @@ bool CSMRPlugin::OnCompileCommand(const char * sCommandLine) {
 			_beginthread(pollMessages, 0, NULL);
 		}
 		return true;
-	} else if (startsWith(".smr", sCommandLine))
+	} else if (strcmp(sCommandLine, ".smr log") == 0) {
+		ENABLE_LOG = !ENABLE_LOG;
+		return true;
+	}
+	else if (startsWith(".smr", sCommandLine))
 	{
 		CCPDLCSettingsDialog dia;
 		dia.m_Logon = logonCallsign.c_str();

@@ -1262,11 +1262,6 @@ bool CSMRRadar::OnCompileCommand(const char * sCommandLine)
 		return true;
 	}
 
-	if (strcmp(sCommandLine, ".smr log") == 0) {
-		ENABLE_LOG = !ENABLE_LOG;
-		return true;
-	}
-
 	return false;
 }
 
@@ -1508,7 +1503,7 @@ void CSMRRadar::OnFlightPlanDisconnect(CFlightPlan FlightPlan)
 
 	for (multimap<string, string>::iterator itr = DistanceTools.begin(); itr != DistanceTools.end(); ++itr) {
 		if (itr->first == callsign || itr->second == callsign)
-			DistanceTools.erase(itr);
+			itr = DistanceTools.erase(itr);
 	}
 }
 
