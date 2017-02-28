@@ -41,14 +41,14 @@ install:
   - cmd: msbuild /version
 
 # build Configuration, i.e. Debug, Release, etc.
-configuration: Debug
+configuration: Release
 
 build_script:
   - cmd: msbuild "C:\projects\vsmr\vSMR.sln" /m /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
 
 after_build:
   - cmd: mkdir vSMR-nightly
-  - cmd: cp Debug\vSMR.dll vSMR-nightly\
+  - cmd: cp Release\vSMR.dll vSMR-nightly\
   - cmd: cp vSMR\vSMR_Profiles.json vSMR-nightly\
   - cmd: 7z a vSMR-nightly.zip %APPVEYOR_BUILD_FOLDER%\vSMR-nightly\
 
