@@ -644,9 +644,9 @@ void __declspec (dllexport) EuroScopePlugInExit(void)
 		std::cerr << e.what() << std::endl;
 	}
 
-	for (auto &rd : RadarDisplayOpened) // access by reference to avoid copying
+	for (auto &rd : RadarDisplayOpened)
 	{
 		rd->EuroScopePlugInExitCustom();
-		RadarDisplayOpened.erase(std::find(RadarDisplayOpened.begin(), RadarDisplayOpened.end(), rd));
 	}
+	RadarDisplayOpened.clear();
 }
