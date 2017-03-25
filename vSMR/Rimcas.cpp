@@ -239,7 +239,7 @@ void CRimcas::OnRefreshEnd(CRadarScreen *instance, int threshold) {
 						bool triggerStageTwo = false;
 						CRadarTarget rd1 = instance->GetPlugIn()->RadarTargetSelect(it2->second.c_str());
 						CRadarTargetPositionData currentRd1 = rd1.GetPosition();
-						for (map<string, string>::iterator it3 = AcOnRunwayRange.first; it2 != AcOnRunwayRange.second; ++it2)
+						for (map<string, string>::iterator it3 = AcOnRunwayRange.first; it3 != AcOnRunwayRange.second; ++it3)
 						{
 							CRadarTarget rd2 = instance->GetPlugIn()->RadarTargetSelect(it3->second.c_str());
 
