@@ -11,6 +11,7 @@
 #include <thread>
 #include "asio.hpp"
 #include "SMRRadar.hpp"
+#include "Logger.h"
 
 #define MY_PLUGIN_NAME      "vSMR"
 #define MY_PLUGIN_VERSION   "1.3.3-e32"

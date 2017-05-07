@@ -1,16 +1,12 @@
 #pragma once
 #include <EuroScopePlugIn.h>
 #include <iostream>
-// ReSharper disable once CppUnusedIncludeDirective
 #include <sstream>
-// ReSharper disable once CppUnusedIncludeDirective
 #include <string>
 #include <vector>
 #include <map>
-// ReSharper disable once CppUnusedIncludeDirective
 #include <algorithm>
 #include <time.h>
-// ReSharper disable once CppUnusedIncludeDirective
 #include <sstream>
 #include <GdiPlus.h>
 #define _USE_MATH_DEFINES
@@ -18,14 +14,13 @@
 #include "Constant.hpp"
 #include "CallsignLookup.hpp"
 #include "Config.hpp"
-// ReSharper disable once CppUnusedIncludeDirective
-#include "TGraphics.h"
 #include "Rimcas.hpp"
 #include "InsetWindow.h"
 #include <memory>
 #include <asio/io_service.hpp>
 #include <thread>
 #include "ColorManager.h"
+#include "Logger.h"
 
 using namespace std;
 using namespace Gdiplus;

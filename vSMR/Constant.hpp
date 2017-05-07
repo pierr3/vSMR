@@ -1,5 +1,6 @@
 #pragma once
-#include <afxwin.h>
+
+#include "stdafx.h"
 #include <string>
 #include "EuroScopePlugIn.h"
 #define _USE_MATH_DEFINES
@@ -8,8 +9,6 @@
 #include <vector>
 #include <sstream>
 #include <iomanip>
-#include <fstream>
-#include "stdafx.h"
 
 #define VSTRIPS_PORT 53487
 
@@ -24,8 +23,7 @@ const int TAG_FUNC_DATALINK_STBY = 546;
 const int TAG_FUNC_DATALINK_VOICE = 547;
 const int TAG_FUNC_DATALINK_RESET = 548;
 
-static string DLL_PATH = "";
-static bool ENABLE_LOG = false;
+
 
 inline static bool startsWith(const char *pre, const char *str)
 {
@@ -72,16 +70,6 @@ inline static std::vector<std::string> split(const std::string &s, char delim) {
 	split(s, delim, elems);
 	return elems;
 };
-
-static void log(string s)
-{
-	if (ENABLE_LOG) {
-		std::ofstream file;
-		file.open(DLL_PATH + "\\vsmr.log", std::ofstream::out | std::ofstream::app);
-		file << s << endl;
-		file.close();
-	}
-}
 
 inline static double TrueBearing(CPosition pos1, CPosition pos2)
 {

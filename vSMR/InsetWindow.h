@@ -1,6 +1,9 @@
 #pragma once
-#include "resource.h"
 #include "SMRRadar.hpp"
+#include "EuroScopePlugIn.h"
+#include <string>
+#include <map>
+#include "Logger.h"
 
 using namespace std;
 using namespace EuroScopePlugIn;

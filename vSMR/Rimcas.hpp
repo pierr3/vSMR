@@ -7,10 +7,9 @@
 #include <algorithm>
 #define _USE_MATH_DEFINES
 #include <math.h>
-#include <GdiPlus.h>
-#include <GdiPlusColor.h>
 #include "Constant.hpp"
 #include <functional>
+#include "Logger.h"
 
 class CSMRRadar;
 using namespace std;

@@ -1,7 +1,8 @@
 #include "stdafx.h"
 #include "SMRPlugin.hpp"
 
-vector<CSMRRadar *> RadarDisplayOpened;
+bool Logger::ENABLED;
+string Logger::DLL_PATH;
 
 bool HoppieConnected = false;
 bool ConnectionMessage = false;
@@ -237,7 +238,7 @@ void sendDatalinkClearance(void * arg) {
 
 void vStripsReceiveThread(const asio::error_code &error, size_t bytes_transferred)
 {
-	log(string(__FUNCSIG__));
+	Logger::info(string(__FUNCSIG__));
 	string out(recv_buf, bytes_transferred);
 
 	// Processing the data
@@ -282,6 +283,10 @@ void vStripsThreadFunction()
 
 CSMRPlugin::CSMRPlugin(void):CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_PLUGIN_VERSION, MY_PLUGIN_DEVELOPER, MY_PLUGIN_COPYRIGHT)
 {
+
+	Logger::DLL_PATH = "";
+	Logger::ENABLED = false;
+
 	//
 	// Adding the SMR Display type
 	//
@@ -305,6 +310,14 @@ CSMRPlugin::CSMRPlugin(void):CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLU
 		logonCode = p_value;
 	if ((p_value = GetDataFromSettings("cpdlc_sound")) != NULL)
 		PlaySoundClr = bool(!!atoi(p_value));
+
+	char DllPathFile[_MAX_PATH];
+	string DllPath;
+
+	GetModuleFileNameA(HINSTANCE(&__ImageBase), DllPathFile, sizeof(DllPathFile));
+	DllPath = DllPathFile;
+	DllPath.resize(DllPath.size() - strlen("vSMR.dll"));
+	Logger::DLL_PATH = DllPath;
 
 	try
 	{
@@ -361,7 +374,7 @@ bool CSMRPlugin::OnCompileCommand(const char * sCommandLine) {
 		}
 		return true;
 	} else if (strcmp(sCommandLine, ".smr log") == 0) {
-		ENABLE_LOG = !ENABLE_LOG;
+		Logger::ENABLED = !Logger::ENABLED;
 		return true;
 	}
 	else if (startsWith(".smr", sCommandLine))
@@ -390,7 +403,7 @@ bool CSMRPlugin::OnCompileCommand(const char * sCommandLine) {
 }
 
 void CSMRPlugin::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int ItemCode, int TagData, char sItemString[16], int * pColorCode, COLORREF * pRGB, double * pFontSize) {
-	log(string(__FUNCSIG__));
+	Logger::info(string(__FUNCSIG__));
 	if (ItemCode == TAG_ITEM_DATALINK_STS) {
 		if (FlightPlan.IsValid()) {
 			if (std::find(AircraftDemandingClearance.begin(), AircraftDemandingClearance.end(), FlightPlan.GetCallsign()) != AircraftDemandingClearance.end()) {
@@ -427,7 +440,7 @@ void CSMRPlugin::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, 
 
 void CSMRPlugin::OnFunctionCall(int FunctionId, const char * sItemString, POINT Pt, RECT Area)
 {
-	log(string(__FUNCSIG__));
+	Logger::info(string(__FUNCSIG__));
 	if (FunctionId == TAG_FUNC_DATALINK_MENU) {
 		CFlightPlan FlightPlan = FlightPlanSelectASEL();
 
@@ -571,7 +584,7 @@ void CSMRPlugin::OnFunctionCall(int FunctionId, const char * sItemString, POINT 
 }
 
 void CSMRPlugin::OnControllerDisconnect(CController Controller) {
-	log(string(__FUNCSIG__));
+	Logger::info(string(__FUNCSIG__));
 	if (Controller.GetFullName() == ControllerMyself().GetFullName() && HoppieConnected == true) {
 		HoppieConnected = false;
 		DisplayUserMessage("CPDLC", "Server", "Logged off!", true, true, false, true, false);
@@ -580,7 +593,7 @@ void CSMRPlugin::OnControllerDisconnect(CController Controller) {
 
 void CSMRPlugin::OnFlightPlanDisconnect(CFlightPlan FlightPlan)
 {
-	log(string(__FUNCSIG__));
+	Logger::info(string(__FUNCSIG__));
 	CRadarTarget rt = RadarTargetSelect(FlightPlan.GetCallsign());
 
 	if (std::find(ReleasedTracks.begin(), ReleasedTracks.end(), rt.GetSystemID()) != ReleasedTracks.end())
@@ -592,7 +605,7 @@ void CSMRPlugin::OnFlightPlanDisconnect(CFlightPlan FlightPlan)
 
 void CSMRPlugin::OnTimer(int Counter)
 {
-	log(string(__FUNCSIG__));
+	Logger::info(string(__FUNCSIG__));
 	BLINK = !BLINK;
 
 	if (HoppieConnected && ConnectionMessage) {
@@ -619,11 +632,9 @@ void CSMRPlugin::OnTimer(int Counter)
 
 CRadarScreen * CSMRPlugin::OnRadarScreenCreated(const char * sDisplayName, bool NeedRadarContent, bool GeoReferenced, bool CanBeSaved, bool CanBeCreated)
 {
-	log(string(__FUNCSIG__));
+	Logger::info(string(__FUNCSIG__));
 	if (!strcmp(sDisplayName, MY_PLUGIN_VIEW_AVISO)) {
-		CSMRRadar * Radar = new CSMRRadar();
-		RadarDisplayOpened.push_back(Radar);
-		return Radar;
+		return new CSMRRadar();
 	}
 
 	return NULL;
@@ -633,7 +644,7 @@ CRadarScreen * CSMRPlugin::OnRadarScreenCreated(const char * sDisplayName, bool 
 
 void __declspec (dllexport) EuroScopePlugInExit(void)
 {
-	log(string(__FUNCSIG__));
+	Logger::info(string(__FUNCSIG__));
 	try
 	{
 		io_service.stop();
@@ -643,10 +654,4 @@ void __declspec (dllexport) EuroScopePlugInExit(void)
 	{
 		std::cerr << e.what() << std::endl;
 	}
-
-	for (auto &rd : RadarDisplayOpened)
-	{
-		rd->EuroScopePlugInExitCustom();
-	}
-	RadarDisplayOpened.clear();
 }

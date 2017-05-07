@@ -33,9 +33,6 @@
     <ClCompile Include="SMRRadar.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="TGraphics.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="CallsignLookup.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -63,9 +60,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Resource.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="TGraphics.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="CallsignLookup.hpp">
@@ -125,6 +119,9 @@
     <ClInclude Include="ColorManager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Logger.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="vSMR.def">
@@ -155,7 +152,7 @@
     </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
-    <Media Include="..\..\Ding.wav">
+    <Media Include="..\Ding.wav">
       <Filter>Resource Files</Filter>
     </Media>
   </ItemGroup>
