@@ -29,7 +29,7 @@ max_jobs: 1
 #---------------------------------#
 
 # Build worker image (VM template)
-os: Visual Studio 2015
+os: Visual Studio 2017
 
 #---------------------------------#
 #       build configuration       #
