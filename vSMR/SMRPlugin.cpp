@@ -639,19 +639,3 @@ CRadarScreen * CSMRPlugin::OnRadarScreenCreated(const char * sDisplayName, bool 
 
 	return NULL;
 }
-
-//---EuroScopePlugInExit-----------------------------------------------
-
-void __declspec (dllexport) EuroScopePlugInExit(void)
-{
-	Logger::info(string(__FUNCSIG__));
-	try
-	{
-		io_service.stop();
-		vStripsThread.join();
-	}
-	catch (std::exception& e)
-	{
-		std::cerr << e.what() << std::endl;
-	}
-}
