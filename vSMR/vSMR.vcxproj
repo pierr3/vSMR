@@ -75,7 +75,7 @@
       <AdditionalDependencies>..\lib\EuroScopePlugInDll.lib;..\lib\libcurld.lib</AdditionalDependencies>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
       <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalOptions>/IGNORE:4099 /NODEFAULTLIB:LIBCMTD %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/IGNORE:4099 %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <Midl>
       <MkTypLibCompatible>false</MkTypLibCompatible>

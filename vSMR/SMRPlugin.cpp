@@ -61,8 +61,10 @@ bool startThreadvStrips = true;
 using namespace SMRPluginSharedData;
 asio::ip::udp::socket* _socket;
 asio::ip::udp::endpoint receiver_endpoint;
-std::thread vStripsThread;
+//std::thread vStripsThread;
 char recv_buf[1024];
+
+vector<CSMRRadar*> RadarScreensOpened;
 
 void datalinkLogin(void * arg) {
 	string raw;
@@ -264,7 +266,7 @@ void vStripsReceiveThread(const asio::error_code &error, size_t bytes_transferre
 	}
 }
 
-void vStripsThreadFunction()
+void vStripsThreadFunction(void * arg)
 {
 	try
 	{
@@ -321,7 +323,8 @@ CSMRPlugin::CSMRPlugin(void):CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLU
 
 	try
 	{
-		vStripsThread = std::thread(vStripsThreadFunction);
+		//vStripsThread = std::thread();
+		_beginthread(vStripsThreadFunction, 0, NULL);
 	}
 	catch (std::exception& e)
 	{
@@ -341,7 +344,7 @@ CSMRPlugin::~CSMRPlugin()
 	try
 	{
 		io_service.stop();
-		vStripsThread.join();
+		//vStripsThread.join();
 	}
 	catch (std::exception& e)
 	{
@@ -634,8 +637,20 @@ CRadarScreen * CSMRPlugin::OnRadarScreenCreated(const char * sDisplayName, bool 
 {
 	Logger::info(string(__FUNCSIG__));
 	if (!strcmp(sDisplayName, MY_PLUGIN_VIEW_AVISO)) {
-		return new CSMRRadar();
+		CSMRRadar* rd = new CSMRRadar();
+		RadarScreensOpened.push_back(rd);
+		return rd;
 	}
 
 	return NULL;
+}
+
+//---EuroScopePlugInExit-----------------------------------------------
+
+void __declspec (dllexport) EuroScopePlugInExit(void)
+{
+	for each (auto var in RadarScreensOpened)
+	{
+		var->EuroScopePlugInExitCustom();
+	}
 }

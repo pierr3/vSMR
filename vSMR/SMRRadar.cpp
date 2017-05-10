@@ -12,7 +12,7 @@ int LeaderLineDefaultlenght = 50;
 //
 
 bool initCursor = true;
-HCURSOR smrCursor;
+HCURSOR smrCursor = NULL;
 bool standardCursor;
 WNDPROC gSourceProc;
 HWND pluginWindow;
@@ -95,8 +95,15 @@ CSMRRadar::CSMRRadar()
 CSMRRadar::~CSMRRadar()
 {
 	Logger::info(string(__FUNCSIG__));
-	this->OnAsrContentToBeSaved();
-	this->EuroScopePlugInExitCustom();
+	try {
+		this->OnAsrContentToBeSaved();
+		//this->EuroScopePlugInExitCustom();
+	}
+	catch (exception &e) {
+		stringstream s;
+		s << e.what() << endl;
+		AfxMessageBox(string("Error occured " + s.str()).c_str());
+	}
 	// Shutting down GDI+
 	GdiplusShutdown(m_gdiplusToken);
 }
@@ -309,7 +316,9 @@ void CSMRRadar::OnMoveScreenObject(int ObjectType, const char * sObjectId, POINT
 				else if (strcmp(sObjectId, "resize") == 0)
 					smrCursor = CopyCursor((HCURSOR)::LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDC_SMRRESIZE), IMAGE_CURSOR, 0, 0, LR_SHARED));
 
-				AfxGetMainWnd()->SendMessage(WM_SETCURSOR);
+				//AfxGetMainWnd()->SendMessage(WM_SETCURSOR);
+				AFX_MANAGE_STATE(AfxGetStaticModuleState())
+					SetCursor(smrCursor);
 				standardCursor = false;
 			}
 		} else
@@ -317,7 +326,8 @@ void CSMRRadar::OnMoveScreenObject(int ObjectType, const char * sObjectId, POINT
 			if (!standardCursor)
 			{
 				smrCursor = CopyCursor((HCURSOR)::LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDC_SMRCURSOR), IMAGE_CURSOR, 0, 0, LR_SHARED));
-				AfxGetMainWnd()->SendMessage(WM_SETCURSOR);
+				AFX_MANAGE_STATE(AfxGetStaticModuleState())
+					SetCursor(smrCursor);
 				standardCursor = true;
 			}
 		}
@@ -331,7 +341,8 @@ void CSMRRadar::OnMoveScreenObject(int ObjectType, const char * sObjectId, POINT
 			if(standardCursor)
 			{
 				smrCursor = CopyCursor((HCURSOR)::LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDC_SMRMOVETAG), IMAGE_CURSOR, 0, 0, LR_SHARED));
-				AfxGetMainWnd()->SendMessage(WM_SETCURSOR);
+				AFX_MANAGE_STATE(AfxGetStaticModuleState())
+					SetCursor(smrCursor);
 				standardCursor = false;
 			}
 		} else
@@ -339,7 +350,8 @@ void CSMRRadar::OnMoveScreenObject(int ObjectType, const char * sObjectId, POINT
 			if (!standardCursor)
 			{
 				smrCursor = CopyCursor((HCURSOR)::LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDC_SMRCURSOR), IMAGE_CURSOR, 0, 0, LR_SHARED));
-				AfxGetMainWnd()->SendMessage(WM_SETCURSOR);
+				AFX_MANAGE_STATE(AfxGetStaticModuleState())
+					SetCursor(smrCursor);
 				standardCursor = true;
 			}
 		}
@@ -390,7 +402,8 @@ void CSMRRadar::OnMoveScreenObject(int ObjectType, const char * sObjectId, POINT
 			{
 				smrCursor = CopyCursor((HCURSOR)::LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDC_SMRMOVEWINDOW), IMAGE_CURSOR, 0, 0, LR_SHARED));
 
-				AfxGetMainWnd()->SendMessage(WM_SETCURSOR);
+				AFX_MANAGE_STATE(AfxGetStaticModuleState())
+					SetCursor(smrCursor);
 				standardCursor = false;
 			}
 		}
@@ -399,7 +412,8 @@ void CSMRRadar::OnMoveScreenObject(int ObjectType, const char * sObjectId, POINT
 			if (!standardCursor)
 			{
 				smrCursor = CopyCursor((HCURSOR)::LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDC_SMRCURSOR), IMAGE_CURSOR, 0, 0, LR_SHARED));
-				AfxGetMainWnd()->SendMessage(WM_SETCURSOR);
+				AFX_MANAGE_STATE(AfxGetStaticModuleState())
+					SetCursor(smrCursor);
 				standardCursor = true;
 			}
 		}
@@ -1509,6 +1523,7 @@ void CSMRRadar::OnFlightPlanDisconnect(CFlightPlan FlightPlan)
 	}
 }
 
+/*
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	switch (uMsg)
@@ -1519,7 +1534,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	default:
 		return CallWindowProc(gSourceProc, hwnd, uMsg, wParam, lParam);
 	}
-}
+}*/
 
 void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 {
@@ -1531,8 +1546,8 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 
 		if (smrCursor != nullptr)
 		{
-			pluginWindow = GetActiveWindow();
-			gSourceProc = (WNDPROC)SetWindowLong(pluginWindow, GWL_WNDPROC, (LONG)WindowProc);
+			//pluginWindow = GetActiveWindow();
+			//gSourceProc = (WNDPROC)SetWindowLong(pluginWindow, GWL_WNDPROC, (LONG)WindowProc);
 		}
 		initCursor = false;
 	}
@@ -2737,11 +2752,10 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 
 void CSMRRadar::EuroScopePlugInExitCustom()
 {
-	Logger::info(string(__FUNCSIG__));
 	AFX_MANAGE_STATE(AfxGetStaticModuleState())
 
-		if (smrCursor != nullptr)
+		/*if (smrCursor != nullptr && smrCursor != NULL)
 		{
 			SetWindowLong(pluginWindow, GWL_WNDPROC, (LONG)gSourceProc);
-		}
+		}*/
 }

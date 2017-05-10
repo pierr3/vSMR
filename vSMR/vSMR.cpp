@@ -46,11 +46,3 @@ void __declspec (dllexport) EuroScopePlugInInit(EuroScopePlugIn::CPlugIn ** ppPl
 		// create the instance
 		* ppPlugInInstance = theApp.gpMyPlugin = new CSMRPlugin();
 }
-
-
-//---EuroScopePlugInExit-----------------------------------------------
-
-void __declspec (dllexport) EuroScopePlugInExit(void)
-{
-	delete theApp;
-}
