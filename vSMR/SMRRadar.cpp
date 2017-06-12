@@ -59,8 +59,23 @@ CSMRRadar::CSMRRadar()
 	DllPath.resize(DllPath.size() - strlen("vSMR.dll"));
 
 	Logger::info("Loading callsigns");
-	// Loading up the callsigns for the bottom lign
-	Callsigns = new CCallsignLookup(DllPath + "\\ICAO_Airlines.txt");
+	// Loading up the callsigns for the bottom line
+	// Search for ICAO airlines file if it already exists (usually given by the VACC)
+	string AirlinesPath = DllPath;
+	for (int i = 0; i < 3; ++i) {
+		AirlinesPath = AirlinesPath.substr(0, AirlinesPath.find_last_of("/\\"));
+	}
+	AirlinesPath += "\\ICAO\\ICAO_Airlines.txt";
+
+	ifstream f(AirlinesPath.c_str());
+
+	if (f.good()) {
+		Callsigns = new CCallsignLookup(AirlinesPath);
+	}
+	else {
+		Callsigns = new CCallsignLookup(DllPath + "\\ICAO_Airlines.txt");
+	}
+	f.close();
 
 	Logger::info("Loading RIMCAS & Config");
 	// Creating the RIMCAS instance
@@ -297,6 +312,7 @@ void CSMRRadar::OnAsrContentToBeSaved()
 		SaveDataToAsr(string(prefix + "Display").c_str(), "Display Secondary Radar Window", to_save.c_str());
 	}
 
+	delete CurrentConfig;
 }
 
 void CSMRRadar::OnMoveScreenObject(int ObjectType, const char * sObjectId, POINT Pt, RECT Area, bool Released) {
