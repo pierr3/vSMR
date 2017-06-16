@@ -536,7 +536,7 @@ void CInsetWindow::render(HDC hDC, CSMRRadar * radar_screen, Graphics* gdi, POIN
 					CRect ItemRect(TagBackgroundRect.left + widthOffset, TagBackgroundRect.top + heightOffset,
 						TagBackgroundRect.left + widthOffset + (int)mRect.GetRight(), TagBackgroundRect.top + heightOffset + (int)mRect.GetBottom());
 
-					radar_screen->AddScreenObject(TagClickableMap[element], rt.GetCallsign(), ItemRect, true, radar_screen->GetBottomLine(rt.GetCallsign()).c_str());
+					radar_screen->AddScreenObject(TagClickableMap[element], rt.GetCallsign(), ItemRect, false, radar_screen->GetBottomLine(rt.GetCallsign()).c_str());
 
 					widthOffset += (int)mRect.GetRight();
 					widthOffset += blankWidth;

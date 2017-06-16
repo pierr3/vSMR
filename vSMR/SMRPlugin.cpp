@@ -151,7 +151,7 @@ void pollMessages(void * arg) {
 			if (message.message.find("REQ") != std::string::npos || message.message.find("CLR") != std::string::npos || message.message.find("PDC") != std::string::npos || message.message.find("PREDEP") != std::string::npos || message.message.find("REQUEST") != std::string::npos) {
 				if (PlaySoundClr) {
 					AFX_MANAGE_STATE(AfxGetStaticModuleState());
-						PlaySound(MAKEINTRESOURCE(IDR_WAVE1), AfxGetInstanceHandle(), SND_RESOURCE | SND_ASYNC);
+					PlaySound(MAKEINTRESOURCE(IDR_WAVE1), AfxGetInstanceHandle(), SND_RESOURCE | SND_ASYNC);
 				}
 				AircraftDemandingClearance.push_back(message.from);
 			}
@@ -283,7 +283,7 @@ void vStripsThreadFunction(void * arg)
 }
 
 
-CSMRPlugin::CSMRPlugin(void):CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_PLUGIN_VERSION, MY_PLUGIN_DEVELOPER, MY_PLUGIN_COPYRIGHT)
+CSMRPlugin::CSMRPlugin(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_PLUGIN_VERSION, MY_PLUGIN_DEVELOPER, MY_PLUGIN_COPYRIGHT)
 {
 
 	Logger::DLL_PATH = "";
@@ -377,7 +377,8 @@ bool CSMRPlugin::OnCompileCommand(const char * sCommandLine) {
 			_beginthread(pollMessages, 0, NULL);
 		}
 		return true;
-	} else if (strcmp(sCommandLine, ".smr log") == 0) {
+	}
+	else if (strcmp(sCommandLine, ".smr log") == 0) {
 		Logger::ENABLED = !Logger::ENABLED;
 		return true;
 	}
@@ -524,63 +525,63 @@ void CSMRPlugin::OnFunctionCall(int FunctionId, const char * sItemString, POINT 
 
 			AFX_MANAGE_STATE(AfxGetStaticModuleState());
 
-				CDataLinkDialog dia;
-				dia.m_Callsign = FlightPlan.GetCallsign();
-				dia.m_Aircraft = FlightPlan.GetFlightPlanData().GetAircraftFPType();
-				dia.m_Dest = FlightPlan.GetFlightPlanData().GetDestination();
-				dia.m_From = FlightPlan.GetFlightPlanData().GetOrigin();
-				dia.m_Departure = FlightPlan.GetFlightPlanData().GetSidName();
-				dia.m_Rwy = FlightPlan.GetFlightPlanData().GetDepartureRwy();
-				dia.m_SSR = FlightPlan.GetControllerAssignedData().GetSquawk();
-				string freq = std::to_string(ControllerMyself().GetPrimaryFrequency());
-				if (ControllerSelect(FlightPlan.GetCoordinatedNextController()).GetPrimaryFrequency() != 0)
-					string freq = std::to_string(ControllerSelect(FlightPlan.GetCoordinatedNextController()).GetPrimaryFrequency());
-				freq = freq.substr(0, 7);
-				dia.m_Freq = freq.c_str();
-				AcarsMessage msg = PendingMessages[FlightPlan.GetCallsign()];
-				dia.m_Req = msg.message.c_str();
+			CDataLinkDialog dia;
+			dia.m_Callsign = FlightPlan.GetCallsign();
+			dia.m_Aircraft = FlightPlan.GetFlightPlanData().GetAircraftFPType();
+			dia.m_Dest = FlightPlan.GetFlightPlanData().GetDestination();
+			dia.m_From = FlightPlan.GetFlightPlanData().GetOrigin();
+			dia.m_Departure = FlightPlan.GetFlightPlanData().GetSidName();
+			dia.m_Rwy = FlightPlan.GetFlightPlanData().GetDepartureRwy();
+			dia.m_SSR = FlightPlan.GetControllerAssignedData().GetSquawk();
+			string freq = std::to_string(ControllerMyself().GetPrimaryFrequency());
+			if (ControllerSelect(FlightPlan.GetCoordinatedNextController()).GetPrimaryFrequency() != 0)
+				string freq = std::to_string(ControllerSelect(FlightPlan.GetCoordinatedNextController()).GetPrimaryFrequency());
+			freq = freq.substr(0, 7);
+			dia.m_Freq = freq.c_str();
+			AcarsMessage msg = PendingMessages[FlightPlan.GetCallsign()];
+			dia.m_Req = msg.message.c_str();
 
-				string toReturn = "";
+			string toReturn = "";
 
-				int ClearedAltitude = FlightPlan.GetControllerAssignedData().GetClearedAltitude();
-				int Ta = GetTransitionAltitude();
+			int ClearedAltitude = FlightPlan.GetControllerAssignedData().GetClearedAltitude();
+			int Ta = GetTransitionAltitude();
 
-				if (ClearedAltitude != 0) {
-					if (ClearedAltitude > Ta && ClearedAltitude > 2) {
-						string str = std::to_string(ClearedAltitude);
-						for (size_t i = 0; i < 5 - str.length(); i++)
-							str = "0" + str;
-						if (str.size() > 3)
-							str.erase(str.begin() + 3, str.end());
-						toReturn = "FL";
-						toReturn += str;
-					}
-					else if (ClearedAltitude <= Ta && ClearedAltitude > 2) {
-
-
-						toReturn = std::to_string(ClearedAltitude);
-						toReturn += "ft";
-					}
+			if (ClearedAltitude != 0) {
+				if (ClearedAltitude > Ta && ClearedAltitude > 2) {
+					string str = std::to_string(ClearedAltitude);
+					for (size_t i = 0; i < 5 - str.length(); i++)
+						str = "0" + str;
+					if (str.size() > 3)
+						str.erase(str.begin() + 3, str.end());
+					toReturn = "FL";
+					toReturn += str;
 				}
-				dia.m_Climb = toReturn.c_str();
+				else if (ClearedAltitude <= Ta && ClearedAltitude > 2) {
 
-				if (dia.DoModal() != IDOK)
-					return;
 
-				DatalinkToSend.callsign = FlightPlan.GetCallsign();
-				DatalinkToSend.destination = FlightPlan.GetFlightPlanData().GetDestination();
-				DatalinkToSend.rwy = FlightPlan.GetFlightPlanData().GetDepartureRwy();
-				DatalinkToSend.sid = FlightPlan.GetFlightPlanData().GetSidName();
-				DatalinkToSend.asat = dia.m_TSAT;
-				DatalinkToSend.ctot = dia.m_CTOT;
-				DatalinkToSend.freq = dia.m_Freq;
-				DatalinkToSend.message = dia.m_Message;
-				DatalinkToSend.squawk = FlightPlan.GetControllerAssignedData().GetSquawk();
-				DatalinkToSend.climb = toReturn;
+					toReturn = std::to_string(ClearedAltitude);
+					toReturn += "ft";
+				}
+			}
+			dia.m_Climb = toReturn.c_str();
 
-				myfrequency = std::to_string(ControllerMyself().GetPrimaryFrequency()).substr(0, 7);
+			if (dia.DoModal() != IDOK)
+				return;
 
-				_beginthread(sendDatalinkClearance, 0, NULL);
+			DatalinkToSend.callsign = FlightPlan.GetCallsign();
+			DatalinkToSend.destination = FlightPlan.GetFlightPlanData().GetDestination();
+			DatalinkToSend.rwy = FlightPlan.GetFlightPlanData().GetDepartureRwy();
+			DatalinkToSend.sid = FlightPlan.GetFlightPlanData().GetSidName();
+			DatalinkToSend.asat = dia.m_TSAT;
+			DatalinkToSend.ctot = dia.m_CTOT;
+			DatalinkToSend.freq = dia.m_Freq;
+			DatalinkToSend.message = dia.m_Message;
+			DatalinkToSend.squawk = FlightPlan.GetControllerAssignedData().GetSquawk();
+			DatalinkToSend.climb = toReturn;
+
+			myfrequency = std::to_string(ControllerMyself().GetPrimaryFrequency()).substr(0, 7);
+
+			_beginthread(sendDatalinkClearance, 0, NULL);
 
 		}
 

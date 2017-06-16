@@ -201,3 +201,10 @@ curl-7.41.0/
 ipch/
 package/
 /vSMR.VC.VC.opendb
+/vSMR.VC.db
+/vSMR/vSMR.vcxproj
+/vSMR/vSMR.vcxproj.filters
+/vSMR/euroscope_sector_providers.txt
+/vSMR/SectorFileProviderDescriptor.txt
+/vSMR/ipaddr.txt
+/vSMR/version.txt

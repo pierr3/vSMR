@@ -354,14 +354,15 @@ void CSMRRadar::OnMoveScreenObject(int ObjectType, const char * sObjectId, POINT
 
 		if (!Released)
 		{
-			if(standardCursor)
+			if (standardCursor)
 			{
 				smrCursor = CopyCursor((HCURSOR)::LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDC_SMRMOVETAG), IMAGE_CURSOR, 0, 0, LR_SHARED));
 				AFX_MANAGE_STATE(AfxGetStaticModuleState())
 					SetCursor(smrCursor);
 				standardCursor = false;
 			}
-		} else
+		}
+		else
 		{
 			if (!standardCursor)
 			{
@@ -389,7 +390,8 @@ void CSMRRadar::OnMoveScreenObject(int ObjectType, const char * sObjectId, POINT
 				TagAngles[sObjectId] = closest(angles, angle);
 				TagLeaderLineLength[sObjectId] = max(LeaderLineDefaultlenght, min(int(DistancePts(AcPosPix, TagCenterPix)), LeaderLineDefaultlenght * 2));
 
-			} else
+			}
+			else
 			{
 				TagsOffsets[sObjectId] = CustomTag;
 			}
@@ -400,13 +402,14 @@ void CSMRRadar::OnMoveScreenObject(int ObjectType, const char * sObjectId, POINT
 			if (Released)
 			{
 				TagBeingDragged = "";
-			} else
+			}
+			else
 			{
 				TagBeingDragged = sObjectId;
 			}
 
 			RequestRefresh();
-		}
+		}		
 	}
 
 	if (ObjectType == RIMCAS_IAW) {
