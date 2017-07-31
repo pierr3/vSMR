@@ -13,7 +13,8 @@ int LeaderLineDefaultlenght = 50;
 
 bool initCursor = true;
 HCURSOR smrCursor = NULL;
-bool standardCursor;
+bool standardCursor; // switches between mouse cursor and pointer cursor when moving tags
+bool customCursor; // use SMR version or default windows mouse symbol
 WNDPROC gSourceProc;
 HWND pluginWindow;
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
@@ -89,7 +90,7 @@ CSMRRadar::CSMRRadar()
 	if (ColorManager == nullptr)
 		ColorManager = new CColorManager();
 
-	standardCursor = true;
+	standardCursor = true;	
 	ActiveAirport = "LFPG";
 
 	// Setting up the data for the 2 approach windows
@@ -164,6 +165,8 @@ void CSMRRadar::LoadProfile(string profileName) {
 	}
 	RimcasInstance->setCountdownDefinition(RimcasNorm, RimcasLVP);
 	LeaderLineDefaultlenght = CurrentConfig->getActiveProfile()["labels"]["leader_line_length"].GetInt();
+
+	customCursor = CurrentConfig->isCustomCursorUsed();
 
 	// Reloading the fonts
 	this->LoadCustomFont();
@@ -334,16 +337,22 @@ void CSMRRadar::OnMoveScreenObject(int ObjectType, const char * sObjectId, POINT
 
 				//AfxGetMainWnd()->SendMessage(WM_SETCURSOR);
 				AFX_MANAGE_STATE(AfxGetStaticModuleState())
-					SetCursor(smrCursor);
+				SetCursor(smrCursor);
 				standardCursor = false;
 			}
 		} else
 		{
 			if (!standardCursor)
 			{
-				smrCursor = CopyCursor((HCURSOR)::LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDC_SMRCURSOR), IMAGE_CURSOR, 0, 0, LR_SHARED));
+				if (customCursor) {
+					smrCursor = CopyCursor((HCURSOR)::LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDC_SMRCURSOR), IMAGE_CURSOR, 0, 0, LR_SHARED));							
+				}
+				else {
+					smrCursor = LoadCursor(AfxGetInstanceHandle(), IDC_ARROW);
+				}
+
 				AFX_MANAGE_STATE(AfxGetStaticModuleState())
-					SetCursor(smrCursor);
+				SetCursor(smrCursor);
 				standardCursor = true;
 			}
 		}
@@ -366,9 +375,15 @@ void CSMRRadar::OnMoveScreenObject(int ObjectType, const char * sObjectId, POINT
 		{
 			if (!standardCursor)
 			{
-				smrCursor = CopyCursor((HCURSOR)::LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDC_SMRCURSOR), IMAGE_CURSOR, 0, 0, LR_SHARED));
+				if (customCursor) {
+					smrCursor = CopyCursor((HCURSOR)::LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDC_SMRCURSOR), IMAGE_CURSOR, 0, 0, LR_SHARED));
+				}
+				else {
+					smrCursor = LoadCursor(AfxGetInstanceHandle(), IDC_ARROW);
+				}
+
 				AFX_MANAGE_STATE(AfxGetStaticModuleState())
-					SetCursor(smrCursor);
+				SetCursor(smrCursor);
 				standardCursor = true;
 			}
 		}
@@ -430,9 +445,15 @@ void CSMRRadar::OnMoveScreenObject(int ObjectType, const char * sObjectId, POINT
 		{
 			if (!standardCursor)
 			{
-				smrCursor = CopyCursor((HCURSOR)::LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDC_SMRCURSOR), IMAGE_CURSOR, 0, 0, LR_SHARED));
+				if (customCursor) {
+					smrCursor = CopyCursor((HCURSOR)::LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDC_SMRCURSOR), IMAGE_CURSOR, 0, 0, LR_SHARED));					
+				}
+				else {
+					smrCursor = LoadCursor(AfxGetInstanceHandle(), IDC_ARROW);					
+				}
+
 				AFX_MANAGE_STATE(AfxGetStaticModuleState())
-					SetCursor(smrCursor);
+				SetCursor(smrCursor);
 				standardCursor = true;
 			}
 		}
@@ -670,7 +691,13 @@ void CSMRRadar::OnClickScreenObject(int ObjectType, const char * sObjectId, POIN
 			{
 				if (!standardCursor)
 				{
-					smrCursor = CopyCursor((HCURSOR)::LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDC_SMRCURSOR), IMAGE_CURSOR, 0, 0, LR_SHARED));
+					if (customCursor) {
+						smrCursor = CopyCursor((HCURSOR)::LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDC_SMRCURSOR), IMAGE_CURSOR, 0, 0, LR_SHARED));						
+					}
+					else {
+						smrCursor = LoadCursor(AfxGetInstanceHandle(), IDC_ARROW);						
+					}
+
 					AfxGetMainWnd()->SendMessage(WM_SETCURSOR);
 					standardCursor = true;
 				}
@@ -1051,7 +1078,12 @@ void CSMRRadar::OnFunctionCall(int FunctionId, const char * sItemString, POINT P
 		{
 			if (!standardCursor)
 			{
-				smrCursor = CopyCursor((HCURSOR)::LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDC_SMRCURSOR), IMAGE_CURSOR, 0, 0, LR_SHARED));
+				if (customCursor) {
+					smrCursor = CopyCursor((HCURSOR)::LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDC_SMRCURSOR), IMAGE_CURSOR, 0, 0, LR_SHARED));
+				}
+				else {
+					smrCursor = LoadCursor(AfxGetInstanceHandle(), IDC_ARROW);
+				}
 				AfxGetMainWnd()->SendMessage(WM_SETCURSOR);
 				standardCursor = true;
 			}
@@ -1078,7 +1110,12 @@ void CSMRRadar::OnFunctionCall(int FunctionId, const char * sItemString, POINT P
 		{
 			if (!standardCursor)
 			{
-				smrCursor = CopyCursor((HCURSOR)::LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDC_SMRCURSOR), IMAGE_CURSOR, 0, 0, LR_SHARED));
+				if (customCursor) {
+					smrCursor = CopyCursor((HCURSOR)::LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDC_SMRCURSOR), IMAGE_CURSOR, 0, 0, LR_SHARED));
+				}
+				else {
+					smrCursor = LoadCursor(AfxGetInstanceHandle(), IDC_ARROW);
+				}
 				AfxGetMainWnd()->SendMessage(WM_SETCURSOR);
 				standardCursor = true;
 			}
@@ -1561,7 +1598,12 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 	// Changing the mouse cursor
 	if (initCursor)
 	{
-		smrCursor = CopyCursor((HCURSOR)::LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDC_SMRCURSOR), IMAGE_CURSOR, 0, 0, LR_SHARED));
+		if (customCursor) {
+			smrCursor = CopyCursor((HCURSOR)::LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDC_SMRCURSOR), IMAGE_CURSOR, 0, 0, LR_SHARED));
+		}
+		else {
+			smrCursor = LoadCursor(AfxGetInstanceHandle(), IDC_ARROW);
+		}
 
 		if (smrCursor != nullptr)
 		{

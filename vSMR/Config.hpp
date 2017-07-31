@@ -23,6 +23,7 @@ public:
 	const Value& getAirportMapIfAny(string airport);
 	bool isAirportMapAvail(string airport);
 	bool isCustomRunwayAvail(string airport, string name1, string name2);
+	bool isCustomCursorUsed();
 
 	Gdiplus::Color getConfigColor(const Value& config_path);
 	COLORREF getConfigColorRef(const Value& config_path);

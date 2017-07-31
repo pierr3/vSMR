@@ -386,7 +386,7 @@ void CInsetWindow::render(HDC hDC, CSMRRadar * radar_screen, Graphics* gdi, POIN
 		POINT TagCenter;
 		if (m_TagAngles.find(rt.GetCallsign()) == m_TagAngles.end())
 		{
-			m_TagAngles[rt.GetCallsign()] = 45.0;
+			m_TagAngles[rt.GetCallsign()] = 45.0; // TODO: Not the best, ah well
 		}
 
 		TagCenter.x = long(RtPoint.x + float(lenght * cos(DegToRad(m_TagAngles[rt.GetCallsign()]))));
