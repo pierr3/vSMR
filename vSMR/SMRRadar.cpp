@@ -17,7 +17,7 @@ bool standardCursor; // switches between mouse cursor and pointer cursor when mo
 bool customCursor; // use SMR version or default windows mouse symbol
 WNDPROC gSourceProc;
 HWND pluginWindow;
-LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+//LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
 map<string, string> CSMRRadar::vStripsStands;
 
@@ -335,8 +335,8 @@ void CSMRRadar::OnMoveScreenObject(int ObjectType, const char * sObjectId, POINT
 				else if (strcmp(sObjectId, "resize") == 0)
 					smrCursor = CopyCursor((HCURSOR)::LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDC_SMRRESIZE), IMAGE_CURSOR, 0, 0, LR_SHARED));
 
-				//AfxGetMainWnd()->SendMessage(WM_SETCURSOR);
-				AFX_MANAGE_STATE(AfxGetStaticModuleState())
+				AFX_MANAGE_STATE(AfxGetStaticModuleState());
+				ASSERT(smrCursor);
 				SetCursor(smrCursor);
 				standardCursor = false;
 			}
@@ -345,13 +345,14 @@ void CSMRRadar::OnMoveScreenObject(int ObjectType, const char * sObjectId, POINT
 			if (!standardCursor)
 			{
 				if (customCursor) {
-					smrCursor = CopyCursor((HCURSOR)::LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDC_SMRCURSOR), IMAGE_CURSOR, 0, 0, LR_SHARED));							
+					smrCursor = CopyCursor((HCURSOR)::LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDC_SMRCURSOR), IMAGE_CURSOR, 0, 0, LR_SHARED));
 				}
 				else {
-					smrCursor = LoadCursor(AfxGetInstanceHandle(), IDC_ARROW);
+					smrCursor = (HCURSOR)::LoadCursor(NULL, IDC_ARROW);
 				}
 
-				AFX_MANAGE_STATE(AfxGetStaticModuleState())
+				AFX_MANAGE_STATE(AfxGetStaticModuleState());
+				ASSERT(smrCursor);
 				SetCursor(smrCursor);
 				standardCursor = true;
 			}
@@ -366,8 +367,9 @@ void CSMRRadar::OnMoveScreenObject(int ObjectType, const char * sObjectId, POINT
 			if (standardCursor)
 			{
 				smrCursor = CopyCursor((HCURSOR)::LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDC_SMRMOVETAG), IMAGE_CURSOR, 0, 0, LR_SHARED));
-				AFX_MANAGE_STATE(AfxGetStaticModuleState())
-					SetCursor(smrCursor);
+				AFX_MANAGE_STATE(AfxGetStaticModuleState());
+				ASSERT(smrCursor);
+				SetCursor(smrCursor);
 				standardCursor = false;
 			}
 		}
@@ -379,10 +381,11 @@ void CSMRRadar::OnMoveScreenObject(int ObjectType, const char * sObjectId, POINT
 					smrCursor = CopyCursor((HCURSOR)::LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDC_SMRCURSOR), IMAGE_CURSOR, 0, 0, LR_SHARED));
 				}
 				else {
-					smrCursor = LoadCursor(AfxGetInstanceHandle(), IDC_ARROW);
+					smrCursor = (HCURSOR)::LoadCursor(NULL, IDC_ARROW);
 				}
 
-				AFX_MANAGE_STATE(AfxGetStaticModuleState())
+				AFX_MANAGE_STATE(AfxGetStaticModuleState());
+				ASSERT(smrCursor);
 				SetCursor(smrCursor);
 				standardCursor = true;
 			}
@@ -436,8 +439,9 @@ void CSMRRadar::OnMoveScreenObject(int ObjectType, const char * sObjectId, POINT
 			{
 				smrCursor = CopyCursor((HCURSOR)::LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDC_SMRMOVEWINDOW), IMAGE_CURSOR, 0, 0, LR_SHARED));
 
-				AFX_MANAGE_STATE(AfxGetStaticModuleState())
-					SetCursor(smrCursor);
+				AFX_MANAGE_STATE(AfxGetStaticModuleState());
+				ASSERT(smrCursor);
+				SetCursor(smrCursor);
 				standardCursor = false;
 			}
 		}
@@ -449,10 +453,11 @@ void CSMRRadar::OnMoveScreenObject(int ObjectType, const char * sObjectId, POINT
 					smrCursor = CopyCursor((HCURSOR)::LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDC_SMRCURSOR), IMAGE_CURSOR, 0, 0, LR_SHARED));					
 				}
 				else {
-					smrCursor = LoadCursor(AfxGetInstanceHandle(), IDC_ARROW);					
+					smrCursor = (HCURSOR)::LoadCursor(NULL, IDC_ARROW);
 				}
 
-				AFX_MANAGE_STATE(AfxGetStaticModuleState())
+				AFX_MANAGE_STATE(AfxGetStaticModuleState());
+				ASSERT(smrCursor);
 				SetCursor(smrCursor);
 				standardCursor = true;
 			}
@@ -476,7 +481,7 @@ void CSMRRadar::OnClickScreenObject(int ObjectType, const char * sObjectId, POIN
 	Logger::info(string(__FUNCSIG__));
 	mouseLocation = Pt;
 
-	if (ObjectType == APPWINDOW_ONE || APPWINDOW_TWO) {
+	if (ObjectType == APPWINDOW_ONE || ObjectType == APPWINDOW_TWO) {
 		int appWindowId = ObjectType - APPWINDOW_BASE;
 
 		if (strcmp(sObjectId, "close") == 0)
@@ -643,15 +648,14 @@ void CSMRRadar::OnClickScreenObject(int ObjectType, const char * sObjectId, POIN
 
 	}
 
-	if (ObjectType == DRAWING_TAG || ObjectType == DRAWING_AC_SYMBOL) {
-		CFlightPlan Fp = GetPlugIn()->FlightPlanSelect(sObjectId);
+	if (ObjectType == DRAWING_TAG || ObjectType == DRAWING_AC_SYMBOL) {		
 		CRadarTarget rt = GetPlugIn()->RadarTargetSelect(sObjectId);
+		// GetPlugIn()->SetASELAircraft(rt); // NOTE: This does NOT work eventhough the api says it should?
+		GetPlugIn()->SetASELAircraft(GetPlugIn()->FlightPlanSelect(sObjectId));  // make sure the correct aircraft is selected before calling 'StartTagFunction'
+		
 		if (rt.GetCorrelatedFlightPlan().IsValid()) {
 			StartTagFunction(rt.GetCallsign(), NULL, EuroScopePlugIn::TAG_ITEM_TYPE_CALLSIGN, rt.GetCallsign(), NULL, EuroScopePlugIn::TAG_ITEM_FUNCTION_NO, Pt, Area);
-		}
-		else {
-			GetPlugIn()->SetASELAircraft(Fp);
-		}
+		}		
 
 		// Release & correlate actions
 
@@ -683,7 +687,10 @@ void CSMRRadar::OnClickScreenObject(int ObjectType, const char * sObjectId, POIN
 				if (standardCursor)
 				{
 					smrCursor = CopyCursor((HCURSOR)::LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDC_SMRCORRELATE), IMAGE_CURSOR, 0, 0, LR_SHARED));
-					AfxGetMainWnd()->SendMessage(WM_SETCURSOR);
+					
+					AFX_MANAGE_STATE(AfxGetStaticModuleState());
+					ASSERT(smrCursor);
+					SetCursor(smrCursor);
 					standardCursor = false;
 				}
 			}
@@ -695,10 +702,12 @@ void CSMRRadar::OnClickScreenObject(int ObjectType, const char * sObjectId, POIN
 						smrCursor = CopyCursor((HCURSOR)::LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDC_SMRCURSOR), IMAGE_CURSOR, 0, 0, LR_SHARED));						
 					}
 					else {
-						smrCursor = LoadCursor(AfxGetInstanceHandle(), IDC_ARROW);						
+						smrCursor = (HCURSOR)::LoadCursor(NULL, IDC_ARROW);
 					}
-
-					AfxGetMainWnd()->SendMessage(WM_SETCURSOR);
+					
+					AFX_MANAGE_STATE(AfxGetStaticModuleState());
+					ASSERT(smrCursor);
+					SetCursor(smrCursor);
 					standardCursor = true;
 				}
 			}
@@ -788,88 +797,46 @@ void CSMRRadar::OnClickScreenObject(int ObjectType, const char * sObjectId, POIN
 		}
 	}
 
-	if (ObjectType == TAG_CITEM_CALLSIGN) {
-		if (Button != BUTTON_RIGHT && Button != BUTTON_MIDDLE)
-			return;
+	if (ObjectType == TAG_CITEM_CALLSIGN || ObjectType == TAG_CITEM_FPBOX || ObjectType == TAG_CITEM_RWY || ObjectType == TAG_CITEM_SID || ObjectType == TAG_CITEM_GATE || ObjectType == TAG_CITEM_NO) {
 
-		CFlightPlan Fp = GetPlugIn()->FlightPlanSelect(sObjectId);
 		CRadarTarget rt = GetPlugIn()->RadarTargetSelect(sObjectId);
-		if (rt.GetCorrelatedFlightPlan().IsValid()) {
-			StartTagFunction(rt.GetCallsign(), NULL, EuroScopePlugIn::TAG_ITEM_TYPE_CALLSIGN, rt.GetCallsign(), NULL, EuroScopePlugIn::TAG_ITEM_FUNCTION_NO, Pt, Area);
+		GetPlugIn()->SetASELAircraft(GetPlugIn()->FlightPlanSelect(sObjectId));
+
+		switch (ObjectType) {
+		case TAG_CITEM_CALLSIGN:
+			if (Button == EuroScopePlugIn::BUTTON_LEFT || Button == EuroScopePlugIn::BUTTON_MIDDLE)
+				StartTagFunction(rt.GetCallsign(), NULL, TAG_CITEM_CALLSIGN, rt.GetCallsign(), NULL, EuroScopePlugIn::TAG_ITEM_FUNCTION_HANDOFF_POPUP_MENU, Pt, Area);
+			else if (Button == EuroScopePlugIn::BUTTON_RIGHT)
+				StartTagFunction(rt.GetCallsign(), NULL, TAG_CITEM_CALLSIGN, rt.GetCallsign(), NULL, EuroScopePlugIn::TAG_ITEM_FUNCTION_COMMUNICATION_POPUP, Pt, Area);
+
+			break;
+
+		case TAG_CITEM_FPBOX:
+			if (Button == EuroScopePlugIn::BUTTON_RIGHT)
+				StartTagFunction(rt.GetCallsign(), NULL, TAG_CITEM_FPBOX, rt.GetCallsign(), NULL, EuroScopePlugIn::TAG_ITEM_FUNCTION_OPEN_FP_DIALOG, Pt, Area);
+
+			break;
+
+		case TAG_CITEM_RWY:
+			if (Button == EuroScopePlugIn::BUTTON_RIGHT)
+				StartTagFunction(rt.GetCallsign(), NULL, TAG_CITEM_RWY, rt.GetCallsign(), NULL, EuroScopePlugIn::TAG_ITEM_FUNCTION_ASSIGNED_RUNWAY, Pt, Area);
+
+			break;
+
+		case TAG_CITEM_SID:
+			if (Button == EuroScopePlugIn::BUTTON_RIGHT)
+				StartTagFunction(rt.GetCallsign(), NULL, TAG_CITEM_SID, rt.GetCallsign(), NULL, EuroScopePlugIn::TAG_ITEM_FUNCTION_ASSIGNED_SID, Pt, Area);
+
+			break;
+
+		case TAG_CITEM_GATE:
+			if (Button == EuroScopePlugIn::BUTTON_RIGHT)
+				StartTagFunction(rt.GetCallsign(), NULL, TAG_CITEM_GATE, rt.GetCallsign(), NULL, EuroScopePlugIn::TAG_ITEM_FUNCTION_EDIT_SCRATCH_PAD, Pt, Area);
+
+			break;
 		}
-		else {
-			GetPlugIn()->SetASELAircraft(Fp);
-		}
-
-		if (Button == EuroScopePlugIn::BUTTON_LEFT || Button == EuroScopePlugIn::BUTTON_MIDDLE)
-			StartTagFunction(rt.GetCallsign(), NULL, TAG_CITEM_CALLSIGN, rt.GetCallsign(), NULL, EuroScopePlugIn::TAG_ITEM_FUNCTION_HANDOFF_POPUP_MENU, Pt, Area);
-		else if (Button == EuroScopePlugIn::BUTTON_RIGHT)
-			StartTagFunction(rt.GetCallsign(), NULL, TAG_CITEM_CALLSIGN, rt.GetCallsign(), NULL, EuroScopePlugIn::TAG_ITEM_FUNCTION_COMMUNICATION_POPUP, Pt, Area);
-	}
-
-	if (ObjectType == TAG_CITEM_FPBOX) {
-		if (Button != BUTTON_RIGHT)
-			return;
-
-		CFlightPlan Fp = GetPlugIn()->FlightPlanSelect(sObjectId);
-		CRadarTarget rt = GetPlugIn()->RadarTargetSelect(sObjectId);
-		if (rt.GetCorrelatedFlightPlan().IsValid()) {
-			StartTagFunction(rt.GetCallsign(), NULL, EuroScopePlugIn::TAG_ITEM_TYPE_CALLSIGN, rt.GetCallsign(), NULL, EuroScopePlugIn::TAG_ITEM_FUNCTION_NO, Pt, Area);
-		}
-		else {
-			GetPlugIn()->SetASELAircraft(Fp);
-		}
-
-		StartTagFunction(rt.GetCallsign(), NULL, TAG_CITEM_FPBOX, rt.GetCallsign(), NULL, EuroScopePlugIn::TAG_ITEM_FUNCTION_OPEN_FP_DIALOG, Pt, Area);
-	}
-
-	if (ObjectType == TAG_CITEM_RWY) {
-		if (Button != BUTTON_RIGHT)
-			return;
-
-		CFlightPlan Fp = GetPlugIn()->FlightPlanSelect(sObjectId);
-		CRadarTarget rt = GetPlugIn()->RadarTargetSelect(sObjectId);
-		if (rt.GetCorrelatedFlightPlan().IsValid()) {
-			StartTagFunction(rt.GetCallsign(), NULL, EuroScopePlugIn::TAG_ITEM_TYPE_CALLSIGN, rt.GetCallsign(), NULL, EuroScopePlugIn::TAG_ITEM_FUNCTION_NO, Pt, Area);
-		}
-		else {
-			GetPlugIn()->SetASELAircraft(Fp);
-		}
-
-		StartTagFunction(rt.GetCallsign(), NULL, TAG_CITEM_RWY, rt.GetCallsign(), NULL, EuroScopePlugIn::TAG_ITEM_FUNCTION_ASSIGNED_RUNWAY, Pt, Area);
-	}
-
-	if (ObjectType == TAG_CITEM_SID) {
-		if (Button != BUTTON_RIGHT)
-			return;
-
-		CFlightPlan Fp = GetPlugIn()->FlightPlanSelect(sObjectId);
-		CRadarTarget rt = GetPlugIn()->RadarTargetSelect(sObjectId);
-		if (rt.GetCorrelatedFlightPlan().IsValid()) {
-			StartTagFunction(rt.GetCallsign(), NULL, EuroScopePlugIn::TAG_ITEM_TYPE_CALLSIGN, rt.GetCallsign(), NULL, EuroScopePlugIn::TAG_ITEM_FUNCTION_NO, Pt, Area);
-		}
-		else {
-			GetPlugIn()->SetASELAircraft(Fp);
-		}
-
-		StartTagFunction(rt.GetCallsign(), NULL, TAG_CITEM_SID, rt.GetCallsign(), NULL, EuroScopePlugIn::TAG_ITEM_FUNCTION_ASSIGNED_SID, Pt, Area);
-	}
-
-	if (ObjectType == TAG_CITEM_GATE) {
-		if (Button != BUTTON_RIGHT)
-			return;
-
-		CFlightPlan Fp = GetPlugIn()->FlightPlanSelect(sObjectId);
-		CRadarTarget rt = GetPlugIn()->RadarTargetSelect(sObjectId);
-		if (rt.GetCorrelatedFlightPlan().IsValid()) {
-			StartTagFunction(rt.GetCallsign(), NULL, EuroScopePlugIn::TAG_ITEM_TYPE_CALLSIGN, rt.GetCallsign(), NULL, EuroScopePlugIn::TAG_ITEM_FUNCTION_NO, Pt, Area);
-		}
-		else {
-			GetPlugIn()->SetASELAircraft(Fp);
-		}
-
-		StartTagFunction(rt.GetCallsign(), NULL, TAG_CITEM_GATE, rt.GetCallsign(), NULL, EuroScopePlugIn::TAG_ITEM_FUNCTION_EDIT_SCRATCH_PAD, Pt, Area);
-	}
+	
+	}	
 
 	if (ObjectType == RIMCAS_DISTANCE_TOOL)
 	{
@@ -1070,7 +1037,10 @@ void CSMRRadar::OnFunctionCall(int FunctionId, const char * sItemString, POINT P
 			if (standardCursor)
 			{
 				smrCursor = CopyCursor((HCURSOR)::LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDC_SMRCORRELATE), IMAGE_CURSOR, 0, 0, LR_SHARED));
-				AfxGetMainWnd()->SendMessage(WM_SETCURSOR);
+				
+				AFX_MANAGE_STATE(AfxGetStaticModuleState());
+				ASSERT(smrCursor);
+				SetCursor(smrCursor);
 				standardCursor = false;
 			}
 		}
@@ -1082,9 +1052,12 @@ void CSMRRadar::OnFunctionCall(int FunctionId, const char * sItemString, POINT P
 					smrCursor = CopyCursor((HCURSOR)::LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDC_SMRCURSOR), IMAGE_CURSOR, 0, 0, LR_SHARED));
 				}
 				else {
-					smrCursor = LoadCursor(AfxGetInstanceHandle(), IDC_ARROW);
+					smrCursor = (HCURSOR)::LoadCursor(NULL, IDC_ARROW);
 				}
-				AfxGetMainWnd()->SendMessage(WM_SETCURSOR);
+								
+				AFX_MANAGE_STATE(AfxGetStaticModuleState());
+				ASSERT(smrCursor);
+				SetCursor(smrCursor);
 				standardCursor = true;
 			}
 		}
@@ -1102,7 +1075,10 @@ void CSMRRadar::OnFunctionCall(int FunctionId, const char * sItemString, POINT P
 			if (standardCursor)
 			{
 				smrCursor = CopyCursor((HCURSOR)::LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDC_SMRCORRELATE), IMAGE_CURSOR, 0, 0, LR_SHARED));
-				AfxGetMainWnd()->SendMessage(WM_SETCURSOR);
+				
+				AFX_MANAGE_STATE(AfxGetStaticModuleState());
+				ASSERT(smrCursor);
+				SetCursor(smrCursor);
 				standardCursor = false;
 			}
 		}
@@ -1114,9 +1090,12 @@ void CSMRRadar::OnFunctionCall(int FunctionId, const char * sItemString, POINT P
 					smrCursor = CopyCursor((HCURSOR)::LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDC_SMRCURSOR), IMAGE_CURSOR, 0, 0, LR_SHARED));
 				}
 				else {
-					smrCursor = LoadCursor(AfxGetInstanceHandle(), IDC_ARROW);
+					smrCursor = (HCURSOR)::LoadCursor(NULL, IDC_ARROW);
 				}
-				AfxGetMainWnd()->SendMessage(WM_SETCURSOR);
+				
+				AFX_MANAGE_STATE(AfxGetStaticModuleState());
+				ASSERT(smrCursor);
+				SetCursor(smrCursor);
 				standardCursor = true;
 			}
 		}
@@ -1600,13 +1579,15 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 	{
 		if (customCursor) {
 			smrCursor = CopyCursor((HCURSOR)::LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDC_SMRCURSOR), IMAGE_CURSOR, 0, 0, LR_SHARED));
+			// This got broken because of threading as far as I can tell
+			// The cursor does change for some milliseconds but gets reset almost instantly by external MFC code
 		}
 		else {
-			smrCursor = LoadCursor(AfxGetInstanceHandle(), IDC_ARROW);
+			smrCursor = (HCURSOR)::LoadCursor(NULL, IDC_ARROW);
 		}
 
 		if (smrCursor != nullptr)
-		{
+		{			
 			//pluginWindow = GetActiveWindow();
 			//gSourceProc = (WNDPROC)SetWindowLong(pluginWindow, GWL_WNDPROC, (LONG)WindowProc);
 		}
