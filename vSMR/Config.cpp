@@ -82,6 +82,15 @@ bool CConfig::isAirportMapAvail(string airport) {
 	return false;
 }
 
+bool CConfig::isCustomCursorUsed() {
+	if (getActiveProfile().HasMember("cursor")) {		
+		if (strcmp(getActiveProfile()["cursor"].GetString(), "Default") == 0) {
+			return false;
+		}
+	}
+	return true; // by default use custom one so we don't break compatibility for old json settings that don't have the entry
+}
+
 bool CConfig::isCustomRunwayAvail(string airport, string name1, string name2) {
 	if (getActiveProfile().HasMember("maps")) {
 		if (getActiveProfile()["maps"].HasMember(airport.c_str())) {

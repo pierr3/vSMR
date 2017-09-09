@@ -200,3 +200,7 @@ FakesAssemblies/
 curl-7.41.0/
 ipch/
 package/
+/vSMR/version.txt
+/vSMR/SectorFileProviderDescriptor.txt
+/vSMR/ipaddr.txt
+/vSMR/euroscope_sector_providers.txt

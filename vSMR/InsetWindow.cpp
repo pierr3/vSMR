@@ -386,7 +386,7 @@ void CInsetWindow::render(HDC hDC, CSMRRadar * radar_screen, Graphics* gdi, POIN
 		POINT TagCenter;
 		if (m_TagAngles.find(rt.GetCallsign()) == m_TagAngles.end())
 		{
-			m_TagAngles[rt.GetCallsign()] = 45.0;
+			m_TagAngles[rt.GetCallsign()] = 45.0; // TODO: Not the best, ah well
 		}
 
 		TagCenter.x = long(RtPoint.x + float(lenght * cos(DegToRad(m_TagAngles[rt.GetCallsign()]))));
@@ -536,7 +536,7 @@ void CInsetWindow::render(HDC hDC, CSMRRadar * radar_screen, Graphics* gdi, POIN
 					CRect ItemRect(TagBackgroundRect.left + widthOffset, TagBackgroundRect.top + heightOffset,
 						TagBackgroundRect.left + widthOffset + (int)mRect.GetRight(), TagBackgroundRect.top + heightOffset + (int)mRect.GetBottom());
 
-					radar_screen->AddScreenObject(TagClickableMap[element], rt.GetCallsign(), ItemRect, true, radar_screen->GetBottomLine(rt.GetCallsign()).c_str());
+					radar_screen->AddScreenObject(TagClickableMap[element], rt.GetCallsign(), ItemRect, false, radar_screen->GetBottomLine(rt.GetCallsign()).c_str());
 
 					widthOffset += (int)mRect.GetRight();
 					widthOffset += blankWidth;

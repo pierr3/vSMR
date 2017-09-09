@@ -349,10 +349,12 @@ public:
 
 	void CSMRRadar::EuroScopePlugInExitCustom();
 
+	//  This gets called before OnAsrContentToBeSaved()
+	// -> we can't delete CurrentConfig just yet otherwise we can't save the active profile
 	inline virtual void OnAsrContentToBeClosed(void)
 	{
 		delete RimcasInstance;
-		delete CurrentConfig;
+		//delete CurrentConfig;
 		delete this;
 	};
 };

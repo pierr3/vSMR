@@ -23,6 +23,7 @@ public:
 	const Value& getAirportMapIfAny(string airport);
 	bool isAirportMapAvail(string airport);
 	bool isCustomRunwayAvail(string airport, string name1, string name2);
+	bool isCustomCursorUsed();
 
 	Gdiplus::Color getConfigColor(const Value& config_path);
 	COLORREF getConfigColorRef(const Value& config_path);
@@ -43,8 +44,10 @@ public:
 		string name;
 		for (std::map<string, rapidjson::SizeType>::iterator it = profiles.begin(); it != profiles.end(); ++it)
 		{
-			if (it->second == active_profile)
-				name = it->first; break;
+			if (it->second == active_profile) {
+				name = it->first;
+				break;
+			}
 		}
 		return name;
 	};
