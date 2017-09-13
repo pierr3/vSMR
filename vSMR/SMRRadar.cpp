@@ -2074,19 +2074,28 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 			TagCenter.y = long(acPosPix.y + float(lenght * sin(DegToRad(TagAngles[rt.GetCallsign()]))));
 		}
 
-		TagTypes TagType = TagTypes::Departure;
+		TagTypes TagType = TagTypes::Departure;		
+		TagTypes ColorTagType = TagTypes::Departure;		
 
 		if (fp.IsValid() && strcmp(fp.GetFlightPlanData().GetDestination(), getActiveAirport().c_str()) == 0) {
 			TagType = TagTypes::Arrival;
+			ColorTagType = TagTypes::Arrival;
 		}
 
 		if (reportedGs > 50) {
 			TagType = TagTypes::Airborne;
+
+			// Is "use_departure_arrival_coloring" enabled? if not, then use the airborne colors
+			bool useDepArrColors = CurrentConfig->getActiveProfile()["labels"]["airborne"]["use_departure_arrival_coloring"].GetBool();
+			if (!useDepArrColors) {
+				ColorTagType = TagTypes::Airborne;
+			}
 		}
 
 		if (!AcisCorrelated && reportedGs >= 3)
 		{
 			TagType = TagTypes::Uncorrelated;
+			ColorTagType = TagTypes::Uncorrelated;
 		}
 
 		map<string, string> TagReplacingMap = GenerateTagData(rt, fp, IsCorrelated(fp, rt), CurrentConfig->getActiveProfile()["filters"]["pro_mode"]["enable"].GetBool(), GetPlugIn()->GetTransitionAltitude(), CurrentConfig->getActiveProfile()["labels"]["use_aspeed_for_gate"].GetBool());
@@ -2167,21 +2176,21 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 
 			ReplacedLabelLines.push_back(lineStringArray);
 		}
-		TagHeight = TagHeight - 2;
+		TagHeight = TagHeight - 2;		
+
+		Color TagBackgroundColor = RimcasInstance->GetAircraftColor(rt.GetCallsign(),
+			CurrentConfig->getConfigColor(LabelsSettings[Utils::getEnumString(ColorTagType).c_str()]["background_color"]),
+			CurrentConfig->getConfigColor(LabelsSettings[Utils::getEnumString(ColorTagType).c_str()]["background_color_on_runway"]),
+			CurrentConfig->getConfigColor(CurrentConfig->getActiveProfile()["rimcas"]["background_color_stage_one"]),
+			CurrentConfig->getConfigColor(CurrentConfig->getActiveProfile()["rimcas"]["background_color_stage_two"]));
 
 		// We need to figure out if the tag color changes according to RIMCAS alerts, or not
 		bool rimcasLabelOnly = CurrentConfig->getActiveProfile()["rimcas"]["rimcas_label_only"].GetBool();
 
-		Color TagBackgroundColor = RimcasInstance->GetAircraftColor(rt.GetCallsign(),
-			CurrentConfig->getConfigColor(LabelsSettings[Utils::getEnumString(TagType).c_str()]["background_color"]),
-			CurrentConfig->getConfigColor(LabelsSettings[Utils::getEnumString(TagType).c_str()]["background_color_on_runway"]),
-			CurrentConfig->getConfigColor(CurrentConfig->getActiveProfile()["rimcas"]["background_color_stage_one"]),
-			CurrentConfig->getConfigColor(CurrentConfig->getActiveProfile()["rimcas"]["background_color_stage_two"]));
-
 		if (rimcasLabelOnly)
 			TagBackgroundColor = RimcasInstance->GetAircraftColor(rt.GetCallsign(),
-			CurrentConfig->getConfigColor(LabelsSettings[Utils::getEnumString(TagType).c_str()]["background_color"]),
-			CurrentConfig->getConfigColor(LabelsSettings[Utils::getEnumString(TagType).c_str()]["background_color_on_runway"]));
+			CurrentConfig->getConfigColor(LabelsSettings[Utils::getEnumString(ColorTagType).c_str()]["background_color"]),
+			CurrentConfig->getConfigColor(LabelsSettings[Utils::getEnumString(ColorTagType).c_str()]["background_color_on_runway"]));
 
 		TagBackgroundColor = ColorManager->get_corrected_color("label", TagBackgroundColor);
 
@@ -2199,7 +2208,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 		// Drawing the tag text
 
 		SolidBrush FontColor(ColorManager->get_corrected_color("label",
-			CurrentConfig->getConfigColor(LabelsSettings[Utils::getEnumString(TagType).c_str()]["text_color"])));
+			CurrentConfig->getConfigColor(LabelsSettings[Utils::getEnumString(ColorTagType).c_str()]["text_color"])));
 		SolidBrush SquawkErrorColor(ColorManager->get_corrected_color("label",
 			CurrentConfig->getConfigColor(LabelsSettings["squawk_error_color"])));
 		SolidBrush RimcasTextColor(CurrentConfig->getConfigColor(CurrentConfig->getActiveProfile()["rimcas"]["alert_text_color"]));
