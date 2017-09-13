@@ -407,7 +407,7 @@ void CInsetWindow::render(HDC hDC, CSMRRadar * radar_screen, Graphics* gdi, POIN
 		TagClickableMap[TagReplacingMap["gate"]] = TAG_CITEM_GATE;
 		TagClickableMap[TagReplacingMap["sate"]] = TAG_CITEM_GATE;
 		TagClickableMap[TagReplacingMap["flightlevel"]] = TAG_CITEM_NO;
-		TagClickableMap[TagReplacingMap["speed"]] = TAG_CITEM_NO;
+		TagClickableMap[TagReplacingMap["gs"]] = TAG_CITEM_NO;
 		TagClickableMap[TagReplacingMap["tendency"]] = TAG_CITEM_NO;
 		TagClickableMap[TagReplacingMap["wake"]] = TAG_CITEM_FPBOX;
 		TagClickableMap[TagReplacingMap["tssr"]] = TAG_CITEM_NO;
@@ -418,8 +418,30 @@ void CInsetWindow::render(HDC hDC, CSMRRadar * radar_screen, Graphics* gdi, POIN
 		// ----- Now the hard part, drawing (using gdi+) -------
 		//	
 
-		CSMRRadar::TagTypes TagType;
-		TagType = CSMRRadar::TagTypes::Airborne;
+		CSMRRadar::TagTypes TagType = CSMRRadar::TagTypes::Departure;
+		CSMRRadar::TagTypes ColorTagType = CSMRRadar::TagTypes::Departure;
+
+		if (fp.IsValid() && strcmp(fp.GetFlightPlanData().GetDestination(), radar_screen->getActiveAirport().c_str()) == 0) {
+			TagType = CSMRRadar::TagTypes::Arrival;
+			ColorTagType = CSMRRadar::TagTypes::Arrival;
+		}
+
+		if (reportedGs > 50) {
+			TagType = CSMRRadar::TagTypes::Airborne;
+
+			// Is "use_departure_arrival_coloring" enabled? if not, then use the airborne colors
+			bool useDepArrColors = radar_screen->CurrentConfig->getActiveProfile()["labels"]["airborne"]["use_departure_arrival_coloring"].GetBool();
+			if (!useDepArrColors) {
+				ColorTagType = CSMRRadar::TagTypes::Airborne;
+			}
+		}
+
+		bool AcisCorrelated = radar_screen->IsCorrelated(radar_screen->GetPlugIn()->FlightPlanSelect(rt.GetCallsign()), rt);
+		if (!AcisCorrelated && reportedGs >= 3)
+		{
+			TagType = CSMRRadar::TagTypes::Uncorrelated;
+			ColorTagType = CSMRRadar::TagTypes::Uncorrelated;
+		}
 
 		// First we need to figure out the tag size
 
@@ -483,15 +505,15 @@ void CInsetWindow::render(HDC hDC, CSMRRadar * radar_screen, Graphics* gdi, POIN
 		bool rimcasLabelOnly = radar_screen->CurrentConfig->getActiveProfile()["rimcas"]["rimcas_label_only"].GetBool();
 
 		Color TagBackgroundColor = radar_screen->RimcasInstance->GetAircraftColor(rt.GetCallsign(),
-			radar_screen->CurrentConfig->getConfigColor(LabelsSettings[Utils::getEnumString(TagType).c_str()]["background_color"]),
-			radar_screen->CurrentConfig->getConfigColor(LabelsSettings[Utils::getEnumString(TagType).c_str()]["background_color_on_runway"]),
+			radar_screen->CurrentConfig->getConfigColor(LabelsSettings[Utils::getEnumString(ColorTagType).c_str()]["background_color"]),
+			radar_screen->CurrentConfig->getConfigColor(LabelsSettings[Utils::getEnumString(ColorTagType).c_str()]["background_color_on_runway"]),
 			radar_screen->CurrentConfig->getConfigColor(radar_screen->CurrentConfig->getActiveProfile()["rimcas"]["background_color_stage_one"]),
 			radar_screen->CurrentConfig->getConfigColor(radar_screen->CurrentConfig->getActiveProfile()["rimcas"]["background_color_stage_two"]));
 
 		if (rimcasLabelOnly)
 			TagBackgroundColor = radar_screen->RimcasInstance->GetAircraftColor(rt.GetCallsign(),
-				radar_screen->CurrentConfig->getConfigColor(LabelsSettings[Utils::getEnumString(TagType).c_str()]["background_color"]),
-				radar_screen->CurrentConfig->getConfigColor(LabelsSettings[Utils::getEnumString(TagType).c_str()]["background_color_on_runway"]));
+				radar_screen->CurrentConfig->getConfigColor(LabelsSettings[Utils::getEnumString(ColorTagType).c_str()]["background_color"]),
+				radar_screen->CurrentConfig->getConfigColor(LabelsSettings[Utils::getEnumString(ColorTagType).c_str()]["background_color_on_runway"]));
 
 		CRect TagBackgroundRect(TagCenter.x - (TagWidth / 2), TagCenter.y - (TagHeight / 2), TagCenter.x + (TagWidth / 2), TagCenter.y + (TagHeight / 2));
 
@@ -503,7 +525,7 @@ void CInsetWindow::render(HDC hDC, CSMRRadar * radar_screen, Graphics* gdi, POIN
 			gdi->FillRectangle(&TagBackgroundBrush, CopyRect(TagBackgroundRect));
 
 			SolidBrush FontColor(radar_screen->ColorManager->get_corrected_color("label",
-				radar_screen->CurrentConfig->getConfigColor(LabelsSettings[Utils::getEnumString(TagType).c_str()]["text_color"])));
+				radar_screen->CurrentConfig->getConfigColor(LabelsSettings[Utils::getEnumString(ColorTagType).c_str()]["text_color"])));
 			SolidBrush SquawkErrorColor(radar_screen->ColorManager->get_corrected_color("label",
 				radar_screen->CurrentConfig->getConfigColor(LabelsSettings["squawk_error_color"])));
 			SolidBrush RimcasTextColor(radar_screen->CurrentConfig->getConfigColor(radar_screen->CurrentConfig->getActiveProfile()["rimcas"]["alert_text_color"]));
