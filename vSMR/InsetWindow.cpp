@@ -413,6 +413,7 @@ void CInsetWindow::render(HDC hDC, CSMRRadar * radar_screen, Graphics* gdi, POIN
 		TagClickableMap[TagReplacingMap["tssr"]] = TAG_CITEM_NO;
 		TagClickableMap[TagReplacingMap["ssid"]] = TagClickableMap[TagReplacingMap["asid"]] = TAG_CITEM_SID;
 		TagClickableMap[TagReplacingMap["systemid"]] = TAG_CITEM_MANUALCORRELATE;
+		TagClickableMap[TagReplacingMap["gstatus"]] = TAG_CITEM_GROUNDSTATUS;
 
 		//
 		// ----- Now the hard part, drawing (using gdi+) -------

@@ -359,7 +359,7 @@ void CSMRRadar::OnMoveScreenObject(int ObjectType, const char * sObjectId, POINT
 		}
 	}
 
-	if (ObjectType == DRAWING_TAG || ObjectType == TAG_CITEM_MANUALCORRELATE ||ObjectType == TAG_CITEM_CALLSIGN || ObjectType == TAG_CITEM_FPBOX || ObjectType == TAG_CITEM_RWY || ObjectType == TAG_CITEM_SID || ObjectType == TAG_CITEM_GATE || ObjectType == TAG_CITEM_NO) {
+	if (ObjectType == DRAWING_TAG || ObjectType == TAG_CITEM_MANUALCORRELATE ||ObjectType == TAG_CITEM_CALLSIGN || ObjectType == TAG_CITEM_FPBOX || ObjectType == TAG_CITEM_RWY || ObjectType == TAG_CITEM_SID || ObjectType == TAG_CITEM_GATE || ObjectType == TAG_CITEM_NO || ObjectType == TAG_CITEM_GROUNDSTATUS) {
 		CRadarTarget rt = GetPlugIn()->RadarTargetSelect(sObjectId);
 
 		if (!Released)
@@ -797,7 +797,7 @@ void CSMRRadar::OnClickScreenObject(int ObjectType, const char * sObjectId, POIN
 		}
 	}
 
-	if (ObjectType == TAG_CITEM_CALLSIGN || ObjectType == TAG_CITEM_FPBOX || ObjectType == TAG_CITEM_RWY || ObjectType == TAG_CITEM_SID || ObjectType == TAG_CITEM_GATE || ObjectType == TAG_CITEM_NO) {
+	if (ObjectType == TAG_CITEM_CALLSIGN || ObjectType == TAG_CITEM_FPBOX || ObjectType == TAG_CITEM_RWY || ObjectType == TAG_CITEM_SID || ObjectType == TAG_CITEM_GATE || ObjectType == TAG_CITEM_NO || ObjectType == TAG_CITEM_GROUNDSTATUS) {
 
 		CRadarTarget rt = GetPlugIn()->RadarTargetSelect(sObjectId);
 		GetPlugIn()->SetASELAircraft(GetPlugIn()->FlightPlanSelect(sObjectId));
@@ -833,6 +833,12 @@ void CSMRRadar::OnClickScreenObject(int ObjectType, const char * sObjectId, POIN
 			if (Button == EuroScopePlugIn::BUTTON_RIGHT)
 				StartTagFunction(rt.GetCallsign(), NULL, TAG_CITEM_GATE, rt.GetCallsign(), NULL, EuroScopePlugIn::TAG_ITEM_FUNCTION_EDIT_SCRATCH_PAD, Pt, Area);
 
+			break;
+
+		case TAG_CITEM_GROUNDSTATUS:
+			if (Button == EuroScopePlugIn::BUTTON_RIGHT)
+				StartTagFunction(rt.GetCallsign(), NULL, TAG_CITEM_GROUNDSTATUS, rt.GetCallsign(), NULL, EuroScopePlugIn::TAG_ITEM_FUNCTION_SET_GROUND_STATUS, Pt, Area);
+			
 			break;
 		}
 	
@@ -1491,6 +1497,12 @@ map<string, string> CSMRRadar::GenerateTagData(CRadarTarget rt, CFlightPlan fp, 
 		sdep += dep.substr(dep.size() - 2, dep.size());
 	}
 
+	// ----- GSTAT -------
+	string gstat = "";
+	if (fp.IsValid() && isAcCorrelated) {
+		gstat = fp.GetGroundState();
+	}
+
 	// ----- Generating the replacing map -----
 	map<string, string> TagReplacingMap;
 
@@ -1543,6 +1555,7 @@ map<string, string> CSMRRadar::GenerateTagData(CRadarTarget rt, CFlightPlan fp, 
 	TagReplacingMap["ssr"] = tssr;
 	TagReplacingMap["asid"] = dep;
 	TagReplacingMap["ssid"] = sdep;
+	TagReplacingMap["groundstatus"] = gstat;
 
 	return TagReplacingMap;
 }
@@ -2117,6 +2130,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 		TagClickableMap[TagReplacingMap["tssr"]] = TAG_CITEM_NO;
 		TagClickableMap[TagReplacingMap["asid"]] = TagClickableMap[TagReplacingMap["ssid"]] = TAG_CITEM_SID;
 		TagClickableMap[TagReplacingMap["systemid"]] = TAG_CITEM_NO;
+		TagClickableMap[TagReplacingMap["groundstatus"]] = TAG_CITEM_GROUNDSTATUS;
 
 		//
 		// ----- Now the hard part, drawing (using gdi+) -------
