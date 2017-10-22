@@ -13,9 +13,9 @@
 #include "SMRRadar.hpp"
 #include "Logger.h"
 
-#define MY_PLUGIN_NAME      "vSMR"
-#define MY_PLUGIN_VERSION   "1.3.3-e32"
-#define MY_PLUGIN_DEVELOPER "Pierre Ferran"
+#define MY_PLUGIN_NAME      "vSMR Edited"
+#define MY_PLUGIN_VERSION   "1.3.3-edited"
+#define MY_PLUGIN_DEVELOPER "Daniel Lange, Pierre Ferran"
 #define MY_PLUGIN_COPYRIGHT "GPL v3"
 #define MY_PLUGIN_VIEW_AVISO  "SMR radar display"
 
