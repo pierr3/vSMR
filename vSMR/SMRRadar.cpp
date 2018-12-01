@@ -17,7 +17,7 @@ bool standardCursor; // switches between mouse cursor and pointer cursor when mo
 bool customCursor; // use SMR version or default windows mouse symbol
 WNDPROC gSourceProc;
 HWND pluginWindow;
-//LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
 map<string, string> CSMRRadar::vStripsStands;
 
@@ -1571,7 +1571,6 @@ void CSMRRadar::OnFlightPlanDisconnect(CFlightPlan FlightPlan)
 	}
 }
 
-/*
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	switch (uMsg)
@@ -1582,7 +1581,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	default:
 		return CallWindowProc(gSourceProc, hwnd, uMsg, wParam, lParam);
 	}
-}*/
+}
 
 void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 {
@@ -1594,15 +1593,16 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 			smrCursor = CopyCursor((HCURSOR)::LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDC_SMRCURSOR), IMAGE_CURSOR, 0, 0, LR_SHARED));
 			// This got broken because of threading as far as I can tell
 			// The cursor does change for some milliseconds but gets reset almost instantly by external MFC code
+
 		}
 		else {
 			smrCursor = (HCURSOR)::LoadCursor(NULL, IDC_ARROW);
 		}
 
 		if (smrCursor != nullptr)
-		{			
-			//pluginWindow = GetActiveWindow();
-			//gSourceProc = (WNDPROC)SetWindowLong(pluginWindow, GWL_WNDPROC, (LONG)WindowProc);
+		{		
+			pluginWindow = GetActiveWindow();
+			gSourceProc = (WNDPROC)SetWindowLong(pluginWindow, GWL_WNDPROC, (LONG)WindowProc);
 		}
 		initCursor = false;
 	}
@@ -2833,8 +2833,8 @@ void CSMRRadar::EuroScopePlugInExitCustom()
 {
 	AFX_MANAGE_STATE(AfxGetStaticModuleState())
 
-		/*if (smrCursor != nullptr && smrCursor != NULL)
+		if (smrCursor != nullptr && smrCursor != NULL)
 		{
 			SetWindowLong(pluginWindow, GWL_WNDPROC, (LONG)gSourceProc);
-		}*/
+		}
 }
