@@ -122,6 +122,7 @@ CSMRRadar::~CSMRRadar()
 	}
 	// Shutting down GDI+
 	GdiplusShutdown(m_gdiplusToken);
+	delete CurrentConfig;
 }
 
 void CSMRRadar::LoadCustomFont() {
@@ -313,9 +314,7 @@ void CSMRRadar::OnAsrContentToBeSaved()
 		if (appWindowDisplays[i])
 			to_save = "1";
 		SaveDataToAsr(string(prefix + "Display").c_str(), "Display Secondary Radar Window", to_save.c_str());
-	}
-
-	delete CurrentConfig;
+	}	
 }
 
 void CSMRRadar::OnMoveScreenObject(int ObjectType, const char * sObjectId, POINT Pt, RECT Area, bool Released) {
