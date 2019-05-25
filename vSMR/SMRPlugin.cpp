@@ -41,6 +41,7 @@ struct AcarsMessage {
 
 vector<string> AircraftDemandingClearance;
 vector<string> AircraftClearanceSent;
+vector<string> AircraftMessage;
 vector<string> AircraftWilco;
 vector<string> AircraftStandby;
 map<string, AcarsMessage> PendingMessages;
@@ -162,6 +163,9 @@ void pollMessages(void * arg) {
 				if (std::find(AircraftClearanceSent.begin(), AircraftClearanceSent.end(), message.from) != AircraftClearanceSent.end()) {
 					AircraftWilco.push_back(message.from);
 				}
+			}
+			else {
+				AircraftMessage.push_back(message.from);
 			}
 			PendingMessages[message.from] = message;
 		}
@@ -436,6 +440,11 @@ void CSMRPlugin::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, 
 				*pRGB = RGB(255, 255, 0);
 				strcpy_s(sItemString, 16, "V");
 			}
+			else if (std::find(AircraftMessage.begin(), AircraftMessage.end(), FlightPlan.GetCallsign()) != AircraftMessage.end()) {
+				*pColorCode = TAG_COLOR_RGB_DEFINED;
+				*pRGB = RGB(255, 255, 0);
+				strcpy_s(sItemString, 16, "T");
+			}
 			else {
 				*pColorCode = TAG_COLOR_RGB_DEFINED;
 				*pRGB = RGB(130, 130, 130);
@@ -484,6 +493,9 @@ void CSMRPlugin::OnFunctionCall(int FunctionId, const char * sItemString, POINT 
 			}
 			if (std::find(AircraftWilco.begin(), AircraftWilco.end(), FlightPlan.GetCallsign()) != AircraftWilco.end()) {
 				AircraftWilco.erase(std::remove(AircraftWilco.begin(), AircraftWilco.end(), FlightPlan.GetCallsign()), AircraftWilco.end());
+			}
+			if (std::find(AircraftMessage.begin(), AircraftMessage.end(), FlightPlan.GetCallsign()) != AircraftMessage.end()) {
+				AircraftMessage.erase(std::remove(AircraftMessage.begin(), AircraftMessage.end(), FlightPlan.GetCallsign()), AircraftMessage.end());
 			}
 			if (PendingMessages.find(FlightPlan.GetCallsign()) != PendingMessages.end()) {
 				PendingMessages.erase(FlightPlan.GetCallsign());
