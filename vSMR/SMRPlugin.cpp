@@ -82,31 +82,6 @@ void datalinkLogin(void * arg) {
 	}
 };
 
-void sendDatalinkMessage(void * arg) {
-
-	string raw;
-	string url = baseUrlDatalink;
-	url += "?logon=";
-	url += logonCode;
-	url += "&from=";
-	url += logonCallsign;
-	url += "&to=";
-	url += tdest;
-	url += "&type=CPDLC&packet=/data2/";
-	messageId++;
-	url += std::to_string(messageId);
-	url += "//N/";
-	url += tmessage;
-
-	size_t start_pos = 0;
-	while ((start_pos = url.find(" ", start_pos)) != std::string::npos) {
-		url.replace(start_pos, string(" ").length(), "%20");
-		start_pos += string("%20").length();
-	}
-
-	raw.assign(httpHelper->downloadStringFromURL(url));
-};
-
 void sendDatalinkMsg(void * arg) {
 
 	string raw;
@@ -117,7 +92,7 @@ void sendDatalinkMsg(void * arg) {
 	url += logonCallsign;
 	url += "&to=";
 	url += tdest;
-	url += "&type=TELEX&packet=/data2/";
+	url += "&type=CPDLC&packet=/data2/";
 	messageId++;
 	url += std::to_string(messageId);
 	url += "//N/";
@@ -546,7 +521,7 @@ void CSMRPlugin::OnFunctionCall(int FunctionId, const char * sItemString, POINT 
 
 			tmessage = dia.m_Message;
 			tdest = FlightPlan.GetCallsign();
-			_beginthread(sendDatalinkMessage, 0, NULL);
+			_beginthread(sendDatalinkMsg, 0, NULL);
 		}
 	}
 
