@@ -95,7 +95,7 @@ void sendDatalinkMessage(void * arg) {
 	url += tdest;
 	url += "&type=";
 	url += ttype;
-	url += "&packet = / data2 / ";
+	url += "&packet=/data2/";
 	messageId++;
 	url += std::to_string(messageId);
 	url += "//N/";
