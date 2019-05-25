@@ -107,6 +107,31 @@ void sendDatalinkMessage(void * arg) {
 	raw.assign(httpHelper->downloadStringFromURL(url));
 };
 
+void sendDatalinkMsg(void * arg) {
+
+	string raw;
+	string url = baseUrlDatalink;
+	url += "?logon=";
+	url += logonCode;
+	url += "&from=";
+	url += logonCallsign;
+	url += "&to=";
+	url += tdest;
+	url += "&type=TELEX&packet=/data2/";
+	messageId++;
+	url += std::to_string(messageId);
+	url += "//N/";
+	url += tmessage;
+
+	size_t start_pos = 0;
+	while ((start_pos = url.find(" ", start_pos)) != std::string::npos) {
+		url.replace(start_pos, string(" ").length(), "%20");
+		start_pos += string("%20").length();
+	}
+
+	raw.assign(httpHelper->downloadStringFromURL(url));
+};
+
 void pollMessages(void * arg) {
 	string raw = "";
 	string url = baseUrlDatalink;
@@ -459,6 +484,7 @@ void CSMRPlugin::OnFunctionCall(int FunctionId, const char * sItemString, POINT 
 
 		OpenPopupList(Area, "Datalink menu", 1);
 		AddPopupListElement("Confirm", "", TAG_FUNC_DATALINK_CONFIRM, false, 2, menu_is_datalink);
+		AddPopupListElement("Message", "", TAG_FUNC_DATALINK_MESSAGE, false, 2, menu_is_datalink);
 		AddPopupListElement("Standby", "", TAG_FUNC_DATALINK_STBY, false, 2, menu_is_datalink);
 		AddPopupListElement("Voice", "", TAG_FUNC_DATALINK_VOICE, false, 2, menu_is_datalink);
 		AddPopupListElement("Reset", "", TAG_FUNC_DATALINK_RESET, false, 2, false, true);
@@ -493,6 +519,32 @@ void CSMRPlugin::OnFunctionCall(int FunctionId, const char * sItemString, POINT 
 		if (FlightPlan.IsValid()) {
 			AircraftStandby.push_back(FlightPlan.GetCallsign());
 			tmessage = "STANDBY";
+			tdest = FlightPlan.GetCallsign();
+			_beginthread(sendDatalinkMsg, 0, NULL);
+		}
+	}
+
+	if (FunctionId == TAG_FUNC_DATALINK_MESSAGE) {
+		CFlightPlan FlightPlan = FlightPlanSelectASEL();
+
+		if (FlightPlan.IsValid()) {
+			AFX_MANAGE_STATE(AfxGetStaticModuleState());
+
+			CDataLinkDialog dia;
+			dia.m_Callsign = FlightPlan.GetCallsign();
+			dia.m_Aircraft = FlightPlan.GetFlightPlanData().GetAircraftFPType();
+			dia.m_Dest = FlightPlan.GetFlightPlanData().GetDestination();
+			dia.m_From = FlightPlan.GetFlightPlanData().GetOrigin();
+
+			AcarsMessage msg = PendingMessages[FlightPlan.GetCallsign()];
+			dia.m_Req = msg.message.c_str();
+
+			string toReturn = "";
+
+			if (dia.DoModal() != IDOK)
+				return;
+
+			tmessage = dia.m_Message;
 			tdest = FlightPlan.GetCallsign();
 			_beginthread(sendDatalinkMessage, 0, NULL);
 		}
