@@ -47,6 +47,7 @@ map<string, AcarsMessage> PendingMessages;
 
 string tmessage;
 string tdest;
+string ttype;
 
 int messageId = 0;
 
@@ -82,7 +83,7 @@ void datalinkLogin(void * arg) {
 	}
 };
 
-void sendDatalinkMsg(void * arg) {
+void sendDatalinkMessage(void * arg) {
 
 	string raw;
 	string url = baseUrlDatalink;
@@ -92,7 +93,9 @@ void sendDatalinkMsg(void * arg) {
 	url += logonCallsign;
 	url += "&to=";
 	url += tdest;
-	url += "&type=CPDLC&packet=/data2/";
+	url += "&type=";
+	url += ttype;
+	url += "&packet = / data2 / ";
 	messageId++;
 	url += std::to_string(messageId);
 	url += "//N/";
@@ -494,8 +497,9 @@ void CSMRPlugin::OnFunctionCall(int FunctionId, const char * sItemString, POINT 
 		if (FlightPlan.IsValid()) {
 			AircraftStandby.push_back(FlightPlan.GetCallsign());
 			tmessage = "STANDBY";
+			ttype = "CPDLC";
 			tdest = FlightPlan.GetCallsign();
-			_beginthread(sendDatalinkMsg, 0, NULL);
+			_beginthread(sendDatalinkMessage, 0, NULL);
 		}
 	}
 
@@ -520,8 +524,9 @@ void CSMRPlugin::OnFunctionCall(int FunctionId, const char * sItemString, POINT 
 				return;
 
 			tmessage = dia.m_Message;
+			ttype = "TELEX";
 			tdest = FlightPlan.GetCallsign();
-			_beginthread(sendDatalinkMsg, 0, NULL);
+			_beginthread(sendDatalinkMessage, 0, NULL);
 		}
 	}
 
@@ -530,6 +535,7 @@ void CSMRPlugin::OnFunctionCall(int FunctionId, const char * sItemString, POINT 
 
 		if (FlightPlan.IsValid()) {
 			tmessage = "UNABLE CALL ON FREQ";
+			ttype = "CPDLC";
 			tdest = FlightPlan.GetCallsign();
 
 			if (std::find(AircraftDemandingClearance.begin(), AircraftDemandingClearance.end(), DatalinkToSend.callsign.c_str()) != AircraftDemandingClearance.end()) {
