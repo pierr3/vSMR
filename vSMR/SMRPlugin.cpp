@@ -164,7 +164,7 @@ void pollMessages(void * arg) {
 					AircraftWilco.push_back(message.from);
 				}
 			}
-			else {
+			else if (message.message.length() != 0 ){
 				AircraftMessage.push_back(message.from);
 			}
 			PendingMessages[message.from] = message;
