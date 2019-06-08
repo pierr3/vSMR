@@ -442,7 +442,10 @@ void CSMRPlugin::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, 
 			}
 			else if (std::find(AircraftMessage.begin(), AircraftMessage.end(), FlightPlan.GetCallsign()) != AircraftMessage.end()) {
 				*pColorCode = TAG_COLOR_RGB_DEFINED;
-				*pRGB = RGB(255, 255, 0);
+				if (BLINK)
+					*pRGB = RGB(130, 130, 130);
+				else
+					*pRGB = RGB(255, 255, 0);
 				strcpy_s(sItemString, 16, "T");
 			}
 			else {
