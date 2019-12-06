@@ -796,29 +796,17 @@ void CSMRRadar::OnClickScreenObject(int ObjectType, const char * sObjectId, POIN
 		}
 	}
 
-	map <const int, const int> TagObjectLeftClickTypes = {
-		{ TAG_CITEM_CALLSIGN, TAG_ITEM_FUNCTION_COMMUNICATION_POPUP },
-		{ TAG_CITEM_GROUNDSTATUS, TAG_ITEM_FUNCTION_SET_GROUND_STATUS }
-	};
-
-	map <const int, const int> TagObjectRightClickTypes = {
+	map <const int, const int> TagObjectTypes = {
 		{ TAG_CITEM_CALLSIGN, TAG_ITEM_FUNCTION_HANDOFF_POPUP_MENU },
 		{ TAG_CITEM_FPBOX, TAG_ITEM_FUNCTION_OPEN_FP_DIALOG },
 		{ TAG_CITEM_RWY, TAG_ITEM_FUNCTION_ASSIGNED_RUNWAY },
 		{ TAG_CITEM_SID, TAG_ITEM_FUNCTION_ASSIGNED_SID },
 		{ TAG_CITEM_GATE, TAG_ITEM_FUNCTION_EDIT_SCRATCH_PAD },
+		{ TAG_CITEM_GROUNDSTATUS, TAG_ITEM_FUNCTION_SET_GROUND_STATUS }
 	};
 
-	if (Button == BUTTON_RIGHT && TagObjectRightClickTypes[ObjectType]) {
-
-		int TagMenu = TagObjectRightClickTypes[ObjectType];
-		CRadarTarget rt = GetPlugIn()->RadarTargetSelect(sObjectId);
-		GetPlugIn()->SetASELAircraft(GetPlugIn()->FlightPlanSelect(sObjectId));
-		StartTagFunction(rt.GetCallsign(), NULL, ObjectType, rt.GetCallsign(), NULL, TagMenu, Pt, Area);
-
-	}
-	else if (Button == BUTTON_LEFT && TagObjectLeftClickTypes[ObjectType]) {
-		int TagMenu = TagObjectLeftClickTypes[ObjectType];
+	if (Button == BUTTON_RIGHT && TagObjectTypes[ObjectType]) {
+		int TagMenu = TagObjectTypes[ObjectType];
 		CRadarTarget rt = GetPlugIn()->RadarTargetSelect(sObjectId);
 		GetPlugIn()->SetASELAircraft(GetPlugIn()->FlightPlanSelect(sObjectId));
 		StartTagFunction(rt.GetCallsign(), NULL, ObjectType, rt.GetCallsign(), NULL, TagMenu, Pt, Area);
