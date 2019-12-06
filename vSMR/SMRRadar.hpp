@@ -145,7 +145,7 @@ public:
 	enum TagTypes { Departure, Arrival, Airborne, Uncorrelated };
 
 
-	string ActiveAirport = "LFPG";
+	string ActiveAirport = "EGKK";
 
 	inline string getActiveAirport() {
 		return ActiveAirport;
@@ -157,7 +157,7 @@ public:
 
 	//---GenerateTagData--------------------------------------------
 
-	static map<string, string> GenerateTagData(CRadarTarget Rt, CFlightPlan fp, bool isAcCorrelated, bool isProMode, int TransitionAltitude, bool useSpeedForGates);
+	static map<string, string> GenerateTagData(CRadarTarget Rt, CFlightPlan fp, bool isAcCorrelated, bool isProMode, int TransitionAltitude, bool useSpeedForGates, string ActiveAirport);
 
 	//---IsCorrelatedFuncs---------------------------------------------
 
