@@ -432,17 +432,19 @@
                 ["callsign", "srvrwy"],
                 ["gate", "actype"]
             ],
-            "background_color": {
-                "r": 170,
-                "g": 50,
-                "b": 50,
-                "a": 255
-            },
-            "background_color_on_runway": {
-                "r": 170,
-                "g": 50,
-                "b": 50,
-                "a": 255
+            "background_colors": {
+                "default": {
+                    "r": 170,
+                    "g": 50,
+                    "b": 50,
+                    "a": 255
+                },
+                "runway": {
+                    "r": 170,
+                    "g": 50,
+                    "b": 50,
+                    "a": 255
+                }
             },
             "text_color": {
                 "r": 255,
@@ -457,44 +459,48 @@
                 ["gs", "tendency", "flightlevel"],
                 ["actype", "dest"]
             ],
+            "background_colors": {
+                "default": {
+                    "r": 0,
+                    "g": 0,
+                    "b": 0,
+                    "a": 0
+                },
+                "runway": {
+                    "r": 0,
+                    "g": 0,
+                    "b": 0,
+                    "a": 255
+                }
+            },
             "text_color": {
                 "r": 255,
                 "g": 255,
                 "b": 255
-            },
-            "background_color": {
-                "r": 0,
-                "g": 0,
-                "b": 0,
-                "a": 255
-            },
-            "background_color_on_runway": {
-                "r": 0,
-                "g": 0,
-                "b": 0,
-                "a": 0
             }
         },
         "uncorrelated": {
             "definition": [
                 ["systemid"]
             ],
+            "background_colors": {
+                "default": {
+                    "r": 150,
+                    "g": 22,
+                    "b": 135,
+                    "a": 255
+                },
+                "runway": {
+                    "r": 150,
+                    "g": 22,
+                    "b": 135,
+                    "a": 255
+                }
+            },
             "text_color": {
                 "r": 255,
                 "g": 255,
                 "b": 255
-            },
-            "background_color": {
-                "r": 150,
-                "g": 22,
-                "b": 135,
-                "a": 255
-            },
-            "background_color_on_runway": {
-                "r": 0,
-                "g": 0,
-                "b": 0,
-                "a": 0
             }
         }
     },
