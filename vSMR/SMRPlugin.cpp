@@ -398,7 +398,6 @@ bool CSMRPlugin::OnCompileCommand(const char * sCommandLine) {
 		dia.m_Logon = logonCallsign.c_str();
 		dia.m_Password = logonCode.c_str();
 		dia.m_Sound = int(PlaySoundClr);
-		//dia.m_SoundVol = int(PlaySoundVol * 100);
 
 		if (dia.DoModal() != IDOK)
 			return true;
@@ -412,7 +411,6 @@ bool CSMRPlugin::OnCompileCommand(const char * sCommandLine) {
 		if (PlaySoundClr)
 			temp = 1;
 		SaveDataToSettings("cpdlc_sound", "Play sound on clearance request", std::to_string(temp).c_str());
-
 
 		return true;
 	}
