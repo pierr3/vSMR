@@ -31,7 +31,7 @@
     "labels": {
         "auto_deconfliction": true,
         "leader_line_length": 50,
-        "use_aspeed_for_gate": true,
+        "use_aspeed_for_gate": false,
         "squawk_error_color": {
             "r": 255,
             "g": 0,
@@ -57,7 +57,7 @@
         "departure": {
             "definition": [
                 ["callsign", "dest", "groundstatus"],
-                ["sctype", "sid", "deprwy"]
+                ["sctype", "gate", "sid", "deprwy"]
             ],
             "background_colors": {
                 "default": {
@@ -367,7 +367,7 @@
     "labels": {
         "auto_deconfliction": true,
         "leader_line_length": 50,
-        "use_aspeed_for_gate": true,
+        "use_aspeed_for_gate": false,
         "squawk_error_color": {
             "r": 255,
             "g": 0,
@@ -393,7 +393,7 @@
         "departure": {
             "definition": [
                 ["callsign", "dest", "groundstatus"],
-                ["sctype", "sid", "deprwy"]
+                ["sctype", "gate", "sid", "deprwy"]
             ],
             "background_colors": {
                 "default": {
