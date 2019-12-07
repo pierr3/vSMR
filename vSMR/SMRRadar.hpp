@@ -212,6 +212,10 @@ public:
 		}
 	};
 
+	//---CorrelateCursor--------------------------------------------
+
+	virtual void CorrelateCursor();
+
 	//---LoadCustomFont--------------------------------------------
 
 	virtual void LoadCustomFont();

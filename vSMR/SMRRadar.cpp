@@ -125,6 +125,38 @@ CSMRRadar::~CSMRRadar()
 	delete CurrentConfig;
 }
 
+void CSMRRadar::CorrelateCursor() {
+	if (NeedCorrelateCursor)
+	{
+		if (standardCursor)
+		{
+			smrCursor = CopyCursor((HCURSOR)::LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDC_SMRCORRELATE), IMAGE_CURSOR, 0, 0, LR_SHARED));
+
+			AFX_MANAGE_STATE(AfxGetStaticModuleState());
+			ASSERT(smrCursor);
+			SetCursor(smrCursor);
+			standardCursor = false;
+		}
+	}
+	else
+	{
+		if (!standardCursor)
+		{
+			if (customCursor) {
+				smrCursor = CopyCursor((HCURSOR)::LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDC_SMRCURSOR), IMAGE_CURSOR, 0, 0, LR_SHARED));
+			}
+			else {
+				smrCursor = (HCURSOR)::LoadCursor(NULL, IDC_ARROW);
+			}
+
+			AFX_MANAGE_STATE(AfxGetStaticModuleState());
+			ASSERT(smrCursor);
+			SetCursor(smrCursor);
+			standardCursor = true;
+		}
+	}
+}
+
 void CSMRRadar::LoadCustomFont() {
 	Logger::info(string(__FUNCSIG__));
 	// Loading the custom font if there is one in use
@@ -649,7 +681,7 @@ void CSMRRadar::OnClickScreenObject(int ObjectType, const char * sObjectId, POIN
 
 	if (ObjectType == DRAWING_TAG || ObjectType == DRAWING_AC_SYMBOL) {		
 		CRadarTarget rt = GetPlugIn()->RadarTargetSelect(sObjectId);
-		// GetPlugIn()->SetASELAircraft(rt); // NOTE: This does NOT work eventhough the api says it should?
+		//GetPlugIn()->SetASELAircraft(rt); // NOTE: This does NOT work eventhough the api says it should?
 		GetPlugIn()->SetASELAircraft(GetPlugIn()->FlightPlanSelect(sObjectId));  // make sure the correct aircraft is selected before calling 'StartTagFunction'
 		
 		if (rt.GetCorrelatedFlightPlan().IsValid()) {
@@ -681,35 +713,7 @@ void CSMRRadar::OnClickScreenObject(int ObjectType, const char * sObjectId, POIN
 			}
 
 
-			if (NeedCorrelateCursor)
-			{
-				if (standardCursor)
-				{
-					smrCursor = CopyCursor((HCURSOR)::LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDC_SMRCORRELATE), IMAGE_CURSOR, 0, 0, LR_SHARED));
-					
-					AFX_MANAGE_STATE(AfxGetStaticModuleState());
-					ASSERT(smrCursor);
-					SetCursor(smrCursor);
-					standardCursor = false;
-				}
-			}
-			else
-			{
-				if (!standardCursor)
-				{
-					if (customCursor) {
-						smrCursor = CopyCursor((HCURSOR)::LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDC_SMRCURSOR), IMAGE_CURSOR, 0, 0, LR_SHARED));						
-					}
-					else {
-						smrCursor = (HCURSOR)::LoadCursor(NULL, IDC_ARROW);
-					}
-					
-					AFX_MANAGE_STATE(AfxGetStaticModuleState());
-					ASSERT(smrCursor);
-					SetCursor(smrCursor);
-					standardCursor = true;
-				}
-			}
+			CorrelateCursor();
 
 			return;
 		}
@@ -804,6 +808,14 @@ void CSMRRadar::OnClickScreenObject(int ObjectType, const char * sObjectId, POIN
 		{ TAG_CITEM_GATE, TAG_ITEM_FUNCTION_EDIT_SCRATCH_PAD },
 		{ TAG_CITEM_GROUNDSTATUS, TAG_ITEM_FUNCTION_SET_GROUND_STATUS }
 	};
+
+	if (Button == BUTTON_LEFT && TagObjectTypes[ObjectType]) {
+		CRadarTarget rt = GetPlugIn()->RadarTargetSelect(sObjectId);
+		GetPlugIn()->SetASELAircraft(GetPlugIn()->FlightPlanSelect(sObjectId));
+		if (rt.GetCorrelatedFlightPlan().IsValid()) {
+			StartTagFunction(rt.GetCallsign(), NULL, EuroScopePlugIn::TAG_ITEM_TYPE_CALLSIGN, rt.GetCallsign(), NULL, EuroScopePlugIn::TAG_ITEM_FUNCTION_NO, Pt, Area);
+		}
+	}
 
 	if (Button == BUTTON_RIGHT && TagObjectTypes[ObjectType]) {
 		int TagMenu = TagObjectTypes[ObjectType];
@@ -1006,35 +1018,7 @@ void CSMRRadar::OnFunctionCall(int FunctionId, const char * sItemString, POINT P
 			AcquireInProgress = false;
 		NeedCorrelateCursor = ReleaseInProgress;
 
-		if (NeedCorrelateCursor)
-		{
-			if (standardCursor)
-			{
-				smrCursor = CopyCursor((HCURSOR)::LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDC_SMRCORRELATE), IMAGE_CURSOR, 0, 0, LR_SHARED));
-				
-				AFX_MANAGE_STATE(AfxGetStaticModuleState());
-				ASSERT(smrCursor);
-				SetCursor(smrCursor);
-				standardCursor = false;
-			}
-		}
-		else
-		{
-			if (!standardCursor)
-			{
-				if (customCursor) {
-					smrCursor = CopyCursor((HCURSOR)::LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDC_SMRCURSOR), IMAGE_CURSOR, 0, 0, LR_SHARED));
-				}
-				else {
-					smrCursor = (HCURSOR)::LoadCursor(NULL, IDC_ARROW);
-				}
-								
-				AFX_MANAGE_STATE(AfxGetStaticModuleState());
-				ASSERT(smrCursor);
-				SetCursor(smrCursor);
-				standardCursor = true;
-			}
-		}
+		CorrelateCursor();
 	}
 
 	if (FunctionId == RIMCAS_UPDATE_ACQUIRE)
@@ -1044,35 +1028,7 @@ void CSMRRadar::OnFunctionCall(int FunctionId, const char * sItemString, POINT P
 			ReleaseInProgress = false;
 		NeedCorrelateCursor = AcquireInProgress;
 
-		if (NeedCorrelateCursor)
-		{
-			if (standardCursor)
-			{
-				smrCursor = CopyCursor((HCURSOR)::LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDC_SMRCORRELATE), IMAGE_CURSOR, 0, 0, LR_SHARED));
-				
-				AFX_MANAGE_STATE(AfxGetStaticModuleState());
-				ASSERT(smrCursor);
-				SetCursor(smrCursor);
-				standardCursor = false;
-			}
-		}
-		else
-		{
-			if (!standardCursor)
-			{
-				if (customCursor) {
-					smrCursor = CopyCursor((HCURSOR)::LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDC_SMRCURSOR), IMAGE_CURSOR, 0, 0, LR_SHARED));
-				}
-				else {
-					smrCursor = (HCURSOR)::LoadCursor(NULL, IDC_ARROW);
-				}
-				
-				AFX_MANAGE_STATE(AfxGetStaticModuleState());
-				ASSERT(smrCursor);
-				SetCursor(smrCursor);
-				standardCursor = true;
-			}
-		}
+		CorrelateCursor();
 	}
 }
 
@@ -2206,7 +2162,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 				definedBackgroundColor = CurrentConfig->getSidColor(TagReplacingMap["sid"], getActiveAirport());
 			}
 
-			if (TagReplacingMap["sid"].empty() && LabelsSettings[Utils::getEnumString(ColorTagType).c_str()]["background_colors"].HasMember("nosid")) {
+			if (fp.GetFlightPlanData().GetPlanType() == "I" && TagReplacingMap["sid"].empty() && LabelsSettings[Utils::getEnumString(ColorTagType).c_str()]["background_colors"].HasMember("nosid")) {
 				definedBackgroundColor = CurrentConfig->getConfigColor(LabelsSettings[Utils::getEnumString(ColorTagType).c_str()]["background_colors"]["nosid"]);
 			}
 
