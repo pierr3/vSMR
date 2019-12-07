@@ -49,18 +49,16 @@ bool CConfig::isSidColorAvail(string sid, string airport) {
 		{
 			if (getActiveProfile()["maps"][airport.c_str()].HasMember("sids") && getActiveProfile()["maps"][airport.c_str()]["sids"].IsArray())
 			{
-				if (getActiveProfile()["maps"][airport.c_str()]["sids"].HasMember("names") && getActiveProfile()["maps"][airport.c_str()]["sids"]["names"].IsArray()) {
-					const Value& SIDs = getActiveProfile()["maps"][airport.c_str()]["sids"];
-					for (SizeType i = 0; i < SIDs.Size(); i++)
-					{
-						const Value& SIDNames = SIDs[i]["names"];
-						for (SizeType s = 0; s < SIDNames.Size(); s++) {
-							string currentsid = SIDNames[s].GetString();
-							std::transform(currentsid.begin(), currentsid.end(), currentsid.begin(), ::toupper);
-							if (startsWith(sid.c_str(), currentsid.c_str()))
-							{
-								return true;
-							}
+				const Value& SIDs = getActiveProfile()["maps"][airport.c_str()]["sids"];
+				for (SizeType i = 0; i < SIDs.Size(); i++)
+				{
+					const Value& SIDNames = SIDs[i]["names"];
+					for (SizeType s = 0; s < SIDNames.Size(); s++) {
+						string currentsid = SIDNames[s].GetString();
+						std::transform(currentsid.begin(), currentsid.end(), currentsid.begin(), ::toupper);
+						if (startsWith(sid.c_str(), currentsid.c_str()))
+						{
+							return true;
 						}
 					}
 				}
@@ -78,18 +76,16 @@ Gdiplus::Color CConfig::getSidColor(string sid, string airport)
 		{
 			if (getActiveProfile()["maps"][airport.c_str()].HasMember("sids") && getActiveProfile()["maps"][airport.c_str()]["sids"].IsArray())
 			{
-				if (getActiveProfile()["maps"][airport.c_str()]["sids"].HasMember("names") && getActiveProfile()["maps"][airport.c_str()]["sids"]["names"].IsArray()) {
-					const Value& SIDs = getActiveProfile()["maps"][airport.c_str()]["sids"];
-					for (SizeType i = 0; i < SIDs.Size(); i++)
-					{
-						const Value& SIDNames = SIDs[i]["names"];
-						for (SizeType s = 0; s < SIDNames.Size(); s++) {
-							string currentsid = SIDNames[s].GetString();
-							std::transform(currentsid.begin(), currentsid.end(), currentsid.begin(), ::toupper);
-							if (startsWith(sid.c_str(), currentsid.c_str()))
-							{
-								return getConfigColor(SIDs[i]["color"]);
-							}
+				const Value& SIDs = getActiveProfile()["maps"][airport.c_str()]["sids"];
+				for (SizeType i = 0; i < SIDs.Size(); i++)
+				{
+					const Value& SIDNames = SIDs[i]["names"];
+					for (SizeType s = 0; s < SIDNames.Size(); s++) {
+						string currentsid = SIDNames[s].GetString();
+						std::transform(currentsid.begin(), currentsid.end(), currentsid.begin(), ::toupper);
+						if (startsWith(sid.c_str(), currentsid.c_str()))
+						{
+							return getConfigColor(SIDs[i]["color"]);
 						}
 					}
 				}

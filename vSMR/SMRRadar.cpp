@@ -1466,30 +1466,30 @@ map<string, string> CSMRRadar::GenerateTagData(CRadarTarget rt, CFlightPlan fp, 
 	}
 
 	// ----- SID -------
-	string sid = "SID";
+	string dep = "SID";
 	if (fp.IsValid() && isAcCorrelated)
 	{
-		sid = fp.GetFlightPlanData().GetSidName();
+		dep = fp.GetFlightPlanData().GetSidName();
 	}
 
 	// ----- Short SID -------
-	string shid = sid;
+	string shid = dep;
 	if (fp.IsValid() && shid.size() > 5 && isAcCorrelated)
 	{
-		shid = sid.substr(0, 3);
-		shid += sid.substr(sid.size() - 2, sid.size());
+		shid = dep.substr(0, 3);
+		shid += dep.substr(dep.size() - 2, dep.size());
 	}
 
 	// ------- Origin aerodrome -------
 	string origin = "ORIGIN";
-	if (fp.IsValid() && isAcCorrelated)
+	if (isAcCorrelated)
 	{
 		origin = fp.GetFlightPlanData().GetOrigin();
 	}
 
 	// ------- Destination aerodrome -------
 	string dest = "DEST";
-	if (fp.IsValid() && isAcCorrelated)
+	if (isAcCorrelated)
 	{
 		dest = fp.GetFlightPlanData().GetDestination();
 	}
@@ -1552,7 +1552,7 @@ map<string, string> CSMRRadar::GenerateTagData(CRadarTarget rt, CFlightPlan fp, 
 	TagReplacingMap["tendency"] = tendency;
 	TagReplacingMap["wake"] = wake;
 	TagReplacingMap["ssr"] = tssr;
-	TagReplacingMap["sid"] = sid;
+	TagReplacingMap["sid"] = dep;
 	TagReplacingMap["shid"] = shid;
 	TagReplacingMap["origin"] = origin;
 	TagReplacingMap["dest"] = dest;
@@ -2202,10 +2202,11 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 
 		Color definedBackgroundColor = CurrentConfig->getConfigColor(LabelsSettings[Utils::getEnumString(ColorTagType).c_str()]["background_colors"]["default"]);
 		if (ColorTagType == TagTypes::Departure) {
-			if (CurrentConfig->isSidColorAvail(TagReplacingMap["sid"], getActiveAirport())) {
+			if (!TagReplacingMap["sid"].empty() && CurrentConfig->isSidColorAvail(TagReplacingMap["sid"], getActiveAirport())) {
 				definedBackgroundColor = CurrentConfig->getSidColor(TagReplacingMap["sid"], getActiveAirport());
 			}
-			else if (TagReplacingMap["sid"].empty() && LabelsSettings[Utils::getEnumString(ColorTagType).c_str()]["background_colors"].HasMember("nosid")) {
+
+			if (TagReplacingMap["sid"].empty() && LabelsSettings[Utils::getEnumString(ColorTagType).c_str()]["background_colors"].HasMember("nosid")) {
 				definedBackgroundColor = CurrentConfig->getConfigColor(LabelsSettings[Utils::getEnumString(ColorTagType).c_str()]["background_colors"]["nosid"]);
 			}
 

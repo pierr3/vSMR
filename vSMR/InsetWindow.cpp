@@ -513,11 +513,12 @@ void CInsetWindow::render(HDC hDC, CSMRRadar * radar_screen, Graphics* gdi, POIN
 		bool rimcasLabelOnly = radar_screen->CurrentConfig->getActiveProfile()["rimcas"]["rimcas_label_only"].GetBool();
 
 		Color definedBackgroundColor = radar_screen->CurrentConfig->getConfigColor(LabelsSettings[Utils::getEnumString(ColorTagType).c_str()]["background_colors"]["default"]);
-		if (ColorTagType == CSMRRadar::TagTypes::Departure) {
-			if (radar_screen->CurrentConfig->isSidColorAvail(TagReplacingMap["sid"], radar_screen->getActiveAirport())) {
+		if (TagType == CSMRRadar::TagTypes::Departure) {
+			if (!TagReplacingMap["sid"].empty() && radar_screen->CurrentConfig->isSidColorAvail(TagReplacingMap["sid"], radar_screen->getActiveAirport())) {
 				definedBackgroundColor = radar_screen->CurrentConfig->getSidColor(TagReplacingMap["sid"], radar_screen->getActiveAirport());
 			}
-			else if (TagReplacingMap["sid"].empty() && LabelsSettings[Utils::getEnumString(ColorTagType).c_str()]["background_colors"].HasMember("nosid")) {
+
+			if (TagReplacingMap["sid"].empty() && LabelsSettings[Utils::getEnumString(ColorTagType).c_str()]["background_colors"].HasMember("nosid")) {
 				definedBackgroundColor = radar_screen->CurrentConfig->getConfigColor(LabelsSettings[Utils::getEnumString(ColorTagType).c_str()]["background_colors"]["nosid"]);
 			}
 
