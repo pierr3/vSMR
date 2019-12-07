@@ -433,6 +433,14 @@ void CSMRPlugin::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, 
 				else
 					strcpy_s(sItemString, 16, "R");
 			}
+			else if (std::find(AircraftMessage.begin(), AircraftMessage.end(), FlightPlan.GetCallsign()) != AircraftMessage.end()) {
+				*pColorCode = TAG_COLOR_RGB_DEFINED;
+				if (BLINK)
+					*pRGB = RGB(130, 130, 130);
+				else
+					*pRGB = RGB(255, 255, 0);
+				strcpy_s(sItemString, 16, "T");
+			}
 			else if (std::find(AircraftWilco.begin(), AircraftWilco.end(), FlightPlan.GetCallsign()) != AircraftWilco.end()) {
 				*pColorCode = TAG_COLOR_RGB_DEFINED;
 				*pRGB = RGB(0, 176, 0);
@@ -442,14 +450,6 @@ void CSMRPlugin::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, 
 				*pColorCode = TAG_COLOR_RGB_DEFINED;
 				*pRGB = RGB(255, 255, 0);
 				strcpy_s(sItemString, 16, "V");
-			}
-			else if (std::find(AircraftMessage.begin(), AircraftMessage.end(), FlightPlan.GetCallsign()) != AircraftMessage.end()) {
-				*pColorCode = TAG_COLOR_RGB_DEFINED;
-				if (BLINK)
-					*pRGB = RGB(130, 130, 130);
-				else
-					*pRGB = RGB(255, 255, 0);
-				strcpy_s(sItemString, 16, "T");
 			}
 			else {
 				*pColorCode = TAG_COLOR_RGB_DEFINED;
