@@ -1388,7 +1388,7 @@ map<string, string> CSMRRadar::GenerateTagData(CRadarTarget rt, CFlightPlan fp, 
 	// ----- Departure runway -------
 	string deprwy = fp.GetFlightPlanData().GetDepartureRwy();
 	if (deprwy.length() == 0)
-		deprwy = "RWY";
+		deprwy = "";
 
 	// ----- Departure runway that changes for overspeed -------
 	string seprwy = deprwy;
@@ -1398,7 +1398,7 @@ map<string, string> CSMRRadar::GenerateTagData(CRadarTarget rt, CFlightPlan fp, 
 	// ----- Arrival runway -------
 	string arvrwy = fp.GetFlightPlanData().GetArrivalRwy();
 	if (arvrwy.length() == 0)
-		arvrwy = "RWY";
+		arvrwy = "";
 
 	// ----- Speed that changes to arrival runway -----
 	string srvrwy = speed;
@@ -1466,7 +1466,7 @@ map<string, string> CSMRRadar::GenerateTagData(CRadarTarget rt, CFlightPlan fp, 
 	}
 
 	// ----- SID -------
-	string dep = "SID";
+	string dep = "";
 	if (fp.IsValid() && isAcCorrelated)
 	{
 		dep = fp.GetFlightPlanData().GetSidName();
@@ -1481,14 +1481,14 @@ map<string, string> CSMRRadar::GenerateTagData(CRadarTarget rt, CFlightPlan fp, 
 	}
 
 	// ------- Origin aerodrome -------
-	string origin = "ORIGIN";
+	string origin = "";
 	if (isAcCorrelated)
 	{
 		origin = fp.GetFlightPlanData().GetOrigin();
 	}
 
 	// ------- Destination aerodrome -------
-	string dest = "DEST";
+	string dest = "";
 	if (isAcCorrelated)
 	{
 		dest = fp.GetFlightPlanData().GetDestination();
