@@ -11,21 +11,20 @@ CConfig::CConfig(string configPath)
 }
 
 void CConfig::loadConfig() {
-	
+
 	stringstream ss;
 	ifstream ifs;
 	ifs.open(config_path.c_str(), std::ios::binary);
 	ss << ifs.rdbuf();
 	ifs.close();
 
-	if (document.Parse<0>(ss.str().c_str()).HasParseError())
-	{
-		AfxMessageBox("An error parsing vSMR configuration occured. EuroScope will now close.", MB_OK);
-
+	if (document.Parse<0>(ss.str().c_str()).HasParseError()) {
+		AfxMessageBox("An error parsing vSMR configuration occurred.\nOnce fixed, reload the config by typing '.smr reload'", MB_OK);
+	
 		ASSERT(AfxGetMainWnd() != NULL);
 		AfxGetMainWnd()->SendMessage(WM_CLOSE);
 	}
-		
+	
 	profiles.clear();
 
 	assert(document.IsArray());

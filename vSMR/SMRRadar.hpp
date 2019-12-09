@@ -1,15 +1,11 @@
 #pragma once
 #include <EuroScopePlugIn.h>
-#include <iostream>
-#include <sstream>
 #include <string>
 #include <vector>
 #include <map>
 #include <algorithm>
 #include <time.h>
-#include <sstream>
 #include <GdiPlus.h>
-#include <sstream>
 #define _USE_MATH_DEFINES
 #include <math.h>
 #include "Constant.hpp"
@@ -82,6 +78,7 @@ public:
 
 	char DllPathFile[_MAX_PATH];
 	string DllPath;
+	string ConfigPath;
 	CCallsignLookup * Callsigns;
 	CColorManager * ColorManager;
 
