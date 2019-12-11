@@ -1,15 +1,11 @@
 #pragma once
 #include <EuroScopePlugIn.h>
-#include <iostream>
-#include <sstream>
 #include <string>
 #include <vector>
 #include <map>
 #include <algorithm>
 #include <time.h>
-#include <sstream>
 #include <GdiPlus.h>
-#include <sstream>
 #define _USE_MATH_DEFINES
 #include <math.h>
 #include "Constant.hpp"
@@ -82,6 +78,7 @@ public:
 
 	char DllPathFile[_MAX_PATH];
 	string DllPath;
+	string ConfigPath;
 	CCallsignLookup * Callsigns;
 	CColorManager * ColorManager;
 
@@ -145,7 +142,7 @@ public:
 	enum TagTypes { Departure, Arrival, Airborne, Uncorrelated };
 
 
-	string ActiveAirport = "LFPG";
+	string ActiveAirport = "EGKK";
 
 	inline string getActiveAirport() {
 		return ActiveAirport;
@@ -157,7 +154,7 @@ public:
 
 	//---GenerateTagData--------------------------------------------
 
-	static map<string, string> GenerateTagData(CRadarTarget Rt, CFlightPlan fp, bool isAcCorrelated, bool isProMode, int TransitionAltitude, bool useSpeedForGates);
+	static map<string, string> GenerateTagData(CRadarTarget Rt, CFlightPlan fp, bool isAcCorrelated, bool isProMode, int TransitionAltitude, bool useSpeedForGates, string ActiveAirport);
 
 	//---IsCorrelatedFuncs---------------------------------------------
 
@@ -211,6 +208,10 @@ public:
 			return true;
 		}
 	};
+
+	//---CorrelateCursor--------------------------------------------
+
+	virtual void CorrelateCursor();
 
 	//---LoadCustomFont--------------------------------------------
 

@@ -19,7 +19,7 @@ END_MESSAGE_MAP()
 
 CvSMRApp::CvSMRApp()
 {
-	
+
 }
 
 
@@ -39,7 +39,7 @@ BOOL CvSMRApp::InitInstance()
 
 //---EuroScopePlugInInit-----------------------------------------------
 
-void __declspec (dllexport) EuroScopePlugInInit(EuroScopePlugIn::CPlugIn ** ppPlugInInstance)
+void __declspec (dllexport) EuroScopePlugInInit(EuroScopePlugIn::CPlugIn** ppPlugInInstance)
 {
 	AFX_MANAGE_STATE(AfxGetStaticModuleState())
 

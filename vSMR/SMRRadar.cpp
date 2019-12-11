@@ -44,7 +44,6 @@ bool mouseWithin(CRect rect) {
 CSMRRadar::CSMRRadar()
 {
 
-
 	Logger::info("CSMRRadar::CSMRRadar()");
 
 	// Initializing randomizer
@@ -58,6 +57,8 @@ CSMRRadar::CSMRRadar()
 	GetModuleFileNameA(HINSTANCE(&__ImageBase), DllPathFile, sizeof(DllPathFile));
 	DllPath = DllPathFile;
 	DllPath.resize(DllPath.size() - strlen("vSMR.dll"));
+	
+	ConfigPath = DllPath + "\\vSMR_Profiles.json";
 
 	Logger::info("Loading callsigns");
 	// Loading up the callsigns for the bottom line
@@ -85,13 +86,13 @@ CSMRRadar::CSMRRadar()
 
 	// Loading up the config file
 	if (CurrentConfig == nullptr)
-		CurrentConfig = new CConfig(DllPath + "\\vSMR_Profiles.json");
+		CurrentConfig = new CConfig(ConfigPath);
 
 	if (ColorManager == nullptr)
 		ColorManager = new CColorManager();
 
 	standardCursor = true;	
-	ActiveAirport = "LFPG";
+	ActiveAirport = "EGKK";
 
 	// Setting up the data for the 2 approach windows
 	appWindowDisplays[1] = false;
@@ -118,11 +119,43 @@ CSMRRadar::~CSMRRadar()
 	catch (exception &e) {
 		stringstream s;
 		s << e.what() << endl;
-		AfxMessageBox(string("Error occured " + s.str()).c_str());
+		AfxMessageBox(string("Error occurred " + s.str()).c_str());
 	}
 	// Shutting down GDI+
 	GdiplusShutdown(m_gdiplusToken);
 	delete CurrentConfig;
+}
+
+void CSMRRadar::CorrelateCursor() {
+	if (NeedCorrelateCursor)
+	{
+		if (standardCursor)
+		{
+			smrCursor = CopyCursor((HCURSOR)::LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDC_SMRCORRELATE), IMAGE_CURSOR, 0, 0, LR_SHARED));
+
+			AFX_MANAGE_STATE(AfxGetStaticModuleState());
+			ASSERT(smrCursor);
+			SetCursor(smrCursor);
+			standardCursor = false;
+		}
+	}
+	else
+	{
+		if (!standardCursor)
+		{
+			if (customCursor) {
+				smrCursor = CopyCursor((HCURSOR)::LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDC_SMRCURSOR), IMAGE_CURSOR, 0, 0, LR_SHARED));
+			}
+			else {
+				smrCursor = (HCURSOR)::LoadCursor(NULL, IDC_ARROW);
+			}
+
+			AFX_MANAGE_STATE(AfxGetStaticModuleState());
+			ASSERT(smrCursor);
+			SetCursor(smrCursor);
+			standardCursor = true;
+		}
+	}
 }
 
 void CSMRRadar::LoadCustomFont() {
@@ -649,7 +682,7 @@ void CSMRRadar::OnClickScreenObject(int ObjectType, const char * sObjectId, POIN
 
 	if (ObjectType == DRAWING_TAG || ObjectType == DRAWING_AC_SYMBOL) {		
 		CRadarTarget rt = GetPlugIn()->RadarTargetSelect(sObjectId);
-		// GetPlugIn()->SetASELAircraft(rt); // NOTE: This does NOT work eventhough the api says it should?
+		//GetPlugIn()->SetASELAircraft(rt); // NOTE: This does NOT work eventhough the api says it should?
 		GetPlugIn()->SetASELAircraft(GetPlugIn()->FlightPlanSelect(sObjectId));  // make sure the correct aircraft is selected before calling 'StartTagFunction'
 		
 		if (rt.GetCorrelatedFlightPlan().IsValid()) {
@@ -681,35 +714,7 @@ void CSMRRadar::OnClickScreenObject(int ObjectType, const char * sObjectId, POIN
 			}
 
 
-			if (NeedCorrelateCursor)
-			{
-				if (standardCursor)
-				{
-					smrCursor = CopyCursor((HCURSOR)::LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDC_SMRCORRELATE), IMAGE_CURSOR, 0, 0, LR_SHARED));
-					
-					AFX_MANAGE_STATE(AfxGetStaticModuleState());
-					ASSERT(smrCursor);
-					SetCursor(smrCursor);
-					standardCursor = false;
-				}
-			}
-			else
-			{
-				if (!standardCursor)
-				{
-					if (customCursor) {
-						smrCursor = CopyCursor((HCURSOR)::LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDC_SMRCURSOR), IMAGE_CURSOR, 0, 0, LR_SHARED));						
-					}
-					else {
-						smrCursor = (HCURSOR)::LoadCursor(NULL, IDC_ARROW);
-					}
-					
-					AFX_MANAGE_STATE(AfxGetStaticModuleState());
-					ASSERT(smrCursor);
-					SetCursor(smrCursor);
-					standardCursor = true;
-				}
-			}
+			CorrelateCursor();
 
 			return;
 		}
@@ -796,52 +801,40 @@ void CSMRRadar::OnClickScreenObject(int ObjectType, const char * sObjectId, POIN
 		}
 	}
 
-	if (ObjectType == TAG_CITEM_CALLSIGN || ObjectType == TAG_CITEM_FPBOX || ObjectType == TAG_CITEM_RWY || ObjectType == TAG_CITEM_SID || ObjectType == TAG_CITEM_GATE || ObjectType == TAG_CITEM_NO || ObjectType == TAG_CITEM_GROUNDSTATUS) {
+	map <const int, const int> TagObjectMiddleTypes = {
+		{ TAG_CITEM_CALLSIGN, TAG_ITEM_FUNCTION_COMMUNICATION_POPUP },
+	};
 
+	map <const int, const int> TagObjectRightTypes = {
+		{ TAG_CITEM_CALLSIGN, TAG_ITEM_FUNCTION_HANDOFF_POPUP_MENU },
+		{ TAG_CITEM_FPBOX, TAG_ITEM_FUNCTION_OPEN_FP_DIALOG },
+		{ TAG_CITEM_RWY, TAG_ITEM_FUNCTION_ASSIGNED_RUNWAY },
+		{ TAG_CITEM_SID, TAG_ITEM_FUNCTION_ASSIGNED_SID },
+		{ TAG_CITEM_GATE, TAG_ITEM_FUNCTION_EDIT_SCRATCH_PAD },
+		{ TAG_CITEM_GROUNDSTATUS, TAG_ITEM_FUNCTION_SET_GROUND_STATUS }
+	};
+
+	if (Button == BUTTON_LEFT) {
 		CRadarTarget rt = GetPlugIn()->RadarTargetSelect(sObjectId);
 		GetPlugIn()->SetASELAircraft(GetPlugIn()->FlightPlanSelect(sObjectId));
-
-		switch (ObjectType) {
-		case TAG_CITEM_CALLSIGN:
-			if (Button == EuroScopePlugIn::BUTTON_LEFT || Button == EuroScopePlugIn::BUTTON_MIDDLE)
-				StartTagFunction(rt.GetCallsign(), NULL, TAG_CITEM_CALLSIGN, rt.GetCallsign(), NULL, EuroScopePlugIn::TAG_ITEM_FUNCTION_HANDOFF_POPUP_MENU, Pt, Area);
-			else if (Button == EuroScopePlugIn::BUTTON_RIGHT)
-				StartTagFunction(rt.GetCallsign(), NULL, TAG_CITEM_CALLSIGN, rt.GetCallsign(), NULL, EuroScopePlugIn::TAG_ITEM_FUNCTION_COMMUNICATION_POPUP, Pt, Area);
-
-			break;
-
-		case TAG_CITEM_FPBOX:
-			if (Button == EuroScopePlugIn::BUTTON_RIGHT)
-				StartTagFunction(rt.GetCallsign(), NULL, TAG_CITEM_FPBOX, rt.GetCallsign(), NULL, EuroScopePlugIn::TAG_ITEM_FUNCTION_OPEN_FP_DIALOG, Pt, Area);
-
-			break;
-
-		case TAG_CITEM_RWY:
-			if (Button == EuroScopePlugIn::BUTTON_RIGHT)
-				StartTagFunction(rt.GetCallsign(), NULL, TAG_CITEM_RWY, rt.GetCallsign(), NULL, EuroScopePlugIn::TAG_ITEM_FUNCTION_ASSIGNED_RUNWAY, Pt, Area);
-
-			break;
-
-		case TAG_CITEM_SID:
-			if (Button == EuroScopePlugIn::BUTTON_RIGHT)
-				StartTagFunction(rt.GetCallsign(), NULL, TAG_CITEM_SID, rt.GetCallsign(), NULL, EuroScopePlugIn::TAG_ITEM_FUNCTION_ASSIGNED_SID, Pt, Area);
-
-			break;
-
-		case TAG_CITEM_GATE:
-			if (Button == EuroScopePlugIn::BUTTON_RIGHT)
-				StartTagFunction(rt.GetCallsign(), NULL, TAG_CITEM_GATE, rt.GetCallsign(), NULL, EuroScopePlugIn::TAG_ITEM_FUNCTION_EDIT_SCRATCH_PAD, Pt, Area);
-
-			break;
-
-		case TAG_CITEM_GROUNDSTATUS:
-			if (Button == EuroScopePlugIn::BUTTON_RIGHT)
-				StartTagFunction(rt.GetCallsign(), NULL, TAG_CITEM_GROUNDSTATUS, rt.GetCallsign(), NULL, EuroScopePlugIn::TAG_ITEM_FUNCTION_SET_GROUND_STATUS, Pt, Area);
-			
-			break;
+		if (rt.GetCorrelatedFlightPlan().IsValid()) {
+			StartTagFunction(rt.GetCallsign(), NULL, TAG_ITEM_TYPE_CALLSIGN, rt.GetCallsign(), NULL, TAG_ITEM_FUNCTION_NO, Pt, Area);
 		}
-	
-	}	
+	}
+
+	if (Button == BUTTON_MIDDLE && TagObjectMiddleTypes[ObjectType]) {
+		int TagMenu = TagObjectMiddleTypes[ObjectType];
+		CRadarTarget rt = GetPlugIn()->RadarTargetSelect(sObjectId);
+		GetPlugIn()->SetASELAircraft(GetPlugIn()->FlightPlanSelect(sObjectId));
+		StartTagFunction(rt.GetCallsign(), NULL, ObjectType, rt.GetCallsign(), NULL, TagMenu, Pt, Area);
+	}
+
+	if (Button == BUTTON_RIGHT && TagObjectRightTypes[ObjectType]) {
+		int TagMenu = TagObjectRightTypes[ObjectType];
+		CRadarTarget rt = GetPlugIn()->RadarTargetSelect(sObjectId);
+		GetPlugIn()->SetASELAircraft(GetPlugIn()->FlightPlanSelect(sObjectId));
+		StartTagFunction(rt.GetCallsign(), NULL, ObjectType, rt.GetCallsign(), NULL, TagMenu, Pt, Area);
+	}
 
 	if (ObjectType == RIMCAS_DISTANCE_TOOL)
 	{
@@ -1037,35 +1030,7 @@ void CSMRRadar::OnFunctionCall(int FunctionId, const char * sItemString, POINT P
 			AcquireInProgress = false;
 		NeedCorrelateCursor = ReleaseInProgress;
 
-		if (NeedCorrelateCursor)
-		{
-			if (standardCursor)
-			{
-				smrCursor = CopyCursor((HCURSOR)::LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDC_SMRCORRELATE), IMAGE_CURSOR, 0, 0, LR_SHARED));
-				
-				AFX_MANAGE_STATE(AfxGetStaticModuleState());
-				ASSERT(smrCursor);
-				SetCursor(smrCursor);
-				standardCursor = false;
-			}
-		}
-		else
-		{
-			if (!standardCursor)
-			{
-				if (customCursor) {
-					smrCursor = CopyCursor((HCURSOR)::LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDC_SMRCURSOR), IMAGE_CURSOR, 0, 0, LR_SHARED));
-				}
-				else {
-					smrCursor = (HCURSOR)::LoadCursor(NULL, IDC_ARROW);
-				}
-								
-				AFX_MANAGE_STATE(AfxGetStaticModuleState());
-				ASSERT(smrCursor);
-				SetCursor(smrCursor);
-				standardCursor = true;
-			}
-		}
+		CorrelateCursor();
 	}
 
 	if (FunctionId == RIMCAS_UPDATE_ACQUIRE)
@@ -1075,35 +1040,7 @@ void CSMRRadar::OnFunctionCall(int FunctionId, const char * sItemString, POINT P
 			ReleaseInProgress = false;
 		NeedCorrelateCursor = AcquireInProgress;
 
-		if (NeedCorrelateCursor)
-		{
-			if (standardCursor)
-			{
-				smrCursor = CopyCursor((HCURSOR)::LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDC_SMRCORRELATE), IMAGE_CURSOR, 0, 0, LR_SHARED));
-				
-				AFX_MANAGE_STATE(AfxGetStaticModuleState());
-				ASSERT(smrCursor);
-				SetCursor(smrCursor);
-				standardCursor = false;
-			}
-		}
-		else
-		{
-			if (!standardCursor)
-			{
-				if (customCursor) {
-					smrCursor = CopyCursor((HCURSOR)::LoadImage(AfxGetInstanceHandle(), MAKEINTRESOURCE(IDC_SMRCURSOR), IMAGE_CURSOR, 0, 0, LR_SHARED));
-				}
-				else {
-					smrCursor = (HCURSOR)::LoadCursor(NULL, IDC_ARROW);
-				}
-				
-				AFX_MANAGE_STATE(AfxGetStaticModuleState());
-				ASSERT(smrCursor);
-				SetCursor(smrCursor);
-				standardCursor = true;
-			}
-		}
+		CorrelateCursor();
 	}
 }
 
@@ -1313,7 +1250,7 @@ bool CSMRRadar::OnCompileCommand(const char * sCommandLine)
 {
 	Logger::info(string(__FUNCSIG__));
 	if (strcmp(sCommandLine, ".smr reload") == 0) {
-		CurrentConfig = new CConfig(DllPath + "\\vSMR_Profiles.json");
+		CurrentConfig = new CConfig(ConfigPath);
 		LoadProfile(CurrentConfig->getActiveProfileName());
 		return true;
 	}
@@ -1321,7 +1258,7 @@ bool CSMRRadar::OnCompileCommand(const char * sCommandLine)
 	return false;
 }
 
-map<string, string> CSMRRadar::GenerateTagData(CRadarTarget rt, CFlightPlan fp, bool isAcCorrelated, bool isProMode, int TransitionAltitude, bool useSpeedForGates)
+map<string, string> CSMRRadar::GenerateTagData(CRadarTarget rt, CFlightPlan fp, bool isAcCorrelated, bool isProMode, int TransitionAltitude, bool useSpeedForGates, string ActiveAirport)
 {
 	Logger::info(string(__FUNCSIG__));
 	// ----
@@ -1332,15 +1269,20 @@ map<string, string> CSMRRadar::GenerateTagData(CRadarTarget rt, CFlightPlan fp, 
 	// sqerror: Squawk error if there is one, or empty *
 	// deprwy: Departure runway *
 	// seprwy: Departure runway that changes to speed if speed > 25kts *
+	// arvrwy: Arrival runway *
+	// srvrwy: Speed that changes to arrival runway if speed < 25kts *
 	// gate: Gate, from speed or scratchpad *
 	// sate: Gate, from speed or scratchpad that changes to speed if speed > 25kts *
 	// flightlevel: Flightlevel/Pressure altitude of the ac *
 	// gs: Ground speed of the ac *
 	// tendency: Climbing or descending symbol *
 	// wake: Wake turbulance cat *
+	// groundstatus: Current status *
 	// ssr: the current squawk of the ac
-	// dep: the assigned SID
-	// sdep: a short version of the SID
+	// sid: the assigned SID
+	// ssid: a short version of the SID
+	// origin: origin aerodrome
+	// dest: destination aerodrome
 	// ----
 
 	bool IsPrimary = !rt.GetPosition().GetTransponderC();
@@ -1384,7 +1326,7 @@ map<string, string> CSMRRadar::GenerateTagData(CRadarTarget rt, CFlightPlan fp, 
 		}
 	}
 
-	// ----- Squawn error -------
+	// ----- Squawk error -------
 	string sqerror = "";
 	const char * assr = fp.GetControllerAssignedData().GetSquawk();
 	const char * ssr = rt.GetPosition().GetSquawk();
@@ -1420,6 +1362,16 @@ map<string, string> CSMRRadar::GenerateTagData(CRadarTarget rt, CFlightPlan fp, 
 	string seprwy = deprwy;
 	if (rt.GetPosition().GetReportedGS() > 25)
 		seprwy = std::to_string(rt.GetPosition().GetReportedGS());
+
+	// ----- Arrival runway -------
+	string arvrwy = fp.GetFlightPlanData().GetArrivalRwy();
+	if (arvrwy.length() == 0)
+		arvrwy = "RWY";
+
+	// ----- Speed that changes to arrival runway -----
+	string srvrwy = speed;
+	if (rt.GetPosition().GetReportedGS() < 25)
+		srvrwy = arvrwy;
 
 	// ----- Gate -------
 	string gate;
@@ -1481,23 +1433,37 @@ map<string, string> CSMRRadar::GenerateTagData(CRadarTarget rt, CFlightPlan fp, 
 		tssr = rt.GetPosition().GetSquawk();
 	}
 
-	// ----- DEP -------
+	// ----- SID -------
 	string dep = "SID";
 	if (fp.IsValid() && isAcCorrelated)
 	{
 		dep = fp.GetFlightPlanData().GetSidName();
 	}
 
-	// ----- Short DEP -------
-	string sdep = dep;
-	if (fp.IsValid() && sdep.size() > 5 && isAcCorrelated)
+	// ----- Short SID -------
+	string ssid = dep;
+	if (fp.IsValid() && ssid.size() > 5 && isAcCorrelated)
 	{
-		sdep = dep.substr(0, 3);
-		sdep += dep.substr(dep.size() - 2, dep.size());
+		ssid = dep.substr(0, 3);
+		ssid += dep.substr(dep.size() - 2, dep.size());
+	}
+
+	// ------- Origin aerodrome -------
+	string origin = "????";
+	if (isAcCorrelated)
+	{
+		origin = fp.GetFlightPlanData().GetOrigin();
+	}
+
+	// ------- Destination aerodrome -------
+	string dest = "????";
+	if (isAcCorrelated)
+	{
+		dest = fp.GetFlightPlanData().GetDestination();
 	}
 
 	// ----- GSTAT -------
-	string gstat = "";
+	string gstat = "STS";
 	if (fp.IsValid() && isAcCorrelated) {
 		gstat = fp.GetGroundState();
 	}
@@ -1545,6 +1511,8 @@ map<string, string> CSMRRadar::GenerateTagData(CRadarTarget rt, CFlightPlan fp, 
 	TagReplacingMap["sqerror"] = sqerror;
 	TagReplacingMap["deprwy"] = deprwy;
 	TagReplacingMap["seprwy"] = seprwy;
+	TagReplacingMap["arvrwy"] = arvrwy;
+	TagReplacingMap["srvrwy"] = srvrwy;
 	TagReplacingMap["gate"] = gate;
 	TagReplacingMap["sate"] = sate;
 	TagReplacingMap["flightlevel"] = flightlevel;
@@ -1553,7 +1521,9 @@ map<string, string> CSMRRadar::GenerateTagData(CRadarTarget rt, CFlightPlan fp, 
 	TagReplacingMap["wake"] = wake;
 	TagReplacingMap["ssr"] = tssr;
 	TagReplacingMap["asid"] = dep;
-	TagReplacingMap["ssid"] = sdep;
+	TagReplacingMap["ssid"] = ssid;
+	TagReplacingMap["origin"] = origin;
+	TagReplacingMap["dest"] = dest;
 	TagReplacingMap["groundstatus"] = gstat;
 
 	return TagReplacingMap;
@@ -2087,11 +2057,14 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 		}
 
 		TagTypes TagType = TagTypes::Departure;		
-		TagTypes ColorTagType = TagTypes::Departure;		
+		TagTypes ColorTagType = TagTypes::Departure;
 
 		if (fp.IsValid() && strcmp(fp.GetFlightPlanData().GetDestination(), getActiveAirport().c_str()) == 0) {
-			TagType = TagTypes::Arrival;
-			ColorTagType = TagTypes::Arrival;
+			// Circuit aircraft are treated as departures; not arrivals
+			if (strcmp(fp.GetFlightPlanData().GetOrigin(), getActiveAirport().c_str()) != 0) {
+				TagType = TagTypes::Arrival;
+				ColorTagType = TagTypes::Arrival;
+			}
 		}
 
 		if (reportedGs > 50) {
@@ -2110,7 +2083,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 			ColorTagType = TagTypes::Uncorrelated;
 		}
 
-		map<string, string> TagReplacingMap = GenerateTagData(rt, fp, IsCorrelated(fp, rt), CurrentConfig->getActiveProfile()["filters"]["pro_mode"]["enable"].GetBool(), GetPlugIn()->GetTransitionAltitude(), CurrentConfig->getActiveProfile()["labels"]["use_aspeed_for_gate"].GetBool());
+		map<string, string> TagReplacingMap = GenerateTagData(rt, fp, IsCorrelated(fp, rt), CurrentConfig->getActiveProfile()["filters"]["pro_mode"]["enable"].GetBool(), GetPlugIn()->GetTransitionAltitude(), CurrentConfig->getActiveProfile()["labels"]["use_aspeed_for_gate"].GetBool(), getActiveAirport());
 
 		// ----- Generating the clickable map -----
 		map<string, int> TagClickableMap;
@@ -2120,6 +2093,8 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 		TagClickableMap[TagReplacingMap["sqerror"]] = TAG_CITEM_FPBOX;
 		TagClickableMap[TagReplacingMap["deprwy"]] = TAG_CITEM_RWY;
 		TagClickableMap[TagReplacingMap["seprwy"]] = TAG_CITEM_RWY;
+		TagClickableMap[TagReplacingMap["arvrwy"]] = TAG_CITEM_RWY;
+		TagClickableMap[TagReplacingMap["srvrwy"]] = TAG_CITEM_RWY;
 		TagClickableMap[TagReplacingMap["gate"]] = TAG_CITEM_GATE;
 		TagClickableMap[TagReplacingMap["sate"]] = TAG_CITEM_GATE;
 		TagClickableMap[TagReplacingMap["flightlevel"]] = TAG_CITEM_NO;
@@ -2128,6 +2103,8 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 		TagClickableMap[TagReplacingMap["wake"]] = TAG_CITEM_FPBOX;
 		TagClickableMap[TagReplacingMap["tssr"]] = TAG_CITEM_NO;
 		TagClickableMap[TagReplacingMap["asid"]] = TagClickableMap[TagReplacingMap["ssid"]] = TAG_CITEM_SID;
+		TagClickableMap[TagReplacingMap["origin"]] = TAG_CITEM_FPBOX;
+		TagClickableMap[TagReplacingMap["dest"]] = TAG_CITEM_FPBOX;
 		TagClickableMap[TagReplacingMap["systemid"]] = TAG_CITEM_NO;
 		TagClickableMap[TagReplacingMap["groundstatus"]] = TAG_CITEM_GROUNDSTATUS;
 
@@ -2189,10 +2166,25 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 
 			ReplacedLabelLines.push_back(lineStringArray);
 		}
-		TagHeight = TagHeight - 2;		
+		TagHeight = TagHeight - 2;
+
+		Color definedBackgroundColor = CurrentConfig->getConfigColor(LabelsSettings[Utils::getEnumString(ColorTagType).c_str()]["background_color"]);
+		if (ColorTagType == TagTypes::Departure) {
+			if (!TagReplacingMap["asid"].empty() && CurrentConfig->isSidColorAvail(TagReplacingMap["asid"], getActiveAirport())) {
+				definedBackgroundColor = CurrentConfig->getSidColor(TagReplacingMap["asid"], getActiveAirport());
+			}
+
+			if (fp.GetFlightPlanData().GetPlanType() == "I" && TagReplacingMap["asid"].empty() && LabelsSettings[Utils::getEnumString(ColorTagType).c_str()].HasMember("nosid_color")) {
+				definedBackgroundColor = CurrentConfig->getConfigColor(LabelsSettings[Utils::getEnumString(ColorTagType).c_str()]["nosid_color"]);
+			}
+
+			if (TagReplacingMap["actype"] == "NoFPL" && LabelsSettings[Utils::getEnumString(ColorTagType).c_str()].HasMember("nofpl_color")) {
+				definedBackgroundColor = CurrentConfig->getConfigColor(LabelsSettings[Utils::getEnumString(ColorTagType).c_str()]["nofpl_color"]);
+			}
+		}
 
 		Color TagBackgroundColor = RimcasInstance->GetAircraftColor(rt.GetCallsign(),
-			CurrentConfig->getConfigColor(LabelsSettings[Utils::getEnumString(ColorTagType).c_str()]["background_color"]),
+			definedBackgroundColor,
 			CurrentConfig->getConfigColor(LabelsSettings[Utils::getEnumString(ColorTagType).c_str()]["background_color_on_runway"]),
 			CurrentConfig->getConfigColor(CurrentConfig->getActiveProfile()["rimcas"]["background_color_stage_one"]),
 			CurrentConfig->getConfigColor(CurrentConfig->getActiveProfile()["rimcas"]["background_color_stage_two"]));
@@ -2202,7 +2194,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 
 		if (rimcasLabelOnly)
 			TagBackgroundColor = RimcasInstance->GetAircraftColor(rt.GetCallsign(),
-			CurrentConfig->getConfigColor(LabelsSettings[Utils::getEnumString(ColorTagType).c_str()]["background_color"]),
+			definedBackgroundColor,
 			CurrentConfig->getConfigColor(LabelsSettings[Utils::getEnumString(ColorTagType).c_str()]["background_color_on_runway"]));
 
 		TagBackgroundColor = ColorManager->get_corrected_color("label", TagBackgroundColor);
