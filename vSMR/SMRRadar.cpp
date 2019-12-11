@@ -802,11 +802,11 @@ void CSMRRadar::OnClickScreenObject(int ObjectType, const char * sObjectId, POIN
 	}
 
 	map <const int, const int> TagObjectMiddleTypes = {
-		{ TAG_CITEM_CALLSIGN, TAG_ITEM_FUNCTION_HANDOFF_POPUP_MENU },
+		{ TAG_CITEM_CALLSIGN, TAG_ITEM_FUNCTION_COMMUNICATION_POPUP },
 	};
 
 	map <const int, const int> TagObjectRightTypes = {
-		{ TAG_CITEM_CALLSIGN, TAG_ITEM_FUNCTION_COMMUNICATION_POPUP },
+		{ TAG_CITEM_CALLSIGN, TAG_ITEM_FUNCTION_HANDOFF_POPUP_MENU },
 		{ TAG_CITEM_FPBOX, TAG_ITEM_FUNCTION_OPEN_FP_DIALOG },
 		{ TAG_CITEM_RWY, TAG_ITEM_FUNCTION_ASSIGNED_RUNWAY },
 		{ TAG_CITEM_SID, TAG_ITEM_FUNCTION_ASSIGNED_SID },
@@ -1356,7 +1356,7 @@ map<string, string> CSMRRadar::GenerateTagData(CRadarTarget rt, CFlightPlan fp, 
 	// ----- Departure runway -------
 	string deprwy = fp.GetFlightPlanData().GetDepartureRwy();
 	if (deprwy.length() == 0)
-		deprwy = "";
+		deprwy = "RWY";
 
 	// ----- Departure runway that changes for overspeed -------
 	string seprwy = deprwy;
@@ -1366,7 +1366,7 @@ map<string, string> CSMRRadar::GenerateTagData(CRadarTarget rt, CFlightPlan fp, 
 	// ----- Arrival runway -------
 	string arvrwy = fp.GetFlightPlanData().GetArrivalRwy();
 	if (arvrwy.length() == 0)
-		arvrwy = "";
+		arvrwy = "RWY";
 
 	// ----- Speed that changes to arrival runway -----
 	string srvrwy = speed;
@@ -1434,7 +1434,7 @@ map<string, string> CSMRRadar::GenerateTagData(CRadarTarget rt, CFlightPlan fp, 
 	}
 
 	// ----- SID -------
-	string dep = "";
+	string dep = "SID";
 	if (fp.IsValid() && isAcCorrelated)
 	{
 		dep = fp.GetFlightPlanData().GetSidName();
@@ -1449,21 +1449,21 @@ map<string, string> CSMRRadar::GenerateTagData(CRadarTarget rt, CFlightPlan fp, 
 	}
 
 	// ------- Origin aerodrome -------
-	string origin = "";
+	string origin = "????";
 	if (isAcCorrelated)
 	{
 		origin = fp.GetFlightPlanData().GetOrigin();
 	}
 
 	// ------- Destination aerodrome -------
-	string dest = "";
+	string dest = "????";
 	if (isAcCorrelated)
 	{
 		dest = fp.GetFlightPlanData().GetDestination();
 	}
 
 	// ----- GSTAT -------
-	string gstat = "";
+	string gstat = "STS";
 	if (fp.IsValid() && isAcCorrelated) {
 		gstat = fp.GetGroundState();
 	}
