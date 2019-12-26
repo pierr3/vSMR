@@ -110,6 +110,9 @@ void sendDatalinkMessage(void * arg) {
 	if (startsWith("ok", raw.c_str())) {
 		if (PendingMessages.find(DatalinkToSend.callsign) != PendingMessages.end())
 			PendingMessages.erase(DatalinkToSend.callsign);
+		if (std::find(AircraftMessage.begin(), AircraftMessage.end(), DatalinkToSend.callsign.c_str()) != AircraftMessage.end()) {
+			AircraftMessage.erase(std::remove(AircraftMessage.begin(), AircraftMessage.end(), DatalinkToSend.callsign.c_str()), AircraftMessage.end());
+		}
 		AircraftMessageSent.push_back(DatalinkToSend.callsign.c_str());
 	}
 };
@@ -161,11 +164,13 @@ void pollMessages(void * arg) {
 					ttype = "CPDLC";
 					tdest = DatalinkToSend.callsign;
 					_beginthread(sendDatalinkMessage, 0, NULL);
-				} else if (PlaySoundClr) {
-					AFX_MANAGE_STATE(AfxGetStaticModuleState());
-					PlaySound(MAKEINTRESOURCE(IDR_WAVE1), AfxGetInstanceHandle(), SND_RESOURCE | SND_ASYNC);
+				} else {
+					if (PlaySoundClr) {
+						AFX_MANAGE_STATE(AfxGetStaticModuleState());
+						PlaySound(MAKEINTRESOURCE(IDR_WAVE1), AfxGetInstanceHandle(), SND_RESOURCE | SND_ASYNC);
+					}
+					AircraftDemandingClearance.push_back(message.from);
 				}
-				AircraftDemandingClearance.push_back(message.from);
 			}
 			else if (message.message.find("WILCO") != std::string::npos || message.message.find("ROGER") != std::string::npos || message.message.find("RGR") != std::string::npos) {
 				if (std::find(AircraftMessageSent.begin(), AircraftMessageSent.end(), message.from) != AircraftMessageSent.end()) {
