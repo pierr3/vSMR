@@ -156,7 +156,12 @@ void pollMessages(void * arg) {
 		}
 		if (message.type.find("telex") != std::string::npos || message.type.find("cpdlc") != std::string::npos) {
 			if (message.message.find("REQ") != std::string::npos || message.message.find("CLR") != std::string::npos || message.message.find("PDC") != std::string::npos || message.message.find("PREDEP") != std::string::npos || message.message.find("REQUEST") != std::string::npos) {
-				if (PlaySoundClr) {
+				if (message.message.find("LOGON") != std::string::npos) {
+					tmessage = "UNABLE";
+					ttype = "CPDLC";
+					tdest = DatalinkToSend.callsign;
+					_beginthread(sendDatalinkMessage, 0, NULL);
+				} else if (PlaySoundClr) {
 					AFX_MANAGE_STATE(AfxGetStaticModuleState());
 					PlaySound(MAKEINTRESOURCE(IDR_WAVE1), AfxGetInstanceHandle(), SND_RESOURCE | SND_ASYNC);
 				}
