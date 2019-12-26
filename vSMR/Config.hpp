@@ -20,6 +20,8 @@ public:
 	virtual ~CConfig();
 
 	const Value& getActiveProfile();
+	bool isSidColorAvail(string sid, string airport);
+	Gdiplus::Color getSidColor(string sid, string airport);
 	const Value& getAirportMapIfAny(string airport);
 	bool isAirportMapAvail(string airport);
 	bool isCustomRunwayAvail(string airport, string name1, string name2);

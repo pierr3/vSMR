@@ -8,7 +8,7 @@ bool HoppieConnected = false;
 bool ConnectionMessage = false;
 
 string logonCode = "";
-string logonCallsign = "LFPG";
+string logonCallsign = "EGKK";
 
 HttpHelper * httpHelper = NULL;
 

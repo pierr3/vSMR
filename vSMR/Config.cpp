@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "Config.hpp"
+#include <algorithm>
 
 CConfig::CConfig(string configPath)
 {
@@ -10,21 +11,20 @@ CConfig::CConfig(string configPath)
 }
 
 void CConfig::loadConfig() {
-	
+
 	stringstream ss;
 	ifstream ifs;
 	ifs.open(config_path.c_str(), std::ios::binary);
 	ss << ifs.rdbuf();
 	ifs.close();
 
-	if (document.Parse<0>(ss.str().c_str()).HasParseError())
-	{
-		AfxMessageBox("An error parsing vSMR configuration occured. EuroScope will now close.", MB_OK);
-
+	if (document.Parse<0>(ss.str().c_str()).HasParseError()) {
+		AfxMessageBox("An error parsing vSMR configuration occurred.\nOnce fixed, reload the config by typing '.smr reload'", MB_OK);
+	
 		ASSERT(AfxGetMainWnd() != NULL);
 		AfxGetMainWnd()->SendMessage(WM_CLOSE);
 	}
-		
+	
 	profiles.clear();
 
 	assert(document.IsArray());
@@ -39,6 +39,59 @@ void CConfig::loadConfig() {
 
 const Value& CConfig::getActiveProfile() {
 	return document[active_profile];
+}
+
+bool CConfig::isSidColorAvail(string sid, string airport) {
+	if (getActiveProfile().HasMember("maps"))
+	{
+		if (getActiveProfile()["maps"].HasMember(airport.c_str()))
+		{
+			if (getActiveProfile()["maps"][airport.c_str()].HasMember("sids") && getActiveProfile()["maps"][airport.c_str()]["sids"].IsArray())
+			{
+				const Value& SIDs = getActiveProfile()["maps"][airport.c_str()]["sids"];
+				for (SizeType i = 0; i < SIDs.Size(); i++)
+				{
+					const Value& SIDNames = SIDs[i]["names"];
+					for (SizeType s = 0; s < SIDNames.Size(); s++) {
+						string currentsid = SIDNames[s].GetString();
+						std::transform(currentsid.begin(), currentsid.end(), currentsid.begin(), ::toupper);
+						if (startsWith(sid.c_str(), currentsid.c_str()))
+						{
+							return true;
+						}
+					}
+				}
+			}
+		}
+	}
+	return false;
+}
+
+Gdiplus::Color CConfig::getSidColor(string sid, string airport)
+{
+	if (getActiveProfile().HasMember("maps"))
+	{
+		if (getActiveProfile()["maps"].HasMember(airport.c_str()))
+		{
+			if (getActiveProfile()["maps"][airport.c_str()].HasMember("sids") && getActiveProfile()["maps"][airport.c_str()]["sids"].IsArray())
+			{
+				const Value& SIDs = getActiveProfile()["maps"][airport.c_str()]["sids"];
+				for (SizeType i = 0; i < SIDs.Size(); i++)
+				{
+					const Value& SIDNames = SIDs[i]["names"];
+					for (SizeType s = 0; s < SIDNames.Size(); s++) {
+						string currentsid = SIDNames[s].GetString();
+						std::transform(currentsid.begin(), currentsid.end(), currentsid.begin(), ::toupper);
+						if (startsWith(sid.c_str(), currentsid.c_str()))
+						{
+							return getConfigColor(SIDs[i]["color"]);
+						}
+					}
+				}
+			}
+		}
+	}
+	return Gdiplus::Color(0, 0, 0);
 }
 
 Gdiplus::Color CConfig::getConfigColor(const Value& config_path) {
