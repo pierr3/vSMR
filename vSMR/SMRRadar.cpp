@@ -1701,35 +1701,35 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 			const Value& CustomMap = CurrentConfig->getAirportMapIfAny(getActiveAirport());
 
 			vector<CPosition> def;
-
-			if (CurrentConfig->isCustomRunwayAvail(getActiveAirport(), runway_name, runway_name2)) {
-				const Value& Runways = CustomMap["runways"];
-
-				if (Runways.IsArray()) {
-					for (SizeType i = 0; i < Runways.Size(); i++) {
-						if (startsWith(runway_name.c_str(), Runways[i]["runway_name"].GetString()) ||
-							startsWith(runway_name2.c_str(), Runways[i]["runway_name"].GetString())) {
-
-							string path_name = "path";
-
-							if (isLVP)
-								path_name = "path_lvp";
-
-							const Value& Path = Runways[i][path_name.c_str()];
-							for (SizeType j = 0; j < Path.Size(); j++) {
-								CPosition position;
-								position.LoadFromStrings(Path[j][(SizeType)1].GetString(), Path[j][(SizeType)0].GetString());
-
-								def.push_back(position);
-							}
-
-						}
-					}
-				}
-			}
-			else {
+// Rimcas now ignores the defined runway polygon to ensure that the correct detection area is used, defined runway is now only used for closed runway
+//			if (CurrentConfig->isCustomRunwayAvail(getActiveAirport(), runway_name, runway_name2)) {
+			//	const Value& Runways = CustomMap["runways"];
+			//
+			//		if (Runways.IsArray()) {
+			//		for (SizeType i = 0; i < Runways.Size(); i++) {
+			//			if (startsWith(runway_name.c_str(), Runways[i]["runway_name"].GetString()) ||
+			//				startsWith(runway_name2.c_str(), Runways[i]["runway_name"].GetString())) {
+			//
+			//				string path_name = "path";
+			//
+			//				if (isLVP)
+			//					path_name = "path_lvp";
+			//
+			//				const Value& Path = Runways[i][path_name.c_str()];
+			//				for (SizeType j = 0; j < Path.Size(); j++) {
+			//					CPosition position;
+			//					position.LoadFromStrings(Path[j][(SizeType)1].GetString(), Path[j][(SizeType)0].GetString());
+			//
+			//					def.push_back(position);
+			//				}
+			//	
+			//			}
+			//		}
+			//	}
+			//}
+			//else {
 				def = RimcasInstance->GetRunwayArea(Left, Right);
-			}
+			//}
 
 			RimcasInstance->AddRunwayArea(this, runway_name, runway_name2, def);
 
