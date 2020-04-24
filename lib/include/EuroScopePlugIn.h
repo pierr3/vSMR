@@ -160,6 +160,11 @@ const   int     TAG_ITEM_TYPE_CONFLICT_TYPE             = 88 ;
 const   int     TAG_ITEM_TYPE_MSAW_INDICATOR            = 89 ;
 const   int     TAG_ITEM_TYPE_SIMULATION_INDICATOR      = 90 ;
 const   int     TAG_ITEM_TYPE_SIMULATION_WAYPOINT       = 91 ;
+const   int     TAG_ITEM_TYPE_ASSIGNED_HEADING_STATIC   = 92 ;
+const   int     TAG_ITEM_TYPE_AIRLINE_NAME              = 93 ;
+const   int     TAG_ITEM_TYPE_SIMULATION_IAS            = 94 ;
+const   int     TAG_ITEM_TYPE_SIMULATION_ALTITUDE       = 95 ;
+const   int     TAG_ITEM_TYPE_SIMULATION_HEADING        = 96 ;
 
 const   int     TAG_ITEM_FUNCTION_NO                        = 0 ;
 const   int     TAG_ITEM_FUNCTION_TOGGLE_ROUTE_DRAW         = 1 ;
@@ -204,6 +209,8 @@ const   int     TAG_ITEM_FUNCTION_SIMUL_TAXI_BEHIND         = 40 ;
 const   int     TAG_ITEM_FUNCTION_SIMULATION_POPUP          = 41 ;
 const   int     TAG_ITEM_FUNCTION_SIMUL_NEXT_WAYPOINTS      = 42 ;
 const   int     TAG_ITEM_FUNCTION_SIMUL_HOLDING_POINTS      = 43 ;
+const   int     TAG_ITEM_FUNCTION_CONFLICT_DETECTION_TOOL2  = 44 ;
+const   int     TAG_ITEM_FUNCTION_SIMUL_ROUTES_POPUP        = 45 ;
 
 const   int     TAG_DATA_UNCORRELATED_RADAR     = 1 ;
 const   int     TAG_DATA_FLIGHT_PLAN_TRACK      = 2 ;
@@ -1875,7 +1882,7 @@ public:
     const char * GetGroundState ( void ) const ;
     //-----------------------------------------------------------------
     //  Return :
-    //      The ground state of the AC (PUSH, TAXI, DEPA or empty).
+    //      The ground state of the AC (ST-UP, PUSH, TAXI, DEPA or empty).
     //-----------------------------------------------------------------
 
 
