@@ -26,4 +26,4 @@ The nightly build is always up to date with the latest commit, however it may be
 
 ### Thanks
 
-Special thanks to Daniel Lange, Even Rognlien, Juha Holopainen, Lionel Bischof and Wenjun Zhou for their help with the code and thanks to Sam White and Theo Bearman for their help on the wiki!
+Special thanks to Daniel Lange, Even Rognlien, Juha Holopainen, Lionel Bischof and Wenjun Zhou for their help with the code, thanks to Sam White and Theo Bearman for their help on the wiki, and thanks to Jonas Kuster for the countless bug hunts and help on issue tracking!
