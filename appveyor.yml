@@ -9,7 +9,7 @@
 #---------------------------------#
 
 # version format
-version: 1.4.0r{build}
+version: 1.4.{build}
 
 # branches to build
 branches:
@@ -43,6 +43,7 @@ install:
 configuration: Release
 
 build_script:
+  - ps: (Get-Content -path C:\projects\vsmr\vSMR\SMRPlugin.hpp -Raw) -replace '@appveyor_build',$Env:appveyor_build_version
   - cmd: msbuild "C:\projects\vsmr\vSMR.sln" /m /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
 
 after_build:
