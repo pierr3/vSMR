@@ -113,7 +113,7 @@ CSMRRadar::~CSMRRadar()
 {
 	Logger::info(string(__FUNCSIG__));
 	try {
-		this->OnAsrContentToBeSaved();
+		//this->OnAsrContentToBeSaved();
 		//this->EuroScopePlugInExitCustom();
 	}
 	catch (exception &e) {
