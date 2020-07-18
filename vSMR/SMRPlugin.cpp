@@ -6,6 +6,7 @@ string Logger::DLL_PATH;
 
 bool HoppieConnected = false;
 bool ConnectionMessage = false;
+bool FailedToConnectMessage = false;
 
 string logonCode = "";
 string logonCallsign = "EGKK";
@@ -81,6 +82,9 @@ void datalinkLogin(void * arg) {
 	if (startsWith("ok", raw.c_str())) {
 		HoppieConnected = true;
 		ConnectionMessage = true;
+	}
+	else {
+		FailedToConnectMessage = true;
 	}
 };
 
@@ -677,6 +681,11 @@ void CSMRPlugin::OnTimer(int Counter)
 	if (HoppieConnected && ConnectionMessage) {
 		DisplayUserMessage("CPDLC", "Server", "Logged in!", true, true, false, true, false);
 		ConnectionMessage = false;
+	}
+
+	if (FailedToConnectMessage) {
+		DisplayUserMessage("CPDLC", "Server", "Could not login! Callsign probably in use.", true, true, false, true, false);
+		FailedToConnectMessage = false;
 	}
 
 	if (((clock() - timer) / CLOCKS_PER_SEC) > 10 && HoppieConnected) {
