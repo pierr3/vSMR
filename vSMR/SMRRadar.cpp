@@ -1465,7 +1465,8 @@ map<string, string> CSMRRadar::GenerateTagData(CRadarTarget rt, CFlightPlan fp, 
 	// ----- GSTAT -------
 	string gstat = "STS";
 	if (fp.IsValid() && isAcCorrelated) {
-		gstat = fp.GetGroundState();
+		if (strlen(fp.GetGroundState()) != 0)
+			gstat = fp.GetGroundState();
 	}
 
 	// ----- Generating the replacing map -----
@@ -2169,6 +2170,7 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 		TagHeight = TagHeight - 2;
 
 		Color definedBackgroundColor = CurrentConfig->getConfigColor(LabelsSettings[Utils::getEnumString(ColorTagType).c_str()]["background_color"]);
+		
 		if (ColorTagType == TagTypes::Departure) {
 			if (!TagReplacingMap["asid"].empty() && CurrentConfig->isSidColorAvail(TagReplacingMap["asid"], getActiveAirport())) {
 				definedBackgroundColor = CurrentConfig->getSidColor(TagReplacingMap["asid"], getActiveAirport());
