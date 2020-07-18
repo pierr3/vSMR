@@ -62,9 +62,6 @@ map<string, string> vStrips_Stands;
 bool startThreadvStrips = true;
 
 using namespace SMRPluginSharedData;
-asio::ip::udp::socket* _socket;
-asio::ip::udp::endpoint receiver_endpoint;
-//std::thread vStripsThread;
 char recv_buf[1024];
 
 vector<CSMRRadar*> RadarScreensOpened;
@@ -262,51 +259,6 @@ void sendDatalinkClearance(void * arg) {
 	}
 };
 
-void vStripsReceiveThread(const asio::error_code &error, size_t bytes_transferred)
-{
-	Logger::info(string(__FUNCSIG__));
-	string out(recv_buf, bytes_transferred);
-
-	// Processing the data
-	vector<string> data = split(out, ':');
-
-	if (data.front() == string("STAND"))
-	{
-		CSMRRadar::vStripsStands[data.at(1)] = data.back();
-	}
-
-	if (data.front() == string("DELETE"))
-	{
-		if (CSMRRadar::vStripsStands.find(data.back()) != CSMRRadar::vStripsStands.end())
-		{
-			CSMRRadar::vStripsStands.erase(CSMRRadar::vStripsStands.find(data.back()));
-		}
-	}
-
-	if (!error)
-	{
-		_socket->async_receive_from(asio::buffer(recv_buf), receiver_endpoint,
-			std::bind(&vStripsReceiveThread, std::placeholders::_1, std::placeholders::_2));
-	}
-}
-
-void vStripsThreadFunction(void * arg)
-{
-	try
-	{
-		_socket = new asio::ip::udp::socket(io_service, asio::ip::udp::endpoint(asio::ip::udp::v4(), VSTRIPS_PORT));
-		_socket->async_receive_from(asio::buffer(recv_buf), receiver_endpoint,
-			std::bind(&vStripsReceiveThread, std::placeholders::_1, std::placeholders::_2));
-
-		io_service.run();
-	}
-	catch (std::exception& e)
-	{
-		std::cerr << e.what() << std::endl;
-	}
-}
-
-
 CSMRPlugin::CSMRPlugin(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_PLUGIN_VERSION, MY_PLUGIN_DEVELOPER, MY_PLUGIN_COPYRIGHT)
 {
 
@@ -344,16 +296,6 @@ CSMRPlugin::CSMRPlugin(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PL
 	DllPath = DllPathFile;
 	DllPath.resize(DllPath.size() - strlen("vSMR.dll"));
 	Logger::DLL_PATH = DllPath;
-
-	try
-	{
-		//vStripsThread = std::thread();
-		_beginthread(vStripsThreadFunction, 0, NULL);
-	}
-	catch (std::exception& e)
-	{
-		std::cerr << e.what() << std::endl;
-	}
 }
 
 CSMRPlugin::~CSMRPlugin()
