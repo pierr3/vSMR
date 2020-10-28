@@ -1390,13 +1390,8 @@ map<string, string> CSMRRadar::GenerateTagData(CRadarTarget rt, CFlightPlan fp, 
 	else
 		gate = fp.GetControllerAssignedData().GetScratchPadString();
 
+	replaceAll(gate, "STAND:", "");
 	gate = gate.substr(0, 4);
-
-	// If there is a vStrips gate, we use that
-	if (vStripsStands.find(rt.GetCallsign()) != vStripsStands.end())
-	{
-		gate = vStripsStands[rt.GetCallsign()];
-	}
 
 	if (gate.size() == 0 || gate == "0" || !isAcCorrelated)
 		gate = "NoGate";
