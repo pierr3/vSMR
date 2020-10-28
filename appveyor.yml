@@ -44,6 +44,7 @@ configuration: Release
 
 build_script:
   - ps: (Get-Content  C:\projects\vsmr\vSMR\SMRPlugin.hpp).replace('@appveyor_build', $Env:appveyor_build_version) | Set-Content  C:\projects\vsmr\vSMR\SMRPlugin.hpp
+  - ps: (Get-Content  C:\projects\vsmr\vSMR\vSMR.rc).replace('@appveyor_build', $Env:appveyor_build_version) | Set-Content  C:\projects\vsmr\vSMR\vSMR.rc
   - cmd: msbuild "C:\projects\vsmr\vSMR.sln" /m /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
 
 after_build:
