@@ -237,7 +237,7 @@ void CSMRRadar::OnAsrContentLoaded(bool Loaded)
 		Trail_Gnd = atoi(p_value);
 
 	if ((p_value = GetDataFromAsr("PredictedLine")) != NULL)
-		PredictedLenght = atoi(p_value);
+		PredictedLength = atoi(p_value);
 
 	string temp;
 
@@ -314,7 +314,7 @@ void CSMRRadar::OnAsrContentToBeSaved()
 
 	SaveDataToAsr("GndTrailsDots", "vSMR GRND Trail Dots", std::to_string(Trail_Gnd).c_str());
 
-	SaveDataToAsr("PredictedLine", "vSMR Predicted Track Lines", std::to_string(PredictedLenght).c_str());
+	SaveDataToAsr("PredictedLine", "vSMR Predicted Track Lines", std::to_string(PredictedLength).c_str());
 
 	string temp = "";
 
@@ -1006,7 +1006,7 @@ void CSMRRadar::OnFunctionCall(int FunctionId, const char * sItemString, POINT P
 
 	if (FunctionId == RIMCAS_UPDATE_PTL)
 	{
-		PredictedLenght = atoi(sItemString);
+		PredictedLength = atoi(sItemString);
 
 		ShowLists["Predicted Track Line"] = true;
 	}
@@ -1966,12 +1966,12 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 
 		// Predicted Track Line
 		// It starts 20 seconds away from the ac
-		if (reportedGs > 50)
+		if (reportedGs > 50 && PredictedLength > 0)
 		{
 			double d = double(rt.GetPosition().GetReportedGS()*0.514444) * 10;
 			CPosition AwayBase = BetterHarversine(rt.GetPosition().GetPosition(), rt.GetTrackHeading(), d);
 
-			d = double(rt.GetPosition().GetReportedGS()*0.514444) * (PredictedLenght * 60) - 10;
+			d = double(rt.GetPosition().GetReportedGS()*0.514444) * (PredictedLength * 60) - 10;
 			CPosition PredictedEnd = BetterHarversine(AwayBase, rt.GetTrackHeading(), d);
 
 			dc.MoveTo(ConvertCoordFromPositionToPixel(AwayBase));
@@ -2489,12 +2489,12 @@ void CSMRRadar::OnRefresh(HDC hDC, int Phase)
 
 	if (ShowLists["Predicted Track Line"]) {
 		GetPlugIn()->OpenPopupList(ListAreas["Predicted Track Line"], "Predicted Track Line", 1);
-		GetPlugIn()->AddPopupListElement("0", "", RIMCAS_UPDATE_PTL, false, int(bool(PredictedLenght == 0)));
-		GetPlugIn()->AddPopupListElement("1", "", RIMCAS_UPDATE_PTL, false, int(bool(PredictedLenght == 1)));
-		GetPlugIn()->AddPopupListElement("2", "", RIMCAS_UPDATE_PTL, false, int(bool(PredictedLenght == 2)));
-		GetPlugIn()->AddPopupListElement("3", "", RIMCAS_UPDATE_PTL, false, int(bool(PredictedLenght == 3)));
-		GetPlugIn()->AddPopupListElement("4", "", RIMCAS_UPDATE_PTL, false, int(bool(PredictedLenght == 4)));
-		GetPlugIn()->AddPopupListElement("5", "", RIMCAS_UPDATE_PTL, false, int(bool(PredictedLenght == 5)));
+		GetPlugIn()->AddPopupListElement("0", "", RIMCAS_UPDATE_PTL, false, int(bool(PredictedLength == 0)));
+		GetPlugIn()->AddPopupListElement("1", "", RIMCAS_UPDATE_PTL, false, int(bool(PredictedLength == 1)));
+		GetPlugIn()->AddPopupListElement("2", "", RIMCAS_UPDATE_PTL, false, int(bool(PredictedLength == 2)));
+		GetPlugIn()->AddPopupListElement("3", "", RIMCAS_UPDATE_PTL, false, int(bool(PredictedLength == 3)));
+		GetPlugIn()->AddPopupListElement("4", "", RIMCAS_UPDATE_PTL, false, int(bool(PredictedLength == 4)));
+		GetPlugIn()->AddPopupListElement("5", "", RIMCAS_UPDATE_PTL, false, int(bool(PredictedLength == 5)));
 		GetPlugIn()->AddPopupListElement("Close", "", RIMCAS_CLOSE, false, 2, false, true);
 		ShowLists["Predicted Track Line"] = false;
 	}

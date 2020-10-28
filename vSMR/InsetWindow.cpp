@@ -344,19 +344,21 @@ void CInsetWindow::render(HDC hDC, CSMRRadar * radar_screen, Graphics* gdi, POIN
 
 		// Predicted Track Line
 		// It starts 10 seconds away from the ac
-		double d = double(rt.GetPosition().GetReportedGS()*0.514444)*10;
-		CPosition AwayBase = BetterHarversine(rt.GetPosition().GetPosition(), rt.GetTrackHeading(), d);
+		if (radar_screen->PredictedLength > 0) {
+			double d = double(rt.GetPosition().GetReportedGS() * 0.514444) * 10;
+			CPosition AwayBase = BetterHarversine(rt.GetPosition().GetPosition(), rt.GetTrackHeading(), d);
 
-		d = double(rt.GetPosition().GetReportedGS()*0.514444) * (radar_screen->PredictedLenght * 60)-10;
-		CPosition PredictedEnd = BetterHarversine(AwayBase, rt.GetTrackHeading(), d);
+			d = double(rt.GetPosition().GetReportedGS() * 0.514444) * (radar_screen->PredictedLength * 60) - 10;
+			CPosition PredictedEnd = BetterHarversine(AwayBase, rt.GetTrackHeading(), d);
 
-		POINT liangOne, liangTwo;
+			POINT liangOne, liangTwo;
 
-		if (LiangBarsky(m_Area, projectPoint(AwayBase), projectPoint(PredictedEnd), liangOne, liangTwo))
-		{
-			dc.SelectObject(&WhitePen);
-			dc.MoveTo(liangOne);
-			dc.LineTo(liangTwo);
+			if (LiangBarsky(m_Area, projectPoint(AwayBase), projectPoint(PredictedEnd), liangOne, liangTwo))
+			{
+				dc.SelectObject(&WhitePen);
+				dc.MoveTo(liangOne);
+				dc.LineTo(liangTwo);
+			}
 		}
 
 		if (mouseWithin(mouseLocation, { RtPoint.x - 4, RtPoint.y - 4, RtPoint.x + 4, RtPoint.y + 4 })) {
