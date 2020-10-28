@@ -5,8 +5,10 @@
 // CCallsignLookup Class by Even Rognlien, used with permission
 //
 
-CCallsignLookup::CCallsignLookup(std::string fileName) {
+CCallsignLookup::CCallsignLookup() {}
 
+void CCallsignLookup::readFile(string fileName)
+{
 
 	ifstream myfile;
 

@@ -61,23 +61,29 @@ CSMRRadar::CSMRRadar()
 	ConfigPath = DllPath + "\\vSMR_Profiles.json";
 
 	Logger::info("Loading callsigns");
-	// Loading up the callsigns for the bottom line
-	// Search for ICAO airlines file if it already exists (usually given by the VACC)
-	string AirlinesPath = DllPath;
-	for (int i = 0; i < 3; ++i) {
-		AirlinesPath = AirlinesPath.substr(0, AirlinesPath.find_last_of("/\\"));
-	}
-	AirlinesPath += "\\ICAO\\ICAO_Airlines.txt";
 
-	ifstream f(AirlinesPath.c_str());
+	// Creating the RIMCAS instance
+	if (Callsigns == nullptr)
+		Callsigns = new CCallsignLookup();
 
-	if (f.good()) {
-		Callsigns = new CCallsignLookup(AirlinesPath);
-	}
-	else {
-		Callsigns = new CCallsignLookup(DllPath + "\\ICAO_Airlines.txt");
-	}
-	f.close();
+	// We can look in three places for this file:
+	// 1. Within the plugin directory
+	// 2. In the ICAO folder of a GNG package
+	// 3. In the working directory of EuroScope
+	fs::path possible_paths[3];
+	possible_paths[0] = fs::path(DllPath) / fs::path("ICAO_Airlines.txt");
+	possible_paths[1] = fs::path(DllPath).parent_path().parent_path() / fs::path("ICAO") / fs::path("ICAO_Airlines.txt");
+	possible_paths[2] = fs::path(DllPath).parent_path().parent_path().parent_path() / fs::path("ICAO") / fs::path("ICAO_Airlines.txt");
+
+	for (auto p : possible_paths) {
+		Logger::info("Trying to read callsigns from: " + p.string());
+		if (fs::exists(p)) {
+			Logger::info("Found callsign file!");
+			Callsigns->readFile(p.string());
+
+			break;
+		}
+	};
 
 	Logger::info("Loading RIMCAS & Config");
 	// Creating the RIMCAS instance
