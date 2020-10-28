@@ -16,29 +16,18 @@ void CCallsignLookup::readFile(string fileName)
 
 	if (myfile) {
 		string line;
-		stringstream sstream;
 
 		while (getline(myfile, line)) {
-			sstream << line;
-			string key;
-			string value;
+			istringstream iss(line);
+			vector<string> tokens;
+			string token;
 
-			std::string delimiter = "\t";
+			while (std::getline(iss, token, '\t'))
+				tokens.push_back(token);
 
-			std::string token;
-
-			size_t pos1 = line.find(delimiter);
-			key = line.substr(0, pos1);
-			line.erase(0, pos1 + delimiter.length());
-
-			size_t pos2 = line.find(delimiter);
-			line.erase(0, pos2 + delimiter.length());
-			value = line.substr(0, line.length());
-
-			for (unsigned int i = 0; i < value.size(); i++)
-				value[i] = toupper(value[i]);
-
-			callsigns[key] = value;
+			if (tokens.size() >= 3) {
+				callsigns[tokens.front()] = tokens.at(2);
+			}
 		}
 	}
 
