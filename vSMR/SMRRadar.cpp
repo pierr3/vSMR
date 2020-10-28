@@ -1478,6 +1478,8 @@ map<string, string> CSMRRadar::GenerateTagData(CRadarTarget rt, CFlightPlan fp, 
 	// ----- UK Controller Plugin / Assigned Stand -------
 	string uk_stand;
 	uk_stand = fp.GetControllerAssignedData().GetFlightStripAnnotation(3);
+	if (uk_stand.length() == 0)
+		uk_stand = "NoGate";
 
 	// ----- Generating the replacing map -----
 	map<string, string> TagReplacingMap;
