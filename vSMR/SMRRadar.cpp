@@ -1329,6 +1329,10 @@ map<string, string> CSMRRadar::GenerateTagData(CRadarTarget rt, CFlightPlan fp, 
 			callsign = callsign + ">>";
 			break;
 
+		case FLIGHT_PLAN_STATE_ASSUMED:
+			callsign = "[" + callsign + "]";
+			break;
+
 		}
 	}
 
