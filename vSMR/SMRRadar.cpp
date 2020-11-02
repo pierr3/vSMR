@@ -1390,7 +1390,7 @@ map<string, string> CSMRRadar::GenerateTagData(CRadarTarget rt, CFlightPlan fp, 
 	else
 		gate = fp.GetControllerAssignedData().GetScratchPadString();
 
-	replaceAll(gate, "STAND:", "");
+	replaceAll(gate, "STAND=", "");
 	gate = gate.substr(0, 4);
 
 	if (gate.size() == 0 || gate == "0" || !isAcCorrelated)
