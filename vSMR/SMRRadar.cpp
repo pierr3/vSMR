@@ -832,14 +832,14 @@ void CSMRRadar::OnClickScreenObject(int ObjectType, const char * sObjectId, POIN
 		int TagMenu = TagObjectMiddleTypes[ObjectType];
 		CRadarTarget rt = GetPlugIn()->RadarTargetSelect(sObjectId);
 		GetPlugIn()->SetASELAircraft(GetPlugIn()->FlightPlanSelect(sObjectId));
-		StartTagFunction(rt.GetCallsign(), NULL, ObjectType, rt.GetCallsign(), NULL, TagMenu, Pt, Area);
+		StartTagFunction(rt.GetCallsign(), NULL, EuroScopePlugIn::TAG_ITEM_TYPE_CALLSIGN, rt.GetCallsign(), NULL, TagMenu, Pt, Area);
 	}
 
 	if (Button == BUTTON_RIGHT && TagObjectRightTypes[ObjectType]) {
 		int TagMenu = TagObjectRightTypes[ObjectType];
 		CRadarTarget rt = GetPlugIn()->RadarTargetSelect(sObjectId);
 		GetPlugIn()->SetASELAircraft(GetPlugIn()->FlightPlanSelect(sObjectId));
-		StartTagFunction(rt.GetCallsign(), NULL, ObjectType, rt.GetCallsign(), NULL, TagMenu, Pt, Area);
+		StartTagFunction(rt.GetCallsign(), NULL, EuroScopePlugIn::TAG_ITEM_TYPE_CALLSIGN, rt.GetCallsign(), NULL, TagMenu, Pt, Area);
 	}
 
 	if (ObjectType == RIMCAS_DISTANCE_TOOL)
