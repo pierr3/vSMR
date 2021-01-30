@@ -12,7 +12,7 @@ bool FailedToConnectMessage = false;
 string logonCode = "";
 string logonCallsign = "EGKK";
 
-HttpHelper* httpHelper = NULL;
+HttpHelper * httpHelper = NULL;
 
 bool BLINK = false;
 
@@ -33,7 +33,7 @@ struct DatalinkPacket {
 	string message;
 	string climb;
 	string curise;
-	string dep_freq;
+	string depFreq;
 };
 
 DatalinkPacket DatalinkToSend;
@@ -75,9 +75,9 @@ vector<CSMRRadar*> RadarScreensOpened;
 
 string toMetric(string AltInImperial) {
 	string raw = AltInImperial.substr(0, AltInImperial.size() - 2);
-	int infeet = atoi(raw.c_str());
+	int inFeet = atoi(raw.c_str());
 
-	switch (infeet)
+	switch (inFeet)
 	{
 	case 2000:
 		return "600";
@@ -168,12 +168,12 @@ string toMetric(string AltInImperial) {
 	case 48900:
 		return "14900";
 	default:
-		string inmetric = std::to_string(infeet * 0.3048);
-		return inmetric.substr(0, inmetric.size() - 2) + "00";
+		string inMetric = std::to_string(inFeet * 0.3048);
+		return inMetric.substr(0, inMetric.size() - 2) + "00";
 	}
 }
 
-void datalinkLogin(void* arg) {
+void datalinkLogin(void * arg) {
 	string raw;
 	string url = baseUrlDatalink;
 	url += "?logon=";
@@ -187,8 +187,8 @@ void datalinkLogin(void* arg) {
 		HoppieConnected = true;
 		ConnectionMessage = true;
 		string FIR = logonCallsign.substr(0, 2);
-		string Reg = logonCallsign.substr(0, 1);
-		if (Reg == "Z" && FIR != "ZM" && FIR != "ZK") {
+		string reg = logonCallsign.substr(0, 1);
+		if (reg == "Z" && FIR != "ZM" && FIR != "ZK") {
 			InPRCAirspace = true;
 		}
 	}
@@ -197,7 +197,7 @@ void datalinkLogin(void* arg) {
 	}
 };
 
-void sendDatalinkMessage(void* arg) {
+void sendDatalinkMessage(void * arg) {
 
 	string raw;
 	string url = baseUrlDatalink;
@@ -230,7 +230,7 @@ void sendDatalinkMessage(void* arg) {
 	}
 };
 
-void pollMessages(void* arg) {
+void pollMessages(void * arg) {
 	string raw = "";
 	string url = baseUrlDatalink;
 	url += "?logon=";
@@ -303,7 +303,7 @@ void pollMessages(void* arg) {
 
 };
 
-void sendDatalinkClearance(void* arg) {
+void sendDatalinkClearance(void * arg) {
 	string raw;
 	string url = baseUrlDatalink;
 	url += "?logon=";
@@ -337,13 +337,13 @@ void sendDatalinkClearance(void* arg) {
 		if (DatalinkToSend.ctot != "no" && DatalinkToSend.ctot.size() == 4) {
 			url += " @" + DatalinkToSend.callsign + "@ CLRD TO @" + DatalinkToSend.destination + "@ OFF @" + DatalinkToSend.rwy + "@ VIA @" + DatalinkToSend.sid
 				+ "@ SQUAWK @" + DatalinkToSend.squawk + "@ ADT @" + DatalinkToSend.ctot + "@ NEXT FREQ @" + DatalinkToSend.freq
-				+ "@ INITIAL ALT @" + toMetric(DatalinkToSend.climb) + "@ M FL @" + toMetric(DatalinkToSend.curise) + "@ M DEPARTURE FREQ @" + DatalinkToSend.dep_freq
+				+ "@ INITIAL ALT @" + toMetric(DatalinkToSend.climb) + "@ M FL @" + toMetric(DatalinkToSend.curise) + "@ M DEPARTURE FREQ @" + DatalinkToSend.depFreq
 				+ "@ EXPIRE IN @20@ MINUTES SINCE ADT " + DatalinkToSend.message;
 		}
 		else {
 			url += " @" + DatalinkToSend.callsign + "@ CLRD TO @" + DatalinkToSend.destination + "@ OFF @" + DatalinkToSend.rwy + "@ VIA @" + DatalinkToSend.sid
 				+ "@ SQUAWK @" + DatalinkToSend.squawk + "@ NEXT FREQ @" + DatalinkToSend.freq
-				+ "@ INITIAL ALT @" + toMetric(DatalinkToSend.climb) + "@ M FL @" + toMetric(DatalinkToSend.curise) + "@ M DEPARTURE FREQ @" + DatalinkToSend.dep_freq
+				+ "@ INITIAL ALT @" + toMetric(DatalinkToSend.climb) + "@ M FL @" + toMetric(DatalinkToSend.curise) + "@ M DEPARTURE FREQ @" + DatalinkToSend.depFreq
 				+ "@ EXPIRE IN @30@ MINUTES " + DatalinkToSend.message;
 		}
 	}
@@ -426,7 +426,7 @@ CSMRPlugin::CSMRPlugin(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PL
 	if (httpHelper == NULL)
 		httpHelper = new HttpHelper();
 
-	const char* p_value;
+	const char * p_value;
 
 	if ((p_value = GetDataFromSettings("cpdlc_logon")) != NULL)
 		logonCallsign = p_value;
@@ -465,7 +465,7 @@ CSMRPlugin::~CSMRPlugin()
 	}
 }
 
-bool CSMRPlugin::OnCompileCommand(const char* sCommandLine) {
+bool CSMRPlugin::OnCompileCommand(const char * sCommandLine) {
 	if (startsWith(".smr connect", sCommandLine))
 	{
 		if (ControllerMyself().IsController()) {
@@ -519,7 +519,7 @@ bool CSMRPlugin::OnCompileCommand(const char* sCommandLine) {
 	return false;
 }
 
-void CSMRPlugin::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int ItemCode, int TagData, char sItemString[16], int* pColorCode, COLORREF* pRGB, double* pFontSize) {
+void CSMRPlugin::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int ItemCode, int TagData, char sItemString[16], int * pColorCode, COLORREF * pRGB, double * pFontSize) {
 	Logger::info(string(__FUNCSIG__));
 	if (ItemCode == TAG_ITEM_DATALINK_STS) {
 		if (FlightPlan.IsValid()) {
@@ -563,7 +563,7 @@ void CSMRPlugin::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, 
 	}
 }
 
-void CSMRPlugin::OnFunctionCall(int FunctionId, const char* sItemString, POINT Pt, RECT Area)
+void CSMRPlugin::OnFunctionCall(int FunctionId, const char * sItemString, POINT Pt, RECT Area)
 {
 	Logger::info(string(__FUNCSIG__));
 	if (FunctionId == TAG_FUNC_DATALINK_MENU) {
@@ -739,7 +739,7 @@ void CSMRPlugin::OnFunctionCall(int FunctionId, const char* sItemString, POINT P
 			DatalinkToSend.squawk = FlightPlan.GetControllerAssignedData().GetSquawk();
 			DatalinkToSend.climb = toReturn;
 			DatalinkToSend.curise = std::to_string(FlightPlan.GetFinalAltitude()) + "ft";
-			DatalinkToSend.dep_freq = dia.m_DepFreq;
+			DatalinkToSend.depFreq = dia.m_DepFreq;
 			DatalinkToSend.departure = FlightPlan.GetFlightPlanData().GetOrigin();
 
 			myfrequency = std::to_string(ControllerMyself().GetPrimaryFrequency()).substr(0, 7);
@@ -791,7 +791,7 @@ void CSMRPlugin::OnTimer(int Counter)
 		timer = clock();
 	}
 
-	for (auto& ac : AircraftWilco)
+	for (auto & ac : AircraftWilco)
 	{
 		CRadarTarget RadarTarget = RadarTargetSelect(ac.c_str());
 
@@ -803,11 +803,11 @@ void CSMRPlugin::OnTimer(int Counter)
 	}
 };
 
-CRadarScreen* CSMRPlugin::OnRadarScreenCreated(const char* sDisplayName, bool NeedRadarContent, bool GeoReferenced, bool CanBeSaved, bool CanBeCreated)
+CRadarScreen * CSMRPlugin::OnRadarScreenCreated(const char * sDisplayName, bool NeedRadarContent, bool GeoReferenced, bool CanBeSaved, bool CanBeCreated)
 {
 	Logger::info(string(__FUNCSIG__));
 	if (!strcmp(sDisplayName, MY_PLUGIN_VIEW_AVISO)) {
-		CSMRRadar* rd = new CSMRRadar();
+		CSMRRadar * rd = new CSMRRadar();
 		RadarScreensOpened.push_back(rd);
 		return rd;
 	}
