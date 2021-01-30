@@ -321,48 +321,27 @@ void sendDatalinkClearance(void* arg) {
 		time_t now = time(0);
 		tm gmt;
 		gmtime_s(&gmt,&now);
+		CString str;
+		str.Format("%02d%02d %02d%02d%02d ", gmt.tm_hour, gmt.tm_min, (gmt.tm_year + 1900)%100, gmt.tm_mon + 1, gmt.tm_mday);
+		url += str;
 
-		string hour_s, min_s, mon_s, mday_s;
-		if (gmt.tm_hour < 10)
-			hour_s = "0" + std::to_string(gmt.tm_hour);
-		else
-			hour_s = std::to_string(gmt.tm_hour);
-
-		if (gmt.tm_min < 10)
-			min_s = "0" + std::to_string(gmt.tm_min);
-		else
-			min_s = std::to_string(gmt.tm_min);
-
-		if (gmt.tm_mon < 9)
-			mon_s = "0" + std::to_string(gmt.tm_mon + 1);
-		else
-			mon_s = std::to_string(gmt.tm_mon + 1);
-
-		if (gmt.tm_mday < 10)
-			mday_s = "0" + std::to_string(gmt.tm_mday);
-		else
-			mday_s = std::to_string(gmt.tm_mday);
-
-		url += hour_s + min_s + " " + std::to_string(gmt.tm_year + 1900).substr(2, 2) + mon_s + mday_s + " ";
 		url += DatalinkToSend.departure + " PDC ";
-		string PDCId_s = std::to_string(++pdcId);
-		while (PDCId_s.length() < 3)
-		{
-			PDCId_s = "0" + PDCId_s;
-		};
+		CString PDCId_s;
+		PDCId_s.Format("%03d", ++pdcId);
+		url += PDCId_s;
 
 		if (DatalinkToSend.freq == "no" && DatalinkToSend.freq.size() < 5) {
 			DatalinkToSend.freq = myfrequency;
 		}
 
 		if (DatalinkToSend.ctot != "no" && DatalinkToSend.ctot.size() == 4) {
-			url += PDCId_s + " @" + DatalinkToSend.callsign + "@ CLRD TO @" + DatalinkToSend.destination + "@ OFF @" + DatalinkToSend.rwy + "@ VIA @" + DatalinkToSend.sid
+			url += " @" + DatalinkToSend.callsign + "@ CLRD TO @" + DatalinkToSend.destination + "@ OFF @" + DatalinkToSend.rwy + "@ VIA @" + DatalinkToSend.sid
 				+ "@ SQUAWK @" + DatalinkToSend.squawk + "@ ADT @" + DatalinkToSend.ctot + "@ NEXT FREQ @" + DatalinkToSend.freq
 				+ "@ INITIAL ALT @" + toMetric(DatalinkToSend.climb) + "@ M FL @" + toMetric(DatalinkToSend.curise) + "@ M DEPARTURE FREQ @" + DatalinkToSend.dep_freq
 				+ "@ EXPIRE IN @20@ MINUTES SINCE ADT " + DatalinkToSend.message;
 		}
 		else {
-			url += PDCId_s + " @" + DatalinkToSend.callsign + "@ CLRD TO @" + DatalinkToSend.destination + "@ OFF @" + DatalinkToSend.rwy + "@ VIA @" + DatalinkToSend.sid
+			url += " @" + DatalinkToSend.callsign + "@ CLRD TO @" + DatalinkToSend.destination + "@ OFF @" + DatalinkToSend.rwy + "@ VIA @" + DatalinkToSend.sid
 				+ "@ SQUAWK @" + DatalinkToSend.squawk + "@ NEXT FREQ @" + DatalinkToSend.freq
 				+ "@ INITIAL ALT @" + toMetric(DatalinkToSend.climb) + "@ M FL @" + toMetric(DatalinkToSend.curise) + "@ M DEPARTURE FREQ @" + DatalinkToSend.dep_freq
 				+ "@ EXPIRE IN @30@ MINUTES " + DatalinkToSend.message;
@@ -709,7 +688,7 @@ void CSMRPlugin::OnFunctionCall(int FunctionId, const char* sItemString, POINT P
 			dia.m_Rwy = FlightPlan.GetFlightPlanData().GetDepartureRwy();
 			dia.m_SSR = FlightPlan.GetControllerAssignedData().GetSquawk();
 			string freq = std::to_string(ControllerMyself().GetPrimaryFrequency());
-			dia.m_Message = ("READBACK ONLY DEPARTURE RWY AND INITIAL CLIMB ALTITUDE ON FREQ @" + myfrequency + "@").c_str();
+			if(InPRCAirspace)dia.m_Message = ("READBACK ONLY DEPARTURE RWY AND INITIAL CLIMB ALTITUDE ON FREQ @" + myfrequency + "@").c_str();
 			if (ControllerSelect(FlightPlan.GetCoordinatedNextController()).GetPrimaryFrequency() != 0)
 				string freq = std::to_string(ControllerSelect(FlightPlan.GetCoordinatedNextController()).GetPrimaryFrequency());
 			freq = freq.substr(0, 7);
