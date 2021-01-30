@@ -21,7 +21,7 @@
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_NEUD)
 LANGUAGE LANG_NEUTRAL, SUBLANG_DEFAULT
-#pragma code_page(936)
+#pragma code_page(1252)
 
 /////////////////////////////////////////////////////////////////////////////
 //
