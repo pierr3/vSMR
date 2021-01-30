@@ -17,7 +17,7 @@
 #undef APSTUDIO_READONLY_SYMBOLS
 
 /////////////////////////////////////////////////////////////////////////////
-// 非特定语言(默认值) resources
+// Neutral (Default) resources
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_NEUD)
 LANGUAGE LANG_NEUTRAL, SUBLANG_DEFAULT
@@ -38,12 +38,12 @@ IDC_SMRCORRELATE        CURSOR                  "..\\ml_blau_link.cur"
 
 IDC_SMRMOVEWINDOW       CURSOR                  "..\\move.cur"
 
-#endif    // 非特定语言(默认值) resources
+#endif    // Neutral (Default) resources
 /////////////////////////////////////////////////////////////////////////////
 
 
 /////////////////////////////////////////////////////////////////////////////
-// 英语(美国) resources
+// English (United States) resources
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
 LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
@@ -86,12 +86,12 @@ BEGIN
     END
 END
 
-#endif    // 英语(美国) resources
+#endif    // English (United States) resources
 /////////////////////////////////////////////////////////////////////////////
 
 
 /////////////////////////////////////////////////////////////////////////////
-// 法语(法国) resources
+// French (France) resources
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_FRA)
 LANGUAGE LANG_FRENCH, SUBLANG_FRENCH
@@ -238,7 +238,7 @@ BEGIN
     0
 END
 
-#endif    // 法语(法国) resources
+#endif    // French (France) resources
 /////////////////////////////////////////////////////////////////////////////
 
 
