@@ -678,7 +678,8 @@ void CSMRPlugin::OnFunctionCall(int FunctionId, const char * sItemString, POINT 
 
 			AFX_MANAGE_STATE(AfxGetStaticModuleState());
 
-			
+			myfrequency = std::to_string(ControllerMyself().GetPrimaryFrequency()).substr(0, 7);
+
 			CDataLinkDialog dia;
 			dia.m_Callsign = FlightPlan.GetCallsign();
 			dia.m_Aircraft = FlightPlan.GetFlightPlanData().GetAircraftFPType();
@@ -741,8 +742,6 @@ void CSMRPlugin::OnFunctionCall(int FunctionId, const char * sItemString, POINT 
 			DatalinkToSend.curise = std::to_string(FlightPlan.GetFinalAltitude()) + "ft";
 			DatalinkToSend.depFreq = dia.m_DepFreq;
 			DatalinkToSend.departure = FlightPlan.GetFlightPlanData().GetOrigin();
-
-			myfrequency = std::to_string(ControllerMyself().GetPrimaryFrequency()).substr(0, 7);
 
 			_beginthread(sendDatalinkClearance, 0, NULL);
 
