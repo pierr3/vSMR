@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "SMRPlugin.hpp"
+#include <ctime>
 
 bool Logger::ENABLED;
 string Logger::DLL_PATH;
@@ -17,8 +18,11 @@ bool BLINK = false;
 
 bool PlaySoundClr = false;
 
+bool InPRCAirspace = false;
+
 struct DatalinkPacket {
 	string callsign;
+	string departure;
 	string destination;
 	string sid;
 	string rwy;
@@ -28,6 +32,8 @@ struct DatalinkPacket {
 	string squawk;
 	string message;
 	string climb;
+	string curise;
+	string depFreq;
 };
 
 DatalinkPacket DatalinkToSend;
@@ -52,6 +58,7 @@ string tdest;
 string ttype;
 
 int messageId = 0;
+int pdcId = 0;
 
 clock_t timer;
 
@@ -66,6 +73,106 @@ char recv_buf[1024];
 
 vector<CSMRRadar*> RadarScreensOpened;
 
+string toMetric(string AltInImperial) {
+	string raw = AltInImperial.substr(0, AltInImperial.size() - 2);
+	int inFeet = atoi(raw.c_str());
+
+	switch (inFeet)
+	{
+	case 2000:
+		return "600";
+	case 3000:
+		return "900";
+	case 3900:
+		return "1200";
+	case 4900:
+		return "1500";
+	case 5900:
+		return "1800";
+	case 6900:
+		return "2100";
+	case 7900:
+		return "2400";
+	case 8900:
+		return "2700";
+	case 9800:
+		return "3000";
+	case 10800:
+		return "3300";
+	case 11800:
+		return "3600";
+	case 12800:
+		return "3900";
+	case 13800:
+		return "4200";
+	case 14800:
+		return "4500";
+	case 15700:
+		return "4800";
+	case 16700:
+		return "5100";
+	case 17700:
+		return "5400";
+	case 18700:
+		return "5700";
+	case 19700:
+		return "6000";
+	case 20700:
+		return "6300";
+	case 21700:
+		return "6600";
+	case 22600:
+		return "6900";
+	case 23600:
+		return "7200";
+	case 24600:
+		return "7500";
+	case 25600:
+		return "7800";
+	case 26600:
+		return "8100";
+	case 27600:
+		return "8400";
+	case 29100:
+		return "8900";
+	case 30100:
+		return "9200";
+	case 31100:
+		return "9500";
+	case 32100:
+		return "9800";
+	case 33100:
+		return "10100";
+	case 34100:
+		return "10400";
+	case 35100:
+		return "10700";
+	case 36100:
+		return "11000";
+	case 37100:
+		return "11300";
+	case 38100:
+		return "11600";
+	case 39100:
+		return "11900";
+	case 40100:
+		return "12200";
+	case 41100:
+		return "12500";
+	case 43000:
+		return "13100";
+	case 44900:
+		return "13700";
+	case 46900:
+		return "14300";
+	case 48900:
+		return "14900";
+	default:
+		string inMetric = std::to_string(inFeet * 0.3048);
+		return inMetric.substr(0, inMetric.size() - 2) + "00";
+	}
+}
+
 void datalinkLogin(void * arg) {
 	string raw;
 	string url = baseUrlDatalink;
@@ -79,6 +186,11 @@ void datalinkLogin(void * arg) {
 	if (startsWith("ok", raw.c_str())) {
 		HoppieConnected = true;
 		ConnectionMessage = true;
+		string FIR = logonCallsign.substr(0, 2);
+		string reg = logonCallsign.substr(0, 1);
+		if (reg == "Z" && FIR != "ZM" && FIR != "ZK") {
+			InPRCAirspace = true;
+		}
 	}
 	else {
 		FailedToConnectMessage = true;
@@ -165,7 +277,8 @@ void pollMessages(void * arg) {
 					ttype = "CPDLC";
 					tdest = DatalinkToSend.callsign;
 					_beginthread(sendDatalinkMessage, 0, NULL);
-				} else {
+				}
+				else {
 					if (PlaySoundClr) {
 						AFX_MANAGE_STATE(AfxGetStaticModuleState());
 						PlaySound(MAKEINTRESOURCE(IDR_WAVE1), AfxGetInstanceHandle(), SND_RESOURCE | SND_ASYNC);
@@ -178,7 +291,7 @@ void pollMessages(void * arg) {
 					AircraftWilco.push_back(message.from);
 				}
 			}
-			else if (message.message.length() != 0 ){
+			else if (message.message.length() != 0) {
 				AircraftMessage.push_back(message.from);
 			}
 			PendingMessages[message.from] = message;
@@ -203,40 +316,73 @@ void sendDatalinkClearance(void * arg) {
 	messageId++;
 	url += std::to_string(messageId);
 	url += "//R/";
-	url += "CLR TO @";
-	url += DatalinkToSend.destination;
-	url += "@ RWY @";
-	url += DatalinkToSend.rwy;
-	url += "@ DEP @";
-	url += DatalinkToSend.sid;
-	url += "@ INIT CLB @";
-	url += DatalinkToSend.climb;
-	url += "@ SQUAWK @";
-	url += DatalinkToSend.squawk;
-	url += "@ ";
-	if (DatalinkToSend.ctot != "no" && DatalinkToSend.ctot.size() > 3) {
-		url += "CTOT @";
-		url += DatalinkToSend.ctot;
-		url += "@ ";
-	}
-	if (DatalinkToSend.asat != "no" && DatalinkToSend.asat.size() > 3) {
-		url += "TSAT @";
-		url += DatalinkToSend.asat;
-		url += "@ ";
-	}
-	if (DatalinkToSend.freq != "no" && DatalinkToSend.freq.size() > 5) {
-		url += "WHEN RDY CALL FREQ @";
-		url += DatalinkToSend.freq;
-		url += "@";
+
+	if (InPRCAirspace) {//PDC standard format in PRC airspace
+		time_t now = time(0);
+		tm gmt;
+		gmtime_s(&gmt,&now);
+		CString str;
+		str.Format("%02d%02d %02d%02d%02d ", gmt.tm_hour, gmt.tm_min, (gmt.tm_year + 1900)%100, gmt.tm_mon + 1, gmt.tm_mday);
+		url += str;
+
+		url += DatalinkToSend.departure + " PDC ";
+		CString PDCId_s;
+		PDCId_s.Format("%03d", ++pdcId);
+		url += PDCId_s;
+
+		if (DatalinkToSend.freq == "no" && DatalinkToSend.freq.size() < 5) {
+			DatalinkToSend.freq = myfrequency;
+		}
+
+		if (DatalinkToSend.ctot != "no" && DatalinkToSend.ctot.size() == 4) {
+			url += " @" + DatalinkToSend.callsign + "@ CLRD TO @" + DatalinkToSend.destination + "@ OFF @" + DatalinkToSend.rwy + "@ VIA @" + DatalinkToSend.sid
+				+ "@ SQUAWK @" + DatalinkToSend.squawk + "@ ADT @" + DatalinkToSend.ctot + "@ NEXT FREQ @" + DatalinkToSend.freq
+				+ "@ INITIAL ALT @" + toMetric(DatalinkToSend.climb) + "@ M FL @" + toMetric(DatalinkToSend.curise) + "@ M DEPARTURE FREQ @" + DatalinkToSend.depFreq
+				+ "@ EXPIRE IN @20@ MINUTES SINCE ADT " + DatalinkToSend.message;
+		}
+		else {
+			url += " @" + DatalinkToSend.callsign + "@ CLRD TO @" + DatalinkToSend.destination + "@ OFF @" + DatalinkToSend.rwy + "@ VIA @" + DatalinkToSend.sid
+				+ "@ SQUAWK @" + DatalinkToSend.squawk + "@ NEXT FREQ @" + DatalinkToSend.freq
+				+ "@ INITIAL ALT @" + toMetric(DatalinkToSend.climb) + "@ M FL @" + toMetric(DatalinkToSend.curise) + "@ M DEPARTURE FREQ @" + DatalinkToSend.depFreq
+				+ "@ EXPIRE IN @30@ MINUTES " + DatalinkToSend.message;
+		}
 	}
 	else {
-		url += "WHEN RDY CALL @";
-		url += myfrequency;
-		url += "@";
+		url += "CLR TO @";
+		url += DatalinkToSend.destination;
+		url += "@ RWY @";
+		url += DatalinkToSend.rwy;
+		url += "@ DEP @";
+		url += DatalinkToSend.sid;
+		url += "@ INIT CLB @";
+		url += DatalinkToSend.climb;
+		url += "@ SQUAWK @";
+		url += DatalinkToSend.squawk;
+		url += "@ ";
+		if (DatalinkToSend.ctot != "no" && DatalinkToSend.ctot.size() > 3) {
+			url += "CTOT @";
+			url += DatalinkToSend.ctot;
+			url += "@ ";
+		}
+		if (DatalinkToSend.asat != "no" && DatalinkToSend.asat.size() > 3) {
+			url += "TSAT @";
+			url += DatalinkToSend.asat;
+			url += "@ ";
+		}
+		if (DatalinkToSend.freq != "no" && DatalinkToSend.freq.size() > 5) {
+			url += "WHEN RDY CALL FREQ @";
+			url += DatalinkToSend.freq;
+			url += "@";
+		}
+		else {
+			url += "WHEN RDY CALL @";
+			url += myfrequency;
+			url += "@";
+		}
+		url += " IF UNABLE CALL VOICE ";
+		if (DatalinkToSend.message != "no" && DatalinkToSend.message.size() > 1)
+			url += DatalinkToSend.message;
 	}
-	url += " IF UNABLE CALL VOICE ";
-	if (DatalinkToSend.message != "no" && DatalinkToSend.message.size() > 1)
-		url += DatalinkToSend.message;
 
 	size_t start_pos = 0;
 	while ((start_pos = url.find(" ", start_pos)) != std::string::npos) {
@@ -532,6 +678,8 @@ void CSMRPlugin::OnFunctionCall(int FunctionId, const char * sItemString, POINT 
 
 			AFX_MANAGE_STATE(AfxGetStaticModuleState());
 
+			myfrequency = std::to_string(ControllerMyself().GetPrimaryFrequency()).substr(0, 7);
+
 			CDataLinkDialog dia;
 			dia.m_Callsign = FlightPlan.GetCallsign();
 			dia.m_Aircraft = FlightPlan.GetFlightPlanData().GetAircraftFPType();
@@ -541,6 +689,7 @@ void CSMRPlugin::OnFunctionCall(int FunctionId, const char * sItemString, POINT 
 			dia.m_Rwy = FlightPlan.GetFlightPlanData().GetDepartureRwy();
 			dia.m_SSR = FlightPlan.GetControllerAssignedData().GetSquawk();
 			string freq = std::to_string(ControllerMyself().GetPrimaryFrequency());
+			if(InPRCAirspace)dia.m_Message = ("READBACK ONLY DEPARTURE RWY AND INITIAL CLIMB ALTITUDE ON FREQ @" + myfrequency + "@").c_str();
 			if (ControllerSelect(FlightPlan.GetCoordinatedNextController()).GetPrimaryFrequency() != 0)
 				string freq = std::to_string(ControllerSelect(FlightPlan.GetCoordinatedNextController()).GetPrimaryFrequency());
 			freq = freq.substr(0, 7);
@@ -570,7 +719,12 @@ void CSMRPlugin::OnFunctionCall(int FunctionId, const char * sItemString, POINT 
 					toReturn += "ft";
 				}
 			}
-			dia.m_Climb = toReturn.c_str();
+			if (InPRCAirspace) {
+				dia.m_Climb = toMetric(toReturn).c_str();
+			}
+			else {
+				dia.m_Climb = (toReturn + "M").c_str();
+			}
 
 			if (dia.DoModal() != IDOK)
 				return;
@@ -585,8 +739,9 @@ void CSMRPlugin::OnFunctionCall(int FunctionId, const char * sItemString, POINT 
 			DatalinkToSend.message = dia.m_Message;
 			DatalinkToSend.squawk = FlightPlan.GetControllerAssignedData().GetSquawk();
 			DatalinkToSend.climb = toReturn;
-
-			myfrequency = std::to_string(ControllerMyself().GetPrimaryFrequency()).substr(0, 7);
+			DatalinkToSend.curise = std::to_string(FlightPlan.GetFinalAltitude()) + "ft";
+			DatalinkToSend.depFreq = dia.m_DepFreq;
+			DatalinkToSend.departure = FlightPlan.GetFlightPlanData().GetOrigin();
 
 			_beginthread(sendDatalinkClearance, 0, NULL);
 
@@ -635,7 +790,7 @@ void CSMRPlugin::OnTimer(int Counter)
 		timer = clock();
 	}
 
-	for (auto &ac : AircraftWilco)
+	for (auto & ac : AircraftWilco)
 	{
 		CRadarTarget RadarTarget = RadarTargetSelect(ac.c_str());
 
@@ -651,7 +806,7 @@ CRadarScreen * CSMRPlugin::OnRadarScreenCreated(const char * sDisplayName, bool 
 {
 	Logger::info(string(__FUNCSIG__));
 	if (!strcmp(sDisplayName, MY_PLUGIN_VIEW_AVISO)) {
-		CSMRRadar* rd = new CSMRRadar();
+		CSMRRadar * rd = new CSMRRadar();
 		RadarScreensOpened.push_back(rd);
 		return rd;
 	}
