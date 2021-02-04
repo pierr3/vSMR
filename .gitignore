@@ -205,3 +205,4 @@ package/
 /vSMR/ipaddr.txt
 /vSMR/euroscope_sector_providers.txt
 vSMR/vSMR.vcxproj
+lib/include/asio/detail/boost
