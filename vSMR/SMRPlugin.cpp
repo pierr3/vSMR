@@ -901,7 +901,7 @@ void CSMRPlugin::OnFunctionCall(int FunctionId, const char * sItemString, POINT 
 					str += DatalinkToSend.message;
 			}
 
-			if (OpenClipboard(NULL))//TODO feature test
+			if (OpenClipboard(NULL))
 			{
 				HANDLE hClip;
 				char * pBuf;
@@ -1069,7 +1069,7 @@ void CSMRPlugin::OnFunctionCall(int FunctionId, const char * sItemString, POINT 
 					str += DatalinkToSend.message;
 			}
 
-			if (OpenClipboard(NULL))//TODO feature test
+			if (OpenClipboard(NULL))
 			{
 				HANDLE hClip;
 				char* pBuf;
