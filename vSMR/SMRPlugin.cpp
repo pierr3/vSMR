@@ -595,14 +595,6 @@ void CSMRPlugin::OnFunctionCall(int FunctionId, const char * sItemString, POINT 
 	}
 }
 
-void CSMRPlugin::OnControllerDisconnect(CController Controller) {
-	Logger::info(string(__FUNCSIG__));
-	if (Controller.GetFullName() == ControllerMyself().GetFullName() && HoppieConnected == true) {
-		HoppieConnected = false;
-		DisplayUserMessage("CPDLC", "Server", "Logged off!", true, true, false, true, false);
-	}
-}
-
 void CSMRPlugin::OnFlightPlanDisconnect(CFlightPlan FlightPlan)
 {
 	Logger::info(string(__FUNCSIG__));
