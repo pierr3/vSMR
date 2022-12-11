@@ -595,14 +595,6 @@ void CSMRPlugin::OnFunctionCall(int FunctionId, const char * sItemString, POINT 
 	}
 }
 
-void CSMRPlugin::OnControllerDisconnect(CController Controller) {
-	Logger::info(string(__FUNCSIG__));
-	if (Controller.GetFullName() == ControllerMyself().GetFullName() && HoppieConnected == true) {
-		HoppieConnected = false;
-		DisplayUserMessage("CPDLC", "Server", "Logged off!", true, true, false, true, false);
-	}
-}
-
 void CSMRPlugin::OnFlightPlanDisconnect(CFlightPlan FlightPlan)
 {
 	Logger::info(string(__FUNCSIG__));
@@ -628,6 +620,11 @@ void CSMRPlugin::OnTimer(int Counter)
 	if (FailedToConnectMessage) {
 		DisplayUserMessage("CPDLC", "Server", "Could not login! Callsign probably in use.", true, true, false, true, false);
 		FailedToConnectMessage = false;
+	}
+
+	if (HoppieConnected && GetConnectionType() == CONNECTION_TYPE_NO) {
+		DisplayUserMessage("CPDLC", "Server", "Automatically logged off!", true, true, false, true, false);
+		HoppieConnected = false;
 	}
 
 	if (((clock() - timer) / CLOCKS_PER_SEC) > 10 && HoppieConnected) {
