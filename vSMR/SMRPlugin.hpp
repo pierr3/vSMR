@@ -51,5 +51,6 @@ public:
 	//---OnRadarScreenCreated------------------------------------------
 
 	virtual CRadarScreen * OnRadarScreenCreated(const char * sDisplayName, bool NeedRadarContent, bool GeoReferenced, bool CanBeSaved, bool CanBeCreated);
+
 };
 
