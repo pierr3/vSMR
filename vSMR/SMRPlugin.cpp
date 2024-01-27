@@ -63,6 +63,7 @@ int pdcId = 0;
 clock_t timer;
 
 string myfrequency;
+string depFrequency = "122.800";
 
 map<string, string> vStrips_Stands;
 
@@ -327,7 +328,7 @@ void sendDatalinkClearance(void * arg) {
 
 		url += DatalinkToSend.departure + " PDC ";
 		CString PDCId_s;
-		PDCId_s.Format("%03d", ++pdcId);
+		PDCId_s.Format("%03d", pdcId);
 		url += PDCId_s;
 
 		if (DatalinkToSend.freq == "no" && DatalinkToSend.freq.size() < 5) {
@@ -579,6 +580,8 @@ void CSMRPlugin::OnFunctionCall(int FunctionId, const char * sItemString, POINT 
 
 		OpenPopupList(Area, "Datalink menu", 1);
 		AddPopupListElement("Confirm", "", TAG_FUNC_DATALINK_CONFIRM, false, 2, menu_is_datalink);
+		AddPopupListElement("Send to chat", "", TAG_FUNC_DATALINK_SENDTOCHAT, false, 2, false, true);
+		AddPopupListElement("Send to CPDLC and chat", "", TAG_FUNC_DATALINK_SENDBOTH, false, 2, false, true);
 		AddPopupListElement("Message", "", TAG_FUNC_DATALINK_MESSAGE, false, 2, false, true);
 		AddPopupListElement("Standby", "", TAG_FUNC_DATALINK_STBY, false, 2, menu_is_datalink);
 		AddPopupListElement("Voice", "", TAG_FUNC_DATALINK_VOICE, false, 2, menu_is_datalink);
@@ -688,8 +691,93 @@ void CSMRPlugin::OnFunctionCall(int FunctionId, const char * sItemString, POINT 
 			dia.m_Departure = FlightPlan.GetFlightPlanData().GetSidName();
 			dia.m_Rwy = FlightPlan.GetFlightPlanData().GetDepartureRwy();
 			dia.m_SSR = FlightPlan.GetControllerAssignedData().GetSquawk();
+			dia.m_DepFreq = depFrequency.c_str();
 			string freq = std::to_string(ControllerMyself().GetPrimaryFrequency());
 			if(InPRCAirspace)dia.m_Message = ("READBACK ONLY DEPARTURE RWY AND INITIAL CLIMB ALTITUDE ON FREQ @" + myfrequency + "@").c_str();
+			if (ControllerSelect(FlightPlan.GetCoordinatedNextController()).GetPrimaryFrequency() != 0)
+				string freq = std::to_string(ControllerSelect(FlightPlan.GetCoordinatedNextController()).GetPrimaryFrequency());
+			freq = freq.substr(0, 7);
+			dia.m_Freq = freq.c_str();
+			AcarsMessage msg = PendingMessages[FlightPlan.GetCallsign()];
+			dia.m_Req = msg.message.c_str();
+			
+
+			string toReturn = "";
+
+			int ClearedAltitude = FlightPlan.GetControllerAssignedData().GetClearedAltitude();
+			int Ta = GetTransitionAltitude();
+
+			if (ClearedAltitude != 0) {
+				if (ClearedAltitude > Ta && ClearedAltitude > 2) {
+					string str = std::to_string(ClearedAltitude);
+					for (size_t i = 0; i < 5 - str.length(); i++)
+						str = "0" + str;
+					if (str.size() > 3)
+						str.erase(str.begin() + 3, str.end());
+					toReturn = "FL";
+					toReturn += str;
+				}
+				else if (ClearedAltitude <= Ta && ClearedAltitude > 2) {
+
+
+					toReturn = std::to_string(ClearedAltitude);
+					toReturn += "ft";
+				}
+			}
+			if (InPRCAirspace) {
+				dia.m_Climb = toMetric(toReturn).c_str();
+			}
+			else {
+				dia.m_Climb = (toReturn + "M").c_str();
+			}
+
+			if (dia.DoModal() != IDOK)
+				return;
+
+			DatalinkToSend.callsign = FlightPlan.GetCallsign();
+			DatalinkToSend.destination = FlightPlan.GetFlightPlanData().GetDestination();
+			DatalinkToSend.rwy = FlightPlan.GetFlightPlanData().GetDepartureRwy();
+			DatalinkToSend.sid = FlightPlan.GetFlightPlanData().GetSidName();
+			DatalinkToSend.asat = dia.m_TSAT;
+			DatalinkToSend.ctot = dia.m_CTOT;
+			DatalinkToSend.freq = dia.m_Freq;
+			DatalinkToSend.message = dia.m_Message;
+			DatalinkToSend.squawk = FlightPlan.GetControllerAssignedData().GetSquawk();
+			DatalinkToSend.climb = toReturn;
+			DatalinkToSend.curise = std::to_string(FlightPlan.GetFinalAltitude()) + "ft";
+			DatalinkToSend.depFreq = dia.m_DepFreq;
+			DatalinkToSend.departure = FlightPlan.GetFlightPlanData().GetOrigin();
+
+			depFrequency = dia.m_DepFreq;
+
+			pdcId++;
+
+			_beginthread(sendDatalinkClearance, 0, NULL);
+
+		}
+
+	}
+
+	if (FunctionId == TAG_FUNC_DATALINK_SENDTOCHAT) {
+		CFlightPlan FlightPlan = FlightPlanSelectASEL();
+
+		if (FlightPlan.IsValid()) {
+
+			AFX_MANAGE_STATE(AfxGetStaticModuleState());
+
+			myfrequency = std::to_string(ControllerMyself().GetPrimaryFrequency()).substr(0, 7);
+
+			CDataLinkDialog dia;
+			dia.m_Callsign = FlightPlan.GetCallsign();
+			dia.m_Aircraft = FlightPlan.GetFlightPlanData().GetAircraftFPType();
+			dia.m_Dest = FlightPlan.GetFlightPlanData().GetDestination();
+			dia.m_From = FlightPlan.GetFlightPlanData().GetOrigin();
+			dia.m_Departure = FlightPlan.GetFlightPlanData().GetSidName();
+			dia.m_Rwy = FlightPlan.GetFlightPlanData().GetDepartureRwy();
+			dia.m_SSR = FlightPlan.GetControllerAssignedData().GetSquawk();
+			dia.m_DepFreq = depFrequency.c_str();
+			string freq = std::to_string(ControllerMyself().GetPrimaryFrequency());
+			if (InPRCAirspace)dia.m_Message = ("READBACK ONLY DEPARTURE RWY AND INITIAL CLIMB ALTITUDE ON FREQ " + myfrequency).c_str();
 			if (ControllerSelect(FlightPlan.GetCoordinatedNextController()).GetPrimaryFrequency() != 0)
 				string freq = std::to_string(ControllerSelect(FlightPlan.GetCoordinatedNextController()).GetPrimaryFrequency());
 			freq = freq.substr(0, 7);
@@ -743,8 +831,261 @@ void CSMRPlugin::OnFunctionCall(int FunctionId, const char * sItemString, POINT 
 			DatalinkToSend.depFreq = dia.m_DepFreq;
 			DatalinkToSend.departure = FlightPlan.GetFlightPlanData().GetOrigin();
 
+			depFrequency = dia.m_DepFreq;
+
+			string str;
+			if (InPRCAirspace) {//PDC standard format in PRC airspace
+				time_t now = time(0);
+				tm gmt;
+				gmtime_s(&gmt, &now);
+				CString sstr;
+				sstr.Format("%02d%02d %02d%02d%02d ", gmt.tm_hour, gmt.tm_min, (gmt.tm_year + 1900) % 100, gmt.tm_mon + 1, gmt.tm_mday);
+				str += sstr;
+
+				str += DatalinkToSend.departure + " PDC ";
+				CString PDCId_s;
+				PDCId_s.Format("%03d", ++pdcId);
+				str += PDCId_s;
+
+				if (DatalinkToSend.freq == "no" && DatalinkToSend.freq.size() < 5) {
+					DatalinkToSend.freq = myfrequency;
+				}
+
+				if (DatalinkToSend.ctot != "no" && DatalinkToSend.ctot.size() == 4) {
+					str += " " + DatalinkToSend.callsign + " CLRD TO " + DatalinkToSend.destination + " OFF " + DatalinkToSend.rwy + " VIA " + DatalinkToSend.sid
+						+ " SQUAWK " + DatalinkToSend.squawk + " ADT " + DatalinkToSend.ctot + " NEXT FREQ " + DatalinkToSend.freq
+						+ " INITIAL ALT " + toMetric(DatalinkToSend.climb) + " M FL " + toMetric(DatalinkToSend.curise) + " M DEPARTURE FREQ " + DatalinkToSend.depFreq
+						+ " EXPIRE IN 20 MINUTES SINCE ADT " + DatalinkToSend.message;
+				}
+				else {
+					str += " " + DatalinkToSend.callsign + " CLRD TO " + DatalinkToSend.destination + " OFF " + DatalinkToSend.rwy + " VIA " + DatalinkToSend.sid
+						+ " SQUAWK " + DatalinkToSend.squawk + " NEXT FREQ " + DatalinkToSend.freq
+						+ " INITIAL ALT " + toMetric(DatalinkToSend.climb) + " M FL " + toMetric(DatalinkToSend.curise) + " M DEPARTURE FREQ " + DatalinkToSend.depFreq
+						+ " EXPIRE IN 30 MINUTES " + DatalinkToSend.message;
+				}
+			}
+			else {
+				str += "CLR TO ";
+				str += DatalinkToSend.destination;
+				str += " RWY ";
+				str += DatalinkToSend.rwy;
+				str += " DEP ";
+				str += DatalinkToSend.sid;
+				str += " INIT CLB ";
+				str += DatalinkToSend.climb;
+				str += " SQUAWK ";
+				str += DatalinkToSend.squawk;
+				str += " ";
+				if (DatalinkToSend.ctot != "no" && DatalinkToSend.ctot.size() > 3) {
+					str += "CTOT ";
+					str += DatalinkToSend.ctot;
+					str += " ";
+				}
+				if (DatalinkToSend.asat != "no" && DatalinkToSend.asat.size() > 3) {
+					str += "TSAT ";
+					str += DatalinkToSend.asat;
+					str += " ";
+				}
+				if (DatalinkToSend.freq != "no" && DatalinkToSend.freq.size() > 5) {
+					str += "WHEN RDY CALL FREQ ";
+					str += DatalinkToSend.freq;
+					str += "";
+				}
+				else {
+					str += "WHEN RDY CALL ";
+					str += myfrequency;
+					str += "";
+				}
+				str += " IF UNABLE CALL VOICE ";
+				if (DatalinkToSend.message != "no" && DatalinkToSend.message.size() > 1)
+					str += DatalinkToSend.message;
+			}
+
+			if (OpenClipboard(NULL))
+			{
+				HANDLE hClip;
+				char * pBuf;
+				CString cStr = str.c_str();
+				EmptyClipboard();
+
+				hClip = GlobalAlloc(GMEM_MOVEABLE, cStr.GetLength() + 1);
+				pBuf = (char *)GlobalLock(hClip);
+				strcpy_s(pBuf, strlen(cStr)+1 , cStr);
+				GlobalUnlock(hClip);
+				SetClipboardData(CF_TEXT, hClip);
+
+				CloseClipboard();
+
+				DisplayUserMessage(FlightPlan.GetCallsign(), "vSMR", "PDC text message was set to clipboard, press ctrl + v to paste.", true, true, false, true, false);
+			}
+			
+		}
+	}
+
+	if (FunctionId == TAG_FUNC_DATALINK_SENDBOTH) {
+		CFlightPlan FlightPlan = FlightPlanSelectASEL();
+
+		if (FlightPlan.IsValid()) {
+
+			AFX_MANAGE_STATE(AfxGetStaticModuleState());
+
+			myfrequency = std::to_string(ControllerMyself().GetPrimaryFrequency()).substr(0, 7);
+
+			CDataLinkDialog dia;
+			dia.m_Callsign = FlightPlan.GetCallsign();
+			dia.m_Aircraft = FlightPlan.GetFlightPlanData().GetAircraftFPType();
+			dia.m_Dest = FlightPlan.GetFlightPlanData().GetDestination();
+			dia.m_From = FlightPlan.GetFlightPlanData().GetOrigin();
+			dia.m_Departure = FlightPlan.GetFlightPlanData().GetSidName();
+			dia.m_Rwy = FlightPlan.GetFlightPlanData().GetDepartureRwy();
+			dia.m_SSR = FlightPlan.GetControllerAssignedData().GetSquawk();
+			dia.m_DepFreq = depFrequency.c_str();
+			string freq = std::to_string(ControllerMyself().GetPrimaryFrequency());
+			if (InPRCAirspace)dia.m_Message = ("READBACK ONLY DEPARTURE RWY AND INITIAL CLIMB ALTITUDE ON FREQ @" + myfrequency + "@").c_str();
+			if (ControllerSelect(FlightPlan.GetCoordinatedNextController()).GetPrimaryFrequency() != 0)
+				string freq = std::to_string(ControllerSelect(FlightPlan.GetCoordinatedNextController()).GetPrimaryFrequency());
+			freq = freq.substr(0, 7);
+			dia.m_Freq = freq.c_str();
+			AcarsMessage msg = PendingMessages[FlightPlan.GetCallsign()];
+			dia.m_Req = msg.message.c_str();
+
+
+			string toReturn = "";
+
+			int ClearedAltitude = FlightPlan.GetControllerAssignedData().GetClearedAltitude();
+			int Ta = GetTransitionAltitude();
+
+			if (ClearedAltitude != 0) {
+				if (ClearedAltitude > Ta && ClearedAltitude > 2) {
+					string str = std::to_string(ClearedAltitude);
+					for (size_t i = 0; i < 5 - str.length(); i++)
+						str = "0" + str;
+					if (str.size() > 3)
+						str.erase(str.begin() + 3, str.end());
+					toReturn = "FL";
+					toReturn += str;
+				}
+				else if (ClearedAltitude <= Ta && ClearedAltitude > 2) {
+
+
+					toReturn = std::to_string(ClearedAltitude);
+					toReturn += "ft";
+				}
+			}
+			if (InPRCAirspace) {
+				dia.m_Climb = toMetric(toReturn).c_str();
+			}
+			else {
+				dia.m_Climb = (toReturn + "M").c_str();
+			}
+
+			if (dia.DoModal() != IDOK)
+				return;
+
+			DatalinkToSend.callsign = FlightPlan.GetCallsign();
+			DatalinkToSend.destination = FlightPlan.GetFlightPlanData().GetDestination();
+			DatalinkToSend.rwy = FlightPlan.GetFlightPlanData().GetDepartureRwy();
+			DatalinkToSend.sid = FlightPlan.GetFlightPlanData().GetSidName();
+			DatalinkToSend.asat = dia.m_TSAT;
+			DatalinkToSend.ctot = dia.m_CTOT;
+			DatalinkToSend.freq = dia.m_Freq;
+			DatalinkToSend.message = dia.m_Message;
+			DatalinkToSend.squawk = FlightPlan.GetControllerAssignedData().GetSquawk();
+			DatalinkToSend.climb = toReturn;
+			DatalinkToSend.curise = std::to_string(FlightPlan.GetFinalAltitude()) + "ft";
+			DatalinkToSend.depFreq = dia.m_DepFreq;
+			DatalinkToSend.departure = FlightPlan.GetFlightPlanData().GetOrigin();
+
+			depFrequency = dia.m_DepFreq;
+			pdcId++;
+
 			_beginthread(sendDatalinkClearance, 0, NULL);
 
+			string str;
+			if (InPRCAirspace) {//PDC standard format in PRC airspace
+				time_t now = time(0);
+				tm gmt;
+				gmtime_s(&gmt, &now);
+				CString sstr;
+				sstr.Format("%02d%02d %02d%02d%02d ", gmt.tm_hour, gmt.tm_min, (gmt.tm_year + 1900) % 100, gmt.tm_mon + 1, gmt.tm_mday);
+				str += sstr;
+
+				str += DatalinkToSend.departure + " PDC ";
+				CString PDCId_s;
+				PDCId_s.Format("%03d", pdcId);
+				str += PDCId_s;
+
+				if (DatalinkToSend.freq == "no" && DatalinkToSend.freq.size() < 5) {
+					DatalinkToSend.freq = myfrequency;
+				}
+
+				if (DatalinkToSend.ctot != "no" && DatalinkToSend.ctot.size() == 4) {
+					str += " " + DatalinkToSend.callsign + " CLRD TO " + DatalinkToSend.destination + " OFF " + DatalinkToSend.rwy + " VIA " + DatalinkToSend.sid
+						+ " SQUAWK " + DatalinkToSend.squawk + " ADT " + DatalinkToSend.ctot + " NEXT FREQ " + DatalinkToSend.freq
+						+ " INITIAL ALT " + toMetric(DatalinkToSend.climb) + " M FL " + toMetric(DatalinkToSend.curise) + " M DEPARTURE FREQ " + DatalinkToSend.depFreq
+						+ " EXPIRE IN 20 MINUTES SINCE ADT " + DatalinkToSend.message.erase(DatalinkToSend.message.find("@"),1).erase(DatalinkToSend.message.find("@"),1);
+				}
+				else {
+					str += " " + DatalinkToSend.callsign + " CLRD TO " + DatalinkToSend.destination + " OFF " + DatalinkToSend.rwy + " VIA " + DatalinkToSend.sid
+						+ " SQUAWK " + DatalinkToSend.squawk + " NEXT FREQ " + DatalinkToSend.freq
+						+ " INITIAL ALT " + toMetric(DatalinkToSend.climb) + " M FL " + toMetric(DatalinkToSend.curise) + " M DEPARTURE FREQ " + DatalinkToSend.depFreq
+						+ " EXPIRE IN 30 MINUTES " + DatalinkToSend.message.erase(DatalinkToSend.message.find("@"), 1).erase(DatalinkToSend.message.find("@"), 1);
+				}
+			}
+			else {
+				str += "CLR TO ";
+				str += DatalinkToSend.destination;
+				str += " RWY ";
+				str += DatalinkToSend.rwy;
+				str += " DEP ";
+				str += DatalinkToSend.sid;
+				str += " INIT CLB ";
+				str += DatalinkToSend.climb;
+				str += " SQUAWK ";
+				str += DatalinkToSend.squawk;
+				str += " ";
+				if (DatalinkToSend.ctot != "no" && DatalinkToSend.ctot.size() > 3) {
+					str += "CTOT ";
+					str += DatalinkToSend.ctot;
+					str += " ";
+				}
+				if (DatalinkToSend.asat != "no" && DatalinkToSend.asat.size() > 3) {
+					str += "TSAT ";
+					str += DatalinkToSend.asat;
+					str += " ";
+				}
+				if (DatalinkToSend.freq != "no" && DatalinkToSend.freq.size() > 5) {
+					str += "WHEN RDY CALL FREQ ";
+					str += DatalinkToSend.freq;
+					str += "";
+				}
+				else {
+					str += "WHEN RDY CALL ";
+					str += myfrequency;
+					str += "";
+				}
+				str += " IF UNABLE CALL VOICE ";
+				if (DatalinkToSend.message != "no" && DatalinkToSend.message.size() > 1)
+					str += DatalinkToSend.message;
+			}
+
+			if (OpenClipboard(NULL))
+			{
+				HANDLE hClip;
+				char* pBuf;
+				CString cStr = str.c_str();
+				EmptyClipboard();
+
+				hClip = GlobalAlloc(GMEM_MOVEABLE, cStr.GetLength() + 1);
+				pBuf = (char*)GlobalLock(hClip);
+				strcpy_s(pBuf, strlen(cStr) + 1, cStr);
+				GlobalUnlock(hClip);
+				SetClipboardData(CF_TEXT, hClip);
+
+				CloseClipboard();
+
+				DisplayUserMessage(FlightPlan.GetCallsign(), "vSMR", "PDC text message was set to clipboard, press ctrl + v to paste.", true, true, false, true, false);
+			}
 		}
 
 	}
