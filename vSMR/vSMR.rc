@@ -17,11 +17,11 @@
 #undef APSTUDIO_READONLY_SYMBOLS
 
 /////////////////////////////////////////////////////////////////////////////
-// Neutral (Default) resources
+// 非特定语言(默认值) resources
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_NEUD)
 LANGUAGE LANG_NEUTRAL, SUBLANG_DEFAULT
-#pragma code_page(1252)
+#pragma code_page(936)
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -38,12 +38,12 @@ IDC_SMRCORRELATE        CURSOR                  "..\\ml_blau_link.cur"
 
 IDC_SMRMOVEWINDOW       CURSOR                  "..\\move.cur"
 
-#endif    // Neutral (Default) resources
+#endif    // 非特定语言(默认值) resources
 /////////////////////////////////////////////////////////////////////////////
 
 
 /////////////////////////////////////////////////////////////////////////////
-// English (United States) resources
+// 英语(美国) resources
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
 LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
@@ -55,8 +55,8 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,0,0,0
- PRODUCTVERSION 0,0,0,0
+ FILEVERSION 1,5,2,0
+ PRODUCTVERSION 1,5,2,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -86,12 +86,12 @@ BEGIN
     END
 END
 
-#endif    // English (United States) resources
+#endif    // 英语(美国) resources
 /////////////////////////////////////////////////////////////////////////////
 
 
 /////////////////////////////////////////////////////////////////////////////
-// French (France) resources
+// 法语(法国) resources
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_FRA)
 LANGUAGE LANG_FRENCH, SUBLANG_FRENCH
@@ -238,7 +238,7 @@ BEGIN
     0
 END
 
-#endif    // French (France) resources
+#endif    // 法语(法国) resources
 /////////////////////////////////////////////////////////////////////////////
 
 
