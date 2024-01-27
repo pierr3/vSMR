@@ -21,10 +21,11 @@ CDataLinkDialog::CDataLinkDialog(CWnd* pParent /*=NULL*/)
 	, m_Rwy(_T(""))
 	, m_Departure(_T(""))
 	, m_SSR(_T(""))
-	, m_Freq(_T("121.800"))
+	, m_Freq(_T("122.800"))
 	, m_Message(_T(""))
 	, m_Req(_T(""))
 	, m_Climb(_T(""))
+	, m_DepFreq(_T("122.800"))
 {
 
 }
@@ -49,6 +50,7 @@ void CDataLinkDialog::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_MESSAGE, m_Message);
 	DDX_Text(pDX, IDC_ORIG, m_Req);
 	DDX_Text(pDX, IDC_CLB, m_Climb);
+	DDX_Text(pDX, IDC_DEPFREQ, m_DepFreq);
 }
 
 

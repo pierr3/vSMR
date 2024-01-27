@@ -26,6 +26,7 @@ public:
 	CString m_Message;
 	CString m_Req;
 	CString m_Climb;
+	CString m_DepFreq;
 
 // Dialog Data
 	enum { IDD = IDD_DIALOG1 };
